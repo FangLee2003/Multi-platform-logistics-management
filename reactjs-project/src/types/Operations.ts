@@ -1,21 +1,35 @@
 export interface Vehicle {
-  id: string;
-  name: string;
-  type: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
-  status: 'ACTIVE' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE';
+  id: string | number;
+  name?: string;
+  licensePlate?: string;
+  vehicleType?: string;
+  type?: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
+  brand?: string;
+  model?: string;
+  capacityWeightKg?: number;
+  capacityVolumeM3?: number;
+  year?: number;
+  status: { name: string } | 'ACTIVE' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE' | 'NEED_MAINTENANCE';
+  lastMaintenance?: string;
+  nextMaintenance?: string;
+  currentDriver?: {
+    fullName?: string;
+    username?: string;
+    email?: string;
+  };
   driver?: {
     id: string;
     name: string;
     phone: string;
   };
-  location: {
+  location?: {
     lat: number;
     lng: number;
     address: string;
   };
-  fuel: number; // percentage
-  mileage: number;
-  lastUpdated: string;
+  fuel?: number; // percentage
+  mileage?: number;
+  lastUpdated?: string;
 }
 
 export interface Route {

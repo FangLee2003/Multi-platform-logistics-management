@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-import { useState, useCallback, useMemo } from "react";
-import { initialVehicles } from "./VehicleTable";
-import type { FleetVehicle } from "../../types/dashboard";
-=======
-
 import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Vehicle as UIVehicle } from "./VehicleTable";
 import * as VehicleListAPI from "../../services/VehicleListAPI";
@@ -16,8 +10,6 @@ interface Pagination {
   total: number;
   totalPages: number;
 }
-
->>>>>>> dd820b7dec040ef3e189b718e7431eec3e2d3d00
 
 type FleetTab = "vehicles" | "maintenance" | "schedule";
 type VehicleStatus = "Hoạt động" | "Bảo trì" | "Cần bảo trì";
@@ -35,11 +27,7 @@ interface FleetStats {
 export const useFleetDashboard = () => {
   // State management
   const [tab, setTab] = useState<FleetTab>("vehicles");
-<<<<<<< HEAD
-  const [vehicles, setVehicles] = useState<FleetVehicle[]>(initialVehicles);
-=======
   const [vehicles, setVehicles] = useState<UIVehicle[]>([]);
->>>>>>> dd820b7dec040ef3e189b718e7431eec3e2d3d00
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | "all">("all");
   const [isLoading, setIsLoading] = useState(false);
@@ -62,24 +50,34 @@ export const useFleetDashboard = () => {
           id: typeof v.id === "string" ? parseInt(v.id as string) : v.id as number,
           licensePlate: v.licensePlate || "",
           type: v.vehicleType || "",
+          brand: v.brand || "",
+          model: v.model || "",
           capacityWeightKg: v.capacityWeightKg ?? undefined,
           capacityVolumeM3: v.capacityVolumeM3 ?? undefined,
-          year: 2020,
+          year: v.year || 2020,
           status:
-            v.status && v.status.name === "ACTIVE"
+            typeof v.status === "object" && v.status !== null
+              ? v.status.name === "ACTIVE"
+                ? "Hoạt động"
+                : v.status.name === "MAINTENANCE"
+                ? "Bảo trì"
+                : v.status.name === "NEED_MAINTENANCE"
+                ? "Cần bảo trì"
+                : "Hoạt động"
+              : v.status === "ACTIVE"
               ? "Hoạt động"
-              : v.status && v.status.name === "MAINTENANCE"
+              : v.status === "MAINTENANCE"
               ? "Bảo trì"
-              : v.status && v.status.name === "NEED_MAINTENANCE"
+              : v.status === "NEED_MAINTENANCE"
               ? "Cần bảo trì"
               : "Hoạt động",
-          lastMaintenance: "",
-          nextMaintenance: "",
+          lastMaintenance: v.lastMaintenance || "",
+          nextMaintenance: v.nextMaintenance || "",
           driver:
             v.currentDriver && (v.currentDriver.fullName || v.currentDriver.username || v.currentDriver.email)
               ? v.currentDriver.fullName || v.currentDriver.username || v.currentDriver.email || ""
               : "",
-          // mileage: 0,
+          mileage: v.mileage ?? 0,
         }));
         setVehicles(mapped);
         setPagination(prev => ({
@@ -132,33 +130,6 @@ export const useFleetDashboard = () => {
     });
   }, [vehicles, searchTerm, statusFilter]);
 
-<<<<<<< HEAD
-  // Optimized add vehicle handler
-  const handleAddVehicle = useCallback((data: Omit<FleetVehicle, "id" | "status" | "lastMaintenance" | "nextMaintenance" | "driver" | "mileage">) => {
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      const newVehicle: FleetVehicle = {
-        id: Math.max(...vehicles.map(v => v.id), 0) + 1,
-        licensePlate: data.licensePlate,
-        type: data.type,
-        brand: data.brand,
-        model: data.model,
-        year: Number(data.year),
-        status: "Hoạt động",
-        lastMaintenance: "",
-        nextMaintenance: "",
-        driver: "",
-        mileage: 0,
-      };
-      
-      setVehicles(prev => [...prev, newVehicle]);
-      setShowAddForm(false);
-      setIsLoading(false);
-    }, 500);
-  }, [vehicles]);
-=======
   // Add vehicle handler (call API)
   const handleAddVehicle = useCallback(
     async (data: Omit<UIVehicle, "id" | "status" | "lastMaintenance" | "nextMaintenance" | "driver" | "mileage">) => {
@@ -178,24 +149,34 @@ export const useFleetDashboard = () => {
           id: typeof newVehicle.id === "string" ? parseInt(newVehicle.id as string) : newVehicle.id as number,
           licensePlate: newVehicle.licensePlate || "",
           type: newVehicle.vehicleType || "",
+          brand: newVehicle.brand || "",
+          model: newVehicle.model || "",
           capacityWeightKg: newVehicle.capacityWeightKg ?? undefined,
           capacityVolumeM3: newVehicle.capacityVolumeM3 ?? undefined,
-          year: 2020,
+          year: newVehicle.year || 2020,
           status:
-            newVehicle.status && newVehicle.status.name === "ACTIVE"
+            typeof newVehicle.status === "object" && newVehicle.status !== null
+              ? newVehicle.status.name === "ACTIVE"
+                ? "Hoạt động"
+                : newVehicle.status.name === "MAINTENANCE"
+                ? "Bảo trì"
+                : newVehicle.status.name === "NEED_MAINTENANCE"
+                ? "Cần bảo trì"
+                : "Hoạt động"
+              : newVehicle.status === "ACTIVE"
               ? "Hoạt động"
-              : newVehicle.status && newVehicle.status.name === "MAINTENANCE"
+              : newVehicle.status === "MAINTENANCE"
               ? "Bảo trì"
-              : newVehicle.status && newVehicle.status.name === "NEED_MAINTENANCE"
+              : newVehicle.status === "NEED_MAINTENANCE"
               ? "Cần bảo trì"
               : "Hoạt động",
-          lastMaintenance: "",
-          nextMaintenance: "",
+          lastMaintenance: newVehicle.lastMaintenance || "",
+          nextMaintenance: newVehicle.nextMaintenance || "",
           driver:
             newVehicle.currentDriver && (newVehicle.currentDriver.fullName || newVehicle.currentDriver.username || newVehicle.currentDriver.email)
               ? newVehicle.currentDriver.fullName || newVehicle.currentDriver.username || newVehicle.currentDriver.email || ""
               : "",
-          // mileage: 0,
+          mileage: newVehicle.mileage ?? 0,
         };
         setVehicles(prev => [...prev, mapped]);
         setShowAddForm(false);
@@ -207,7 +188,6 @@ export const useFleetDashboard = () => {
     },
     []
   );
->>>>>>> dd820b7dec040ef3e189b718e7431eec3e2d3d00
 
   // Handle tab changes
   const handleTabChange = useCallback((newTab: string) => {
