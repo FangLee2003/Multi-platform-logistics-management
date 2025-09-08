@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { AuthResponse } from "../../types/User";
-import { setTokenCookie, setRefreshTokenCookie, removeTokenCookie, removeRefreshTokenCookie } from "../../lib/auth";
+import { setTokenCookie, setRefreshTokenCookie } from "../../lib/auth";
 import Link from "next/dist/client/link";
+import { useRouter } from "next/navigation";
 import { loginApi, googleLoginApi } from "../../server/auth.api";
 import { FaLock, FaLockOpen } from "react-icons/fa";
 import ForgotPasswordForm from "./ForgotPasswordForm";
@@ -16,6 +16,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ onLogin }: LoginFormProps) {
   const router = useRouter();
+  
   // Xử lý đăng nhập bằng Google
   const handleGoogleLogin = async () => {
     const auth = getAuth(app);
@@ -23,20 +24,19 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     try {
       // Đăng nhập Google bằng Firebase Auth
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
       // Lấy accessToken Google để gửi lên backend
       const credential = GoogleAuthProvider.credentialFromResult(result);
       const accessToken = credential?.accessToken;
       console.log("Google accessToken:", accessToken);
       if (!accessToken) {
-        alert("Không lấy được access token từ Google!");
+        alert("Unable to get access token from Google!");
         return;
       }
       // Gửi accessToken này lên backend để xác thực Google login và nhận OTP
       const res = await googleLoginApi(accessToken);
       const data = await res.json();
-  console.log("Google login response:", data);
-  console.log("totpEnabled type:", typeof data.user?.totpEnabled, "value:", data.user?.totpEnabled);
+      console.log("Google login response:", data);
+      console.log("totpEnabled type:", typeof data.user?.totpEnabled, "value:", data.user?.totpEnabled);
       if (data.user?.role?.toLowerCase() === "customer") {
         if (!data.user?.totpEnabled) {
           // Nếu chưa xác thực OTP, hiển thị form nhập OTP
@@ -49,24 +49,58 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         setRefreshTokenCookie(data.refreshToken);
         if (onLogin) onLogin(data);
       } else {
-        alert("This application is for customers only. Please use the employee application.");
+        setError("This application is for customers only. Please use the employee application.");
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      alert("Đăng nhập Google thất bại!");
+      setError("Google login failed!");
     }
   };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [pending2FA, setPending2FA] = useState(false);
-  const [pendingUser, setPendingUser] = useState<any>(null);
+  const [pendingUser, setPendingUser] = useState<AuthResponse["user"] | null>(null);
+
+  // Validation functions
+  const validateEmail = (email: string): string => {
+    if (!email) return "Email is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Please enter a valid email";
+    return "";
+  };
+
+  const validatePassword = (password: string): string => {
+    if (!password) return "Password is required";
+    if (password.length < 6) return "Password must be at least 6 characters";
+    return "";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setEmailError("");
+    setPasswordError("");
+    
+    // Validate form
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+    
+    if (emailErr) {
+      setEmailError(emailErr);
+      return;
+    }
+    
+    if (passwordErr) {
+      setPasswordError(passwordErr);
+      return;
+    }
+    
     setLoading(true);
     try {
       const res = await loginApi(email, password);
@@ -139,22 +173,38 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
             name="email"
             type="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="w-full bg-transparent border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all duration-300"
+            onChange={e => {
+              setEmail(e.target.value);
+              if (emailError) setEmailError("");
+            }}
+            onBlur={e => {
+              const err = validateEmail(e.target.value);
+              setEmailError(err);
+            }}
+            className={`w-full bg-transparent border ${emailError ? 'border-red-400' : 'border-white/20'} rounded-xl px-4 py-3 text-white text-base placeholder-white/60 focus:outline-none focus:ring-2 ${emailError ? 'focus:ring-red-400/40 focus:border-red-400/40' : 'focus:ring-blue-400/40 focus:border-blue-400/40'} transition-all duration-300`}
             placeholder="Enter email"
             required
             autoComplete="email"
           />
+          {emailError && (
+            <p className="text-red-300 text-sm mt-1 flex items-center gap-1">
+              <span>⚠️</span>
+              {emailError}
+            </p>
+          )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 -mt-1 my-6">
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-white/90 text-sm font-medium drop-shadow">
               Password
             </label>
             <button
               type="button"
-              className="text-white hover:text-white/70 text-sm font-medium ml-auto transition-colors duration-200"
+              className="!text-black hover:!text-white/50 text-xs font-medium ml-auto transition-all duration-200"
+              style={{ 
+                fontSize: '14px'
+              }}
               onClick={() => setShowForgot(true)}
             >
               Forgot password?
@@ -166,8 +216,15 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
               name="password"
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full bg-transparent border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all duration-300"
+              onChange={e => {
+                setPassword(e.target.value);
+                if (passwordError) setPasswordError("");
+              }}
+              onBlur={e => {
+                const err = validatePassword(e.target.value);
+                setPasswordError(err);
+              }}
+              className={`w-full bg-transparent border ${passwordError ? 'border-red-400' : 'border-white/20'} rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 ${passwordError ? 'focus:ring-red-400/40 focus:border-red-400/40' : 'focus:ring-blue-400/40 focus:border-blue-400/40'} transition-all duration-300`}
               placeholder="Enter password"
               required
               autoComplete="current-password"
@@ -182,6 +239,12 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
               {showPassword ? <FaLockOpen className="w-3 h-3" /> : <FaLock className="w-3 h-3" />}
             </button>
           </div>
+          {passwordError && (
+            <p className="text-red-300 text-sm mt-1 flex items-center gap-1">
+              <span>⚠️</span>
+              {passwordError}
+            </p>
+          )}
         </div>
 
         {error && (
@@ -236,7 +299,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         </button>
       </form>
       
-      <div className="text-center mt-4 pt-2  border-white/20">
+      <div className="text-center mt-5 pt-2 border-white/20">
         <span className="text-white/80 text-sm">Don&apos;t have an account? </span>
         <Link 
           href="/register" 
