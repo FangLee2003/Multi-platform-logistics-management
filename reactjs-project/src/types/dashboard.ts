@@ -11,6 +11,8 @@ export interface FleetVehicle {
   nextMaintenance: string;
   driver: string;
   mileage: number;
+  capacityWeightKg?: number;
+  capacityVolumeM3?: number;
 }
 // Vehicle interface từ operationsAPI.ts
 export interface Vehicle {
