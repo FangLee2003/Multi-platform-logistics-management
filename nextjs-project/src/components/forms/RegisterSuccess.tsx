@@ -1,5 +1,3 @@
-
-
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useRouter } from "next/navigation";
@@ -13,11 +11,10 @@ interface RegisterSuccessProps {
   };
 }
 
-
-
 export default function RegisterSuccess({ response, user }: RegisterSuccessProps) {
   const router = useRouter();
   const qrUrl = response?.totpQrUrl;
+  const [showQR, setShowQR] = useState(true);
   const [showOtpForm, setShowOtpForm] = useState(!!qrUrl);
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
@@ -61,11 +58,27 @@ export default function RegisterSuccess({ response, user }: RegisterSuccessProps
           <h2 className="text-2xl font-bold text-white drop-shadow-lg text-center">Registration Successful!</h2>
           <p className="text-white/80 text-base text-center max-w-xs">Congratulations <span className="font-semibold text-blue-200">{user.fullName}</span>, your account has been created.</p>
         </div>
-        {qrUrl && (
+        {qrUrl && showQR && (
           <div className="flex flex-col items-center gap-4 mt-4">
             <h3 className="text-lg text-white font-semibold">Scan the QR code with your Authenticator app</h3>
             <QRCodeCanvas value={qrUrl ? qrUrl.replace(/\n/g, '').trim() : ''} size={180} />
             <p className="text-white/80 text-sm break-all">Or open this link: <a href={qrUrl} target="_blank" className="text-blue-300 underline">{qrUrl}</a></p>
+            <button 
+              onClick={() => setShowQR(false)}
+              className="mt-4 px-6 py-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600/80 transition-all duration-200"
+            >
+              Hide QR Code
+            </button>
+          </div>
+        )}
+        {qrUrl && !showQR && (
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <button 
+              onClick={() => setShowQR(true)}
+              className="px-6 py-3 bg-blue-500/80 text-white rounded-lg hover:bg-blue-600/80 transition-all duration-200 font-semibold"
+            >
+              Show QR Code
+            </button>
           </div>
         )}
         {showOtpForm && (

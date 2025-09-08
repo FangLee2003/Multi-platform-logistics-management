@@ -29,14 +29,14 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       const accessToken = credential?.accessToken;
       console.log("Google accessToken:", accessToken);
       if (!accessToken) {
-        alert("Không lấy được access token từ Google!");
+        alert("Unable to get access token from Google!");
         return;
       }
       // Gửi accessToken này lên backend để xác thực Google login và nhận OTP
       const res = await googleLoginApi(accessToken);
       const data = await res.json();
-  console.log("Google login response:", data);
-  console.log("totpEnabled type:", typeof data.user?.totpEnabled, "value:", data.user?.totpEnabled);
+      console.log("Google login response:", data);
+      console.log("totpEnabled type:", typeof data.user?.totpEnabled, "value:", data.user?.totpEnabled);
       if (data.user?.role?.toLowerCase() === "customer") {
         if (!data.user?.totpEnabled) {
           // Nếu chưa xác thực OTP, hiển thị form nhập OTP
@@ -49,11 +49,11 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         setRefreshTokenCookie(data.refreshToken);
         if (onLogin) onLogin(data);
       } else {
-        alert("This application is for customers only. Please use the employee application.");
+        setError("This application is for customers only. Please use the employee application.");
       }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      alert("Đăng nhập Google thất bại!");
+      setError("Google login failed!");
     }
   };
   const [email, setEmail] = useState("");
@@ -194,7 +194,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           )}
         </div>
 
-        <div className="space-y-2 -mt-1 my-8">
+        <div className="space-y-2 -mt-1 my-6">
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-white/90 text-sm font-medium drop-shadow">
               Password
@@ -224,7 +224,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 const err = validatePassword(e.target.value);
                 setPasswordError(err);
               }}
-              className={`w-full bg-transparent border ${passwordError ? 'border-red-400' : 'border-white/20'} rounded-xl px-4 py-3 pr-12 text-white text-base placeholder-white/60 focus:outline-none focus:ring-2 ${passwordError ? 'focus:ring-red-400/40 focus:border-red-400/40' : 'focus:ring-blue-400/40 focus:border-blue-400/40'} transition-all duration-300`}
+              className={`w-full bg-transparent border ${passwordError ? 'border-red-400' : 'border-white/20'} rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 ${passwordError ? 'focus:ring-red-400/40 focus:border-red-400/40' : 'focus:ring-blue-400/40 focus:border-blue-400/40'} transition-all duration-300`}
               placeholder="Enter password"
               required
               autoComplete="current-password"
@@ -271,7 +271,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           </span>
         </button>
 
-        <div className="flex items-center my-4">
+        <div className="flex items-center">
           <div className="flex-grow h-px bg-white/30" />
           <span className="mx-3 text-white/60 text-sm">OR</span>
           <div className="flex-grow h-px bg-white/30" />

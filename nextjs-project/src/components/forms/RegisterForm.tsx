@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { registerUserApi } from "../../server/user.api";
-import { loginApi } from "../../server/auth.api";
 import { FaLock, FaLockOpen } from "react-icons/fa";
 import { AuthResponse } from "../../types/User";
 import RegisterSuccess from "./RegisterSuccess";
@@ -20,36 +19,35 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [registerResponse, setRegisterResponse] = useState<any>(null);
+  const [registerResponse, setRegisterResponse] = useState<AuthResponse | null>(null);
 
-  
-// --- Validation helpers ---
-const validators = {
-  email: (v: string) => {
-    if (!v) return "Email is required";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Please enter a valid email";
-    return "";
-  },
-  password: (v: string) => {
-    if (!v) return "Password is required";
-    if (v.length < 6) return "Password must be at least 6 characters";
-    return "";
-  },
-  confirmPassword: (v: string, password: string) => {
-    if (!v) return "Please confirm your password";
-    if (v !== password) return "Passwords do not match";
-    return "";
-  },
-  fullName: (v: string) => {
-    if (!v) return "Full name is required";
-    return "";
-  },
-  phone: (v: string) => {
-    if (!v) return "Phone is required";
-    if (!/^\d{9,15}$/.test(v)) return "Phone must be 9-15 digits";
-    return "";
-  }
-};
+  // --- Validation ---
+  const validators = {
+    email: (v: string) => {
+      if (!v) return "Email is required";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Please enter a valid email";
+      return "";
+    },
+    password: (v: string) => {
+      if (!v) return "Password is required";
+      if (v.length < 6) return "Password must be at least 6 characters";
+      return "";
+    },
+    confirmPassword: (v: string, password: string) => {
+      if (!v) return "Please confirm your password";
+      if (v !== password) return "Passwords do not match";
+      return "";
+    },
+    fullName: (v: string) => {
+      if (!v) return "Full name is required";
+      return "";
+    },
+    phone: (v: string) => {
+      if (!v) return "Phone is required";
+      if (!/^\d{9,15}$/.test(v)) return "Phone must be 9-15 digits";
+      return "";
+    }
+  };
 
   const [errors, setErrors] = useState({
     email: "",
@@ -73,7 +71,6 @@ const validators = {
     };
     setErrors(newErrors);
     if (Object.values(newErrors).some(e => e)) return;
-  if (Object.values(newErrors).some(e => e)) return;
     
     setLoading(true);
     try {
@@ -83,8 +80,8 @@ const validators = {
         setError(responseData.error || "Registration failed!");
         return;
       }
-  setRegisterResponse(responseData);
-  if (onRegister) onRegister(responseData);
+      setRegisterResponse(responseData);
+      if (onRegister) onRegister(responseData);
     } catch {
       setError("Unable to connect to server!");
     } finally {
@@ -164,7 +161,6 @@ const validators = {
                     required
                     autoComplete="new-password"
                   />
-                  {errors.password && <p className="text-red-300 text-xs mt-1">{errors.password}</p>}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -175,6 +171,7 @@ const validators = {
                     {showPassword ? <FaLockOpen className="w-3 h-3" /> : <FaLock className="w-3 h-3" />}
                   </button>
                 </div>
+                {errors.password && <p className="text-red-300 text-xs mt-1">{errors.password}</p>}
               </div>
               <div className="space-y-2">
                 <label htmlFor="confirmPassword" className="block text-white/90 text-sm font-medium drop-shadow">
@@ -195,7 +192,6 @@ const validators = {
                     required
                     autoComplete="new-password"
                   />
-                  {errors.confirmPassword && <p className="text-red-300 text-xs mt-1">{errors.confirmPassword}</p>}
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -206,6 +202,7 @@ const validators = {
                     {showConfirmPassword ? <FaLockOpen className="w-3 h-3" /> : <FaLock className="w-3 h-3" />}
                   </button>
                 </div>
+                {errors.confirmPassword && <p className="text-red-300 text-xs mt-1">{errors.confirmPassword}</p>}
               </div>
             </div>
             <div className="space-y-2 mt-4 my-8">
@@ -249,7 +246,7 @@ const validators = {
                 )}
               </span>
             </button>
-            <div className="text-center mt-6">
+            <div className="text-center mt-1">
               <span className="text-white/80 text-sm">Already have an account? </span>
               <Link 
                 href="/login" 
@@ -261,11 +258,14 @@ const validators = {
           </form>
         </div>
       ) : (
-        <RegisterSuccess response={registerResponse} user={{
-          email,
-          fullName,
-          phone
-        }} />
+        <RegisterSuccess 
+          response={registerResponse} 
+          user={{
+            email,
+            fullName,
+            phone
+          }} 
+        />
       )}
     </>
   );
