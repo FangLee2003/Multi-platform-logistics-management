@@ -1,5 +1,5 @@
 package ktc.spring_project.services;
-
+import ktc.spring_project.dtos.order.OrderSummaryDTO;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.Vehicle;
 import ktc.spring_project.repositories.OrderRepository;
@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import ktc.spring_project.dtos.order.OrderSummaryDTO;
 
 @Slf4j
 @Service
@@ -266,9 +267,17 @@ public class OrderService {
                 order.setVehicle(null);
             }
         }
+        return orderRepository.save(order);
     }
-    
-    private Map<String, Object> buildTrackingInfo(Order order) {
+
+    public void deleteOrder(Long id) {
+        Order order = getOrderById(id);
+        orderRepository.delete(order);
+    }
+
+    public Object getOrderTrackingInfo(Long orderId) {
+        Order order = getOrderById(orderId); // Lấy order từ DB
+
         Map<String, Object> tracking = new HashMap<>();
         tracking.put("orderId", order.getId());
         tracking.put("status", order.getStatus() != null ? order.getStatus().getName() : null);
