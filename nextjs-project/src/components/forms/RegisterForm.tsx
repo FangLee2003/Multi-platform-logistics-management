@@ -22,33 +22,58 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registerResponse, setRegisterResponse] = useState<any>(null);
 
+  
+// --- Validation helpers ---
+const validators = {
+  email: (v: string) => {
+    if (!v) return "Email is required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Please enter a valid email";
+    return "";
+  },
+  password: (v: string) => {
+    if (!v) return "Password is required";
+    if (v.length < 6) return "Password must be at least 6 characters";
+    return "";
+  },
+  confirmPassword: (v: string, password: string) => {
+    if (!v) return "Please confirm your password";
+    if (v !== password) return "Passwords do not match";
+    return "";
+  },
+  fullName: (v: string) => {
+    if (!v) return "Full name is required";
+    return "";
+  },
+  phone: (v: string) => {
+    if (!v) return "Phone is required";
+    if (!/^\d{9,15}$/.test(v)) return "Phone must be 9-15 digits";
+    return "";
+  }
+};
+
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
+    phone: ""
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setEmailError("");
-    setPasswordError("");
-    setConfirmPasswordError("");
-    setFullNameError("");
-    setPhoneError("");
-    
+    setErrors({ email: "", password: "", confirmPassword: "", fullName: "", phone: "" });
     // Validate all fields
-    const emailErr = validateEmail(email);
-    const passwordErr = validatePassword(password);
-    const confirmPasswordErr = validateConfirmPassword(password, confirmPassword);
-    const fullNameErr = validateFullName(fullName);
-    const phoneErr = validatePhone(phone);
-    
-    // Set error states
-    if (emailErr) setEmailError(emailErr);
-    if (passwordErr) setPasswordError(passwordErr);
-    if (confirmPasswordErr) setConfirmPasswordError(confirmPasswordErr);
-    if (fullNameErr) setFullNameError(fullNameErr);
-    if (phoneErr) setPhoneError(phoneErr);
-    
-    // If any validation errors, stop submission
-    if (emailErr || passwordErr || confirmPasswordErr || fullNameErr || phoneErr) {
-      return;
-    }
+    const newErrors = {
+      email: validators.email(email),
+      password: validators.password(password),
+      confirmPassword: validators.confirmPassword(confirmPassword, password),
+      fullName: validators.fullName(fullName),
+      phone: validators.phone(phone)
+    };
+    setErrors(newErrors);
+    if (Object.values(newErrors).some(e => e)) return;
+  if (Object.values(newErrors).some(e => e)) return;
     
     setLoading(true);
     try {
@@ -58,7 +83,8 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
         setError(responseData.error || "Registration failed!");
         return;
       }
-      setRegisterResponse(responseData);
+  setRegisterResponse(responseData);
+  if (onRegister) onRegister(responseData);
     } catch {
       setError("Unable to connect to server!");
     } finally {
@@ -88,11 +114,16 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                   id="fullName"
                   type="text"
                   value={fullName}
-                  onChange={e => setFullName(e.target.value)}
+                  onChange={e => {
+                    setFullName(e.target.value);
+                    setErrors(errs => ({ ...errs, fullName: "" }));
+                  }}
+                  onBlur={e => setErrors(errs => ({ ...errs, fullName: validators.fullName(e.target.value) }))}
                   className="w-full bg-transparent border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all duration-300"
                   placeholder="Enter full name"
                   required
                 />
+                {errors.fullName && <p className="text-red-300 text-xs mt-1">{errors.fullName}</p>}
               </div>
               <div className="space-y-2">
                 <label htmlFor="email" className="block text-white/90 text-sm font-medium drop-shadow">
@@ -102,12 +133,17 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    setErrors(errs => ({ ...errs, email: "" }));
+                  }}
+                  onBlur={e => setErrors(errs => ({ ...errs, email: validators.email(e.target.value) }))}
                   className="w-full bg-transparent border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all duration-300"
                   placeholder="Enter email"
                   required
                   autoComplete="username"
                 />
+                {errors.email && <p className="text-red-300 text-xs mt-1">{errors.email}</p>}
               </div>
               <div className="space-y-2">
                 <label htmlFor="password" className="block text-white/90 text-sm font-medium drop-shadow">
@@ -118,12 +154,17 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => {
+                      setPassword(e.target.value);
+                      setErrors(errs => ({ ...errs, password: "" }));
+                    }}
+                    onBlur={e => setErrors(errs => ({ ...errs, password: validators.password(e.target.value) }))}
                     className="w-full bg-transparent border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all duration-300"
                     placeholder="Enter password"
                     required
                     autoComplete="new-password"
                   />
+                  {errors.password && <p className="text-red-300 text-xs mt-1">{errors.password}</p>}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -144,12 +185,17 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
+                    onChange={e => {
+                      setConfirmPassword(e.target.value);
+                      setErrors(errs => ({ ...errs, confirmPassword: "" }));
+                    }}
+                    onBlur={e => setErrors(errs => ({ ...errs, confirmPassword: validators.confirmPassword(e.target.value, password) }))}
                     className="w-full bg-transparent border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all duration-300"
                     placeholder="Enter password"
                     required
                     autoComplete="new-password"
                   />
+                  {errors.confirmPassword && <p className="text-red-300 text-xs mt-1">{errors.confirmPassword}</p>}
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -162,7 +208,7 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                 </div>
               </div>
             </div>
-            <div className="space-y-2 mt-4">
+            <div className="space-y-2 mt-4 my-8">
               <label htmlFor="phone" className="block text-white/90 text-sm font-medium drop-shadow">
                 Phone
               </label>
@@ -170,11 +216,16 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                 id="phone"
                 type="tel"
                 value={phone}
-                onChange={e => setPhone(e.target.value)}
+                onChange={e => {
+                  setPhone(e.target.value);
+                  setErrors(errs => ({ ...errs, phone: "" }));
+                }}
+                onBlur={e => setErrors(errs => ({ ...errs, phone: validators.phone(e.target.value) }))}
                 className="w-full bg-transparent border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all duration-300"
                 placeholder="Enter phone number"
                 required
               />
+              {errors.phone && <p className="text-red-300 text-xs mt-1">{errors.phone}</p>}
             </div>
             {error && (
               <div className="bg-red-500/20 backdrop-blur-sm border border-red-400/30 text-red-100 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
@@ -198,7 +249,7 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                 )}
               </span>
             </button>
-            <div className="text-center mt-3">
+            <div className="text-center mt-6">
               <span className="text-white/80 text-sm">Already have an account? </span>
               <Link 
                 href="/login" 

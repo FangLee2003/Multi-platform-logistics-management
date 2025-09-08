@@ -1,3 +1,5 @@
+
+
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useRouter } from "next/navigation";
@@ -11,9 +13,10 @@ interface RegisterSuccessProps {
   };
 }
 
+
+
 export default function RegisterSuccess({ response, user }: RegisterSuccessProps) {
   const router = useRouter();
-  const [showQR, setShowQR] = useState(true);
   const qrUrl = response?.totpQrUrl;
   const [showOtpForm, setShowOtpForm] = useState(!!qrUrl);
   const [otp, setOtp] = useState("");
@@ -39,33 +42,39 @@ export default function RegisterSuccess({ response, user }: RegisterSuccessProps
           router.push('/login');
         }, 1200);
       } else {
-        setOtpError("Mã OTP không đúng hoặc đã hết hạn!");
+        setOtpError("Invalid or expired OTP code!");
       }
     } catch {
-      setOtpError("Lỗi xác thực OTP!");
+      setOtpError("OTP verification error!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl px-8 py-10">
-      <div className="w-full max-w-md mx-auto space-y-6">
-        <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-4 text-center">Đăng ký thành công!</h2>
+    <div className="w-full bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl px-8 py-10 flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="w-full max-w-lg mx-auto space-y-8 flex flex-col items-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="bg-green-500/90 rounded-full p-4 shadow-lg mb-2">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l2.5 2.5L16 9"/></svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white drop-shadow-lg text-center">Registration Successful!</h2>
+          <p className="text-white/80 text-base text-center max-w-xs">Congratulations <span className="font-semibold text-blue-200">{user.fullName}</span>, your account has been created.</p>
+        </div>
         {qrUrl && (
-          <div className="flex flex-col items-center gap-4">
-            <h3 className="text-lg text-white">Quét mã QR với app Authenticator:</h3>
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <h3 className="text-lg text-white font-semibold">Scan the QR code with your Authenticator app</h3>
             <QRCodeCanvas value={qrUrl ? qrUrl.replace(/\n/g, '').trim() : ''} size={180} />
-            <p className="text-white/80 text-sm break-all">Hoặc mở link: <a href={qrUrl} target="_blank" className="text-blue-300 underline">{qrUrl}</a></p>
+            <p className="text-white/80 text-sm break-all">Or open this link: <a href={qrUrl} target="_blank" className="text-blue-300 underline">{qrUrl}</a></p>
           </div>
         )}
         {showOtpForm && (
-          <form onSubmit={handleOtpSubmit} className="mt-10 flex flex-col items-center gap-6 bg-white/20 rounded-2xl p-8 shadow-2xl border border-blue-400/30">
+          <form onSubmit={handleOtpSubmit} className="mt-8 flex flex-col items-center gap-6 bg-white/20 rounded-2xl p-8 shadow-2xl border border-blue-400/30">
             <div className="flex items-center gap-2 mb-2">
               <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400"><circle cx="16" cy="16" r="14"/><path d="M16 10v6l5 3"/></svg>
-              <span className="text-white text-xl font-bold">Nhập mã OTP từ app Authenticator</span>
+              <span className="text-white text-xl font-bold">Enter OTP from Authenticator app</span>
             </div>
-            <p className="text-white/80 text-base mb-2 text-center">Mở ứng dụng Google Authenticator hoặc Microsoft Authenticator, nhập 6 số OTP hiển thị để xác thực bảo mật 2 lớp.</p>
+            <p className="text-white/80 text-base mb-2 text-center">Open Google Authenticator or Microsoft Authenticator and enter the 6-digit OTP to enable 2FA security.</p>
             <input
               id="otp"
               type="text"
@@ -80,13 +89,20 @@ export default function RegisterSuccess({ response, user }: RegisterSuccessProps
               placeholder="000000"
             />
             <button type="submit" disabled={loading} className="w-48 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-xl font-bold shadow-xl hover:from-blue-600 hover:to-blue-700 transition text-xl">
-              {loading ? "Đang xác thực..." : "Xác thực OTP"}
+              {loading ? "Verifying..." : "Verify OTP"}
             </button>
             {otpError && <div className="text-red-400 text-center font-semibold mt-2">{otpError}</div>}
           </form>
         )}
-        {otpSuccess && <div className="text-green-400 font-semibold text-center text-lg">Xác thực OTP thành công! Bạn đã kích hoạt bảo mật 2 lớp.</div>}
-        {!showQR && <p className="text-white/80 text-center">Bạn đã quét mã QR. Hãy đăng nhập để sử dụng!</p>}
+        {otpSuccess && <div className="text-green-400 font-semibold text-center text-lg">OTP verified! Two-factor authentication is now enabled.</div>}
+        {!qrUrl && !showOtpForm && (
+          <button
+            className="mt-8 w-full bg-white border border-white/20 text-black font-semibold py-3 rounded-xl shadow-lg hover:bg-white/70 hover:text-black-300 transition-all duration-200 text-lg"
+            onClick={() => router.push('/login')}
+          >
+            Go to Login
+          </button>
+        )}
       </div>
     </div>
   );

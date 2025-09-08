@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { AuthResponse } from "../../types/User";
-import { setTokenCookie, setRefreshTokenCookie, removeTokenCookie, removeRefreshTokenCookie } from "../../lib/auth";
+import { setTokenCookie, setRefreshTokenCookie } from "../../lib/auth";
 import Link from "next/dist/client/link";
+import { useRouter } from "next/navigation";
 import { loginApi, googleLoginApi } from "../../server/auth.api";
 import { FaLock, FaLockOpen } from "react-icons/fa";
 import ForgotPasswordForm from "./ForgotPasswordForm";
@@ -14,6 +15,8 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onLogin }: LoginFormProps) {
+  const router = useRouter();
+  
   // Xử lý đăng nhập bằng Google
   const handleGoogleLogin = async () => {
     const auth = getAuth(app);
@@ -21,7 +24,6 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     try {
       // Đăng nhập Google bằng Firebase Auth
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
       // Lấy accessToken Google để gửi lên backend
       const credential = GoogleAuthProvider.credentialFromResult(result);
       const accessToken = credential?.accessToken;
@@ -57,11 +59,27 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [pending2FA, setPending2FA] = useState(false);
-  const [pendingUser, setPendingUser] = useState<any>(null);
+  const [pendingUser, setPendingUser] = useState<AuthResponse["user"] | null>(null);
+
+  // Validation functions
+  const validateEmail = (email: string): string => {
+    if (!email) return "Email is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Please enter a valid email";
+    return "";
+  };
+
+  const validatePassword = (password: string): string => {
+    if (!password) return "Password is required";
+    if (password.length < 6) return "Password must be at least 6 characters";
+    return "";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +181,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
               const err = validateEmail(e.target.value);
               setEmailError(err);
             }}
-            className={`w-full bg-transparent border ${emailError ? 'border-red-400' : 'border-white/20'} rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 ${emailError ? 'focus:ring-red-400/40 focus:border-red-400/40' : 'focus:ring-blue-400/40 focus:border-blue-400/40'} transition-all duration-300`}
+            className={`w-full bg-transparent border ${emailError ? 'border-red-400' : 'border-white/20'} rounded-xl px-4 py-3 text-white text-base placeholder-white/60 focus:outline-none focus:ring-2 ${emailError ? 'focus:ring-red-400/40 focus:border-red-400/40' : 'focus:ring-blue-400/40 focus:border-blue-400/40'} transition-all duration-300`}
             placeholder="Enter email"
             required
             autoComplete="email"
@@ -176,14 +194,17 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 -mt-1 my-8">
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-white/90 text-sm font-medium drop-shadow">
               Password
             </label>
             <button
               type="button"
-              className="text-white hover:text-white/70 text-sm font-medium ml-auto transition-colors duration-200"
+              className="!text-black hover:!text-white/50 text-xs font-medium ml-auto transition-all duration-200"
+              style={{ 
+                fontSize: '14px'
+              }}
               onClick={() => setShowForgot(true)}
             >
               Forgot password?
@@ -203,7 +224,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 const err = validatePassword(e.target.value);
                 setPasswordError(err);
               }}
-              className={`w-full bg-transparent border ${passwordError ? 'border-red-400' : 'border-white/20'} rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 ${passwordError ? 'focus:ring-red-400/40 focus:border-red-400/40' : 'focus:ring-blue-400/40 focus:border-blue-400/40'} transition-all duration-300`}
+              className={`w-full bg-transparent border ${passwordError ? 'border-red-400' : 'border-white/20'} rounded-xl px-4 py-3 pr-12 text-white text-base placeholder-white/60 focus:outline-none focus:ring-2 ${passwordError ? 'focus:ring-red-400/40 focus:border-red-400/40' : 'focus:ring-blue-400/40 focus:border-blue-400/40'} transition-all duration-300`}
               placeholder="Enter password"
               required
               autoComplete="current-password"
@@ -250,7 +271,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           </span>
         </button>
 
-        <div className="flex items-center">
+        <div className="flex items-center my-4">
           <div className="flex-grow h-px bg-white/30" />
           <span className="mx-3 text-white/60 text-sm">OR</span>
           <div className="flex-grow h-px bg-white/30" />
@@ -278,7 +299,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         </button>
       </form>
       
-      <div className="text-center mt-4 pt-2  border-white/20">
+      <div className="text-center mt-5 pt-2 border-white/20">
         <span className="text-white/80 text-sm">Don&apos;t have an account? </span>
         <Link 
           href="/register" 
