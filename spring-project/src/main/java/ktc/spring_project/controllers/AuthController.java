@@ -75,30 +75,31 @@ public ResponseEntity<Map<String, Object>> login(
 //     User createdUser = userService.createUser(user);
 //     return ResponseEntity.ok(createdUser);
 // }
+// ...existing code...
 @PostMapping("/users")
  public ResponseEntity<Map<String, Object>> createUser(@Valid @RequestBody User user) {
     System.out.println("==> Đã vào createUser");
     try {
         User createdUser = userService.createUser(user);
-    String secret = userService.getOrCreateTotpSecret(createdUser.getEmail());
-    String otpauthUrl = null;
-    if (secret != null && !secret.isEmpty()) {
-        String issuer = "KTC_2025";
-        String email = createdUser.getEmail();
-        otpauthUrl = String.format(
-            "otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30",
-            issuer, email, secret, issuer
-        );
-        // Gửi secret TOTP về email cho user
-        // KHÔNG gửi secret TOTP về email khi đăng ký thường
-        // userService.sendOtpEmail(email, secret);
+        String secret = userService.getOrCreateTotpSecret(createdUser.getEmail());
+        String otpauthUrl = null;
+        if (secret != null && !secret.isEmpty()) {
+            String issuer = "KTC_2025";
+            String email = createdUser.getEmail();
+            otpauthUrl = String.format(
+                "otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30",
+                issuer, email, secret, issuer
+            );
+            // Gửi secret TOTP về email cho user
+            // KHÔNG gửi secret TOTP về email khi đăng ký thường
+            // userService.sendOtpEmail(email, secret);
+        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("user", createdUser);
+        response.put("otpauthUrl", otpauthUrl);
+        return ResponseEntity.ok(response);
     } catch (RuntimeException e) {
         throw new HttpException(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-        // Return error response with proper message
-        Map<String, String> errorResponse = new HashMap<>();
-        errorResponse.put("error", e.getMessage());
-        return ResponseEntity.badRequest().body(errorResponse);
     }
 }
 // Cập nhật toàn bộ thông tin người dùng

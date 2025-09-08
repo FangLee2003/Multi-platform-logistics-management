@@ -1,7 +1,8 @@
 package ktc.spring_project.services;
 
+
 import ktc.spring_project.exceptions.HttpException;
-import ktc.spring_project.exceptions.EntityNotFoundException;
+// import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.dtos.DeliveryFeeBreakdown;
 import ktc.spring_project.dtos.order.DeliveryOrderResponseDTO;
@@ -27,6 +28,10 @@ import ktc.spring_project.entities.Payment;
 import ktc.spring_project.repositories.DeliveryRepository;
 import ktc.spring_project.repositories.PaymentRepository;
 import ktc.spring_project.repositories.OrderItemRepository;
+import ktc.spring_project.services.OrderService;
+import ktc.spring_project.services.VehicleService;
+import ktc.spring_project.services.UserService;
+import ktc.spring_project.services.RouteService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +60,18 @@ public class DeliveryService {
 
     @Autowired
     private OrderItemRepository orderItemRepository;
+    
+    @Autowired
+    private OrderService orderService;
+    
+    @Autowired
+    private VehicleService vehicleService;
+    
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private RouteService routeService;
 
     public Delivery createDelivery(Delivery delivery) {
         if (delivery.getDeliveryAttempts() != null && delivery.getDeliveryAttempts() < 0) {
@@ -416,3 +433,4 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
         }
         return delivery;
     }
+}
