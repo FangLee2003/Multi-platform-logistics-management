@@ -25,12 +25,9 @@ import {
 } from "@ant-design/icons";
 import { Store } from "@/types/Store";
 import { storeService } from "@/services/storeService";
-import DebugSession from "@/components/DebugSession";
 
 const { Title } = Typography;
 const { TextArea } = Input;
-
-// import { useSession } from "next-auth/react";
 
 export default function StorePage() {
   const [form] = Form.useForm();
@@ -38,13 +35,9 @@ export default function StorePage() {
   const [loading, setLoading] = useState(true);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  // Tạm thời disable NextAuth để tránh lỗi CLIENT_FETCH_ERROR
-  // const { data: session, status } = useSession();
-
   useEffect(() => {
     const fetchStoreData = async () => {
       try {
-        // Chỉ sử dụng localStorage để tránh NextAuth error
         const userStr = localStorage.getItem("user");
         if (!userStr) {
           message.error("Vui lòng đăng nhập để xem thông tin cửa hàng");
@@ -56,7 +49,6 @@ export default function StorePage() {
         try {
           const user = JSON.parse(userStr);
           userId = user.id;
-          console.log("Using userId from localStorage:", userId);
         } catch (parseError) {
           console.error("Error parsing user from localStorage:", parseError);
           message.error("Thông tin đăng nhập không hợp lệ");
@@ -70,18 +62,15 @@ export default function StorePage() {
           return;
         }
 
-        console.log("Fetching store for userId:", userId); // Debug log
         const data = await storeService.getStoresByUserId(userId.toString());
-        console.log("Store data received:", data); // Debug log
 
         if (data && data.length > 0) {
-          setStore(data[0]); // Lấy store đầu tiên vì mỗi user chỉ có 1 store
+          setStore(data[0]);
         } else {
           message.info("Không tìm thấy thông tin cửa hàng");
         }
       } catch (error) {
         console.error("Failed to fetch store:", error);
-        // Chi tiết hóa error message
         if (error instanceof Error) {
           message.error(`Lỗi khi tải thông tin cửa hàng: ${error.message}`);
         } else {
@@ -92,7 +81,6 @@ export default function StorePage() {
       }
     };
 
-    // Chỉ chạy 1 lần khi component mount
     fetchStoreData();
   }, []);
 
@@ -141,45 +129,8 @@ export default function StorePage() {
     );
   }
 
-  // Debug thông tin user hiện tại
-  const currentUser = (() => {
-    try {
-      const userStr = localStorage.getItem("user");
-      return userStr ? JSON.parse(userStr) : null;
-    } catch {
-      return null;
-    }
-  })();
-
   return (
     <Card>
-      <DebugSession />
-
-      {/* Debug User Info */}
-      {process.env.NODE_ENV === "development" && (
-        <Card
-          size="small"
-          title="🔧 Debug User Info"
-          style={{
-            marginBottom: 16,
-            backgroundColor: "#f6ffed",
-            borderColor: "#52c41a",
-          }}
-        >
-          <pre style={{ fontSize: "12px", marginBottom: 0 }}>
-            {JSON.stringify(
-              {
-                localStorageUser: currentUser,
-                nextAuthStatus: "disabled (to avoid CLIENT_FETCH_ERROR)",
-                timestamp: new Date().toISOString(),
-              },
-              null,
-              2
-            )}
-          </pre>
-        </Card>
-      )}
-
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Title level={2}>Thông tin cửa hàng</Title>
         <Button type="primary" icon={<EditOutlined />} onClick={showEditModal}>

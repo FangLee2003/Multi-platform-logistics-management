@@ -29,66 +29,64 @@ export default function CustomerAccount() {
         </Text>
       </Card>
 
-      {/* Quick Actions */}
       <Row gutter={[24, 24]}>
         <Col xs={24} md={8}>
-          <Card
-            hoverable
-            onClick={() => (window.location.href = "/account/orders/new")}
-          >
-            <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <BoxPlotOutlined style={{ fontSize: 32, color: "#1890ff" }} />
-            </div>
-            <Title level={4} style={{ marginBottom: 8, textAlign: "center" }}>
-              Tạo đơn hàng
-            </Title>
-            <Text
-              type="secondary"
-              style={{ textAlign: "center", display: "block" }}
-            >
-              Tạo đơn hàng giao hàng mới một cách nhanh chóng
-            </Text>
-          </Card>
+          <Link href="/account/orders/new">
+            <Card hoverable>
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <BoxPlotOutlined style={{ fontSize: 32, color: "#1890ff" }} />
+              </div>
+              <Title level={4} style={{ marginBottom: 8, textAlign: "center" }}>
+                Tạo đơn hàng
+              </Title>
+              <Text
+                type="secondary"
+                style={{ textAlign: "center", display: "block" }}
+              >
+                Tạo đơn hàng giao hàng mới một cách nhanh chóng
+              </Text>
+            </Card>
+          </Link>
         </Col>
 
         <Col xs={24} md={8}>
-          <Card
-            hoverable
-            onClick={() => (window.location.href = "/account/orders")}
-          >
-            <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <EnvironmentOutlined style={{ fontSize: 32, color: "#1890ff" }} />
-            </div>
-            <Title level={4} style={{ marginBottom: 8, textAlign: "center" }}>
-              Theo dõi đơn hàng
-            </Title>
-            <Text
-              type="secondary"
-              style={{ textAlign: "center", display: "block" }}
-            >
-              Xem trạng thái và vị trí đơn hàng real-time
-            </Text>
-          </Card>
+          <Link href="/account/orders">
+            <Card hoverable>
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <EnvironmentOutlined
+                  style={{ fontSize: 32, color: "#1890ff" }}
+                />
+              </div>
+              <Title level={4} style={{ marginBottom: 8, textAlign: "center" }}>
+                Theo dõi đơn hàng
+              </Title>
+              <Text
+                type="secondary"
+                style={{ textAlign: "center", display: "block" }}
+              >
+                Xem trạng thái và vị trí đơn hàng real-time
+              </Text>
+            </Card>
+          </Link>
         </Col>
 
         <Col xs={24} md={8}>
-          <Card
-            hoverable
-            onClick={() => (window.location.href = "/account/estimate")}
-          >
-            <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <DollarOutlined style={{ fontSize: 32, color: "#1890ff" }} />
-            </div>
-            <Title level={4} style={{ marginBottom: 8, textAlign: "center" }}>
-              Tính phí giao hàng
-            </Title>
-            <Text
-              type="secondary"
-              style={{ textAlign: "center", display: "block" }}
-            >
-              Ước tính chi phí giao hàng trước khi đặt
-            </Text>
-          </Card>
+          <Link href="/account/estimate">
+            <Card hoverable>
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <DollarOutlined style={{ fontSize: 32, color: "#1890ff" }} />
+              </div>
+              <Title level={4} style={{ marginBottom: 8, textAlign: "center" }}>
+                Tính phí giao hàng
+              </Title>
+              <Text
+                type="secondary"
+                style={{ textAlign: "center", display: "block" }}
+              >
+                Ước tính chi phí giao hàng trước khi đặt
+              </Text>
+            </Card>
+          </Link>
         </Col>
       </Row>
 
@@ -121,14 +119,11 @@ export default function CustomerAccount() {
           <Text type="secondary" style={{ display: "block", marginBottom: 24 }}>
             Tạo đơn hàng đầu tiên để bắt đầu!
           </Text>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="large"
-            href="/account/orders/new"
-          >
-            Tạo đơn hàng ngay
-          </Button>
+          <Link href="/account/orders/new">
+            <Button type="primary" icon={<PlusOutlined />} size="large">
+              Tạo đơn hàng ngay
+            </Button>
+          </Link>
         </div>
       </Card>
 
