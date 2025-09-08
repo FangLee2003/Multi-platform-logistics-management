@@ -6,10 +6,10 @@ import type { User } from "../../types/User";
 import MaintenanceHistory from "./MaintenanceHistory";
 import VehicleTable from "./VehicleTable";
 import AddVehicleForm from "./AddVehicleForm";
-import MaintenanceSchedulePage from "./MaintenanceSchedulePage";
 import SearchAndFilter from "./SearchAndFilter";
 import Pagination from "./Pagination";
 import { useFleetDashboard } from "./useFleetDashboard";
+import MaintenanceForm from "./MaintenanceForm";
 
 interface FleetDashboardProps {
   user: User;
@@ -64,7 +64,14 @@ export default function FleetDashboard({ user, onLogout }: FleetDashboardProps) 
     handleEditVehicle,
     handleUpdateVehicle,
     handleCancelEdit,
+    refreshVehicles, // Add this new handler
   } = useFleetDashboard();
+
+  function handleAddMaintenance(data: any): void {
+    // TODO: Gửi dữ liệu bảo trì lên server hoặc cập nhật state
+    // Hiện tại chỉ log ra console
+    console.log("Add maintenance:", data);
+  }
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100">
@@ -190,7 +197,10 @@ export default function FleetDashboard({ user, onLogout }: FleetDashboardProps) 
           )}
           {tab === "schedule" && (
             <div className="animate-fadeIn">
-              <MaintenanceSchedulePage />
+              <MaintenanceForm 
+                onAddMaintenance={handleAddMaintenance} 
+                onMaintenanceCreated={refreshVehicles}
+              />
             </div>
           )}
         </div>

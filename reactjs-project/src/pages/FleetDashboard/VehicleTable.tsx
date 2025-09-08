@@ -1,20 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Edit, MoreVertical, AlertCircle, CheckCircle, Clock } from "lucide-react";
-
-export interface Vehicle {
-  id: number;
-  licensePlate: string;
-  type: string;
-  brand?: string;
-  model?: string;
-  capacityWeightKg?: number;
-  capacityVolumeM3?: number;
-  status: "Hoạt động" | "Bảo trì" | "Cần bảo trì";
-  lastMaintenance: string;
-  nextMaintenance: string;
-  driver: string;
-  mileage?: number;
-}
+import type { Vehicle } from '../../types/Operations';
 
 export type FleetVehicle = Vehicle;
 
@@ -22,36 +8,31 @@ export type FleetVehicle = Vehicle;
 interface VehicleTableProps {
   vehicles: Vehicle[];
   onEdit?: (vehicle: Vehicle) => void;
-  onDelete?: (vehicleId: number) => void;
+  onDelete?: (vehicleId: string | number) => void;
 }
 
 // Enhanced Status Badge Component
-const StatusBadge = React.memo<{ status: Vehicle["status"] }>(({ status }) => {
+const StatusBadge = React.memo<{ status: string }>(({ status }) => {
   const statusConfig = useMemo(() => {
     switch (status) {
-      case "Hoạt động":
-        return {
-          icon: <CheckCircle size={14} />,
-          className: "bg-green-50 text-green-700 border-green-200",
-          text: "Hoạt động"
-        };
-      case "Bảo trì":
+      case "MAINTENANCE":
         return {
           icon: <Clock size={14} />,
           className: "bg-yellow-50 text-yellow-700 border-yellow-200",
-          text: "Bảo trì"
+          text: "Đang bảo trì"
         };
-      case "Cần bảo trì":
+      case "IN_USE":
         return {
-          icon: <AlertCircle size={14} />,
-          className: "bg-red-50 text-red-700 border-red-200",
-          text: "Cần bảo trì"
+          icon: <CheckCircle size={14} />,
+          className: "bg-blue-50 text-blue-700 border-blue-200",
+          text: "Đang sử dụng"
         };
+      case "AVAILABLE":
       default:
         return {
-          icon: null,
-          className: "bg-gray-50 text-gray-700 border-gray-200",
-          text: status
+          icon: <CheckCircle size={14} />,
+          className: "bg-green-50 text-green-700 border-green-200",
+          text: "Sẵn sàng sử dụng"
         };
     }
   }, [status]);
@@ -70,7 +51,7 @@ StatusBadge.displayName = "StatusBadge";
 const ActionDropdown = React.memo<{
   vehicle: Vehicle;
   onEdit?: (vehicle: Vehicle) => void;
-  onDelete?: (vehicleId: number) => void;
+  onDelete?: (vehicleId: string | number) => void;
 }>(({ vehicle, onEdit, onDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -130,7 +111,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
   onDelete
 }) => {
   // Calculate days until next maintenance
-  const getDaysUntilMaintenance = (nextMaintenance: string): number | null => {
+  const getDaysUntilMaintenance = (nextMaintenance?: string): number | null => {
     if (!nextMaintenance) return null;
     const today = new Date();
     const maintenanceDate = new Date(nextMaintenance);
@@ -153,7 +134,39 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
       {vehicles.map((vehicle) => {
         const daysUntilMaintenance = getDaysUntilMaintenance(vehicle.nextMaintenance);
         const maintenanceUrgencyColor = getMaintenanceUrgencyColor(daysUntilMaintenance);
+
+        // Logic xác định trạng thái xe - ưu tiên trạng thái từ database
+        let computedStatus: 'MAINTENANCE' | 'IN_USE' | 'AVAILABLE' = 'AVAILABLE';
         
+        console.log('Vehicle data:', vehicle); // Debug log để kiểm tra dữ liệu
+        
+        // Nếu có trạng thái từ database, sử dụng nó
+        if (vehicle.status) {
+          computedStatus = vehicle.status;
+          console.log('Using status from database:', vehicle.status); // Debug log
+        } else {
+          console.log('No status from database, using fallback logic'); // Debug log
+          // Fallback: tính toán dựa trên thời gian bảo trì và tài xế
+          const today = new Date();
+          
+          // Kiểm tra xem xe có đang trong thời gian bảo trì không
+          if (vehicle.lastMaintenance && vehicle.nextMaintenance) {
+            const maintenanceStartDate = new Date(vehicle.lastMaintenance);
+            const maintenanceEndDate = new Date(vehicle.nextMaintenance);
+            
+            // Nếu hôm nay nằm trong khoảng thời gian bảo trì
+            if (today >= maintenanceStartDate && today <= maintenanceEndDate) {
+              computedStatus = 'MAINTENANCE';
+            } else if (vehicle.driver?.name || vehicle.currentDriver?.fullName) {
+              computedStatus = 'IN_USE';
+            } else {
+              computedStatus = 'AVAILABLE';
+            }
+          } else if (vehicle.driver?.name || vehicle.currentDriver?.fullName) {
+            computedStatus = 'IN_USE';
+          }
+        }
+
         return (
           <div 
             key={vehicle.id} 
@@ -167,7 +180,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                   <h3 className="text-xl font-bold text-gray-900">
                     {vehicle.licensePlate}
                   </h3>
-                  <StatusBadge status={vehicle.status} />
+                  <StatusBadge status={computedStatus} />
                 </div>
 
                 {/* Vehicle Details Grid */}
@@ -187,7 +200,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                   <div className="space-y-1">
                     <span className="text-gray-500 font-medium">Tài xế:</span>
                     <div className="text-gray-900">
-                      {vehicle.driver || (
+                      {vehicle.driver?.name || vehicle.currentDriver?.fullName || (
                         <span className="text-gray-400 italic">Chưa gán</span>
                       )}
                     </div>

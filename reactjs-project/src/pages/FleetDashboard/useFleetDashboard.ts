@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import type { Vehicle as UIVehicle } from "./VehicleTable";
+import type { Vehicle as UIVehicle } from "../../types/Operations";
 import * as VehicleListAPI from "../../services/VehicleListAPI";
 import type { Vehicle as APIVehicle } from "../../types/Operations";
 
@@ -12,14 +12,29 @@ interface Pagination {
 }
 
 type FleetTab = "vehicles" | "maintenance" | "schedule";
-type VehicleStatus = "Hoạt động" | "Bảo trì" | "Cần bảo trì";
+type VehicleStatus = "AVAILABLE" | "MAINTENANCE" | "IN_USE";
 
+// Helper function to convert status to display text
+const getStatusDisplay = (status: VehicleStatus): string => {
+  switch (status) {
+    case "AVAILABLE": return "Hoạt động";
+    case "MAINTENANCE": return "Bảo trì";
+    case "IN_USE": return "Đang sử dụng";
+    default: return "Hoạt động";
+  }
+};
+
+// Helper function to get status filter display
+const getStatusFilterDisplay = (status: VehicleStatus | "all"): string => {
+  if (status === "all") return "Tất cả";
+  return getStatusDisplay(status);
+};
 
 interface FleetStats {
   total: number;
   active: number;
   maintenance: number;
-  needMaintenance: number;
+  inUse: number;
 }
 
 
@@ -49,36 +64,14 @@ export const useFleetDashboard = () => {
     VehicleListAPI.fetchVehiclesRaw(page, size)
       .then(({ data, total }) => {
         const mapped: UIVehicle[] = data.map((v: APIVehicle) => ({
+          ...v,
           id: typeof v.id === "string" ? parseInt(v.id as string) : v.id as number,
-          licensePlate: v.licensePlate || "",
-          type: v.vehicleType || "",
-          brand: v.brand || "",
-          model: v.model || "",
-          capacityWeightKg: v.capacityWeightKg ?? undefined,
-          capacityVolumeM3: v.capacityVolumeM3 ?? undefined,
+          type: v.vehicleType as UIVehicle["type"],
           status:
-            typeof v.status === "object" && v.status !== null
-              ? v.status.name === "ACTIVE"
-                ? "Hoạt động"
-                : v.status.name === "MAINTENANCE"
-                ? "Bảo trì"
-                : v.status.name === "NEED_MAINTENANCE"
-                ? "Cần bảo trì"
-                : "Hoạt động"
-              : v.status === "ACTIVE"
-              ? "Hoạt động"
-              : v.status === "MAINTENANCE"
-              ? "Bảo trì"
-              : v.status === "NEED_MAINTENANCE"
-              ? "Cần bảo trì"
-              : "Hoạt động",
-          lastMaintenance: v.lastMaintenance || "",
-          nextMaintenance: v.nextMaintenance || "",
-          driver:
-            v.currentDriver && (v.currentDriver.fullName || v.currentDriver.username || v.currentDriver.email)
-              ? v.currentDriver.fullName || v.currentDriver.username || v.currentDriver.email || ""
-              : "",
-          mileage: v.mileage ?? 0,
+            typeof v.status === "object" && v.status !== null && typeof (v.status as any).name === "string"
+              ? (v.status as any).name as UIVehicle["status"]
+              : (typeof v.status === "string" ? v.status as UIVehicle["status"] : "AVAILABLE"),
+          driver: v.currentDriver || v.driver || undefined,
         }));
         setVehicles(mapped);
         setPagination(prev => ({
@@ -94,6 +87,18 @@ export const useFleetDashboard = () => {
         setError("Không thể tải danh sách xe: " + err.message);
         setIsLoading(false);
       });
+
+    // Lắng nghe sự kiện cập nhật trạng thái xe từ form bảo trì
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      const handler = (e: any) => {
+        if (e?.detail?.vehicleId && e?.detail?.status) {
+          setVehicles(prev => prev.map(v => v.id === e.detail.vehicleId ? { ...v, status: "MAINTENANCE" } : v));
+        }
+      };
+      window.addEventListener('vehicleStatusChanged', handler);
+      // Cleanup listener khi unmount
+      return () => window.removeEventListener('vehicleStatusChanged', handler);
+    }
   }, []);
 
   // Fetch on mount and when page/size changes
@@ -115,17 +120,18 @@ export const useFleetDashboard = () => {
   // Memoized stats calculation
   const fleetStats = useMemo<FleetStats>(() => ({
     total: vehicles.length,
-    active: vehicles.filter(v => v.status === "Hoạt động").length,
-    maintenance: vehicles.filter(v => v.status === "Bảo trì").length,
-    needMaintenance: vehicles.filter(v => v.status === "Cần bảo trì").length,
+    active: vehicles.filter(v => v.status === "AVAILABLE").length,
+    maintenance: vehicles.filter(v => v.status === "MAINTENANCE").length,
+    inUse: vehicles.filter(v => v.status === "IN_USE").length,
   }), [vehicles]);
 
   // Filtered vehicles based on search and status
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(vehicle => {
       const matchesSearch = searchTerm === "" || 
-  vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  vehicle.driver.toLowerCase().includes(searchTerm.toLowerCase());
+        (vehicle.licensePlate && vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (vehicle.driver && typeof vehicle.driver === 'object' && 'name' in vehicle.driver && 
+         vehicle.driver.name.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = statusFilter === "all" || vehicle.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -147,36 +153,14 @@ export const useFleetDashboard = () => {
         const newVehicle: APIVehicle = await VehicleListAPI.addVehicle(apiData);
         // Map API vehicle to UI format
         const mapped: UIVehicle = {
+          ...newVehicle,
           id: typeof newVehicle.id === "string" ? parseInt(newVehicle.id as string) : newVehicle.id as number,
-          licensePlate: newVehicle.licensePlate || "",
-          type: newVehicle.vehicleType || "",
-          brand: newVehicle.brand || "",
-          model: newVehicle.model || "",
-          capacityWeightKg: newVehicle.capacityWeightKg ?? undefined,
-          capacityVolumeM3: newVehicle.capacityVolumeM3 ?? undefined,
+          type: newVehicle.vehicleType as UIVehicle["type"],
           status:
-            typeof newVehicle.status === "object" && newVehicle.status !== null
-              ? newVehicle.status.name === "ACTIVE"
-                ? "Hoạt động"
-                : newVehicle.status.name === "MAINTENANCE"
-                ? "Bảo trì"
-                : newVehicle.status.name === "NEED_MAINTENANCE"
-                ? "Cần bảo trì"
-                : "Hoạt động"
-              : newVehicle.status === "ACTIVE"
-              ? "Hoạt động"
-              : newVehicle.status === "MAINTENANCE"
-              ? "Bảo trì"
-              : newVehicle.status === "NEED_MAINTENANCE"
-              ? "Cần bảo trì"
-              : "Hoạt động",
-          lastMaintenance: newVehicle.lastMaintenance || "",
-          nextMaintenance: newVehicle.nextMaintenance || "",
-          driver:
-            newVehicle.currentDriver && (newVehicle.currentDriver.fullName || newVehicle.currentDriver.username || newVehicle.currentDriver.email)
-              ? newVehicle.currentDriver.fullName || newVehicle.currentDriver.username || newVehicle.currentDriver.email || ""
-              : "",
-          mileage: newVehicle.mileage ?? 0,
+            typeof newVehicle.status === "object" && newVehicle.status !== null && typeof (newVehicle.status as any).name === "string"
+              ? (newVehicle.status as any).name as UIVehicle["status"]
+              : (typeof newVehicle.status === "string" ? newVehicle.status as UIVehicle["status"] : "AVAILABLE"),
+          driver: newVehicle.driver || undefined,
         };
         setVehicles(prev => [...prev, mapped]);
         setShowAddForm(false);
@@ -283,6 +267,11 @@ export const useFleetDashboard = () => {
     setEditingVehicle(null);
   }, []);
 
+  // Handle refresh vehicles (to be called after maintenance operations)
+  const refreshVehicles = useCallback(() => {
+    fetchVehiclesWithPagination(pagination.page, pagination.size);
+  }, [fetchVehiclesWithPagination, pagination.page, pagination.size]);
+
   return {
     // State
     tab,
@@ -312,6 +301,7 @@ export const useFleetDashboard = () => {
     handleEditVehicle,
     handleUpdateVehicle,
     handleCancelEdit,
+    refreshVehicles, // Add this new handler
   };
 };
 
