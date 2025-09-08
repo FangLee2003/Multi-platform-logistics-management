@@ -32,6 +32,8 @@ export const useFleetDashboard = () => {
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | "all">("all");
   const [isLoading, setIsLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<UIVehicle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -54,7 +56,6 @@ export const useFleetDashboard = () => {
           model: v.model || "",
           capacityWeightKg: v.capacityWeightKg ?? undefined,
           capacityVolumeM3: v.capacityVolumeM3 ?? undefined,
-          year: v.year || 2020,
           status:
             typeof v.status === "object" && v.status !== null
               ? v.status.name === "ACTIVE"
@@ -132,7 +133,7 @@ export const useFleetDashboard = () => {
 
   // Add vehicle handler (call API)
   const handleAddVehicle = useCallback(
-    async (data: Omit<UIVehicle, "id" | "status" | "lastMaintenance" | "nextMaintenance" | "driver" | "mileage">) => {
+    async (data: Pick<UIVehicle, "licensePlate" | "type" | "capacityWeightKg" | "capacityVolumeM3">) => {
       setIsLoading(true);
       setError(null);
       try {
@@ -153,7 +154,6 @@ export const useFleetDashboard = () => {
           model: newVehicle.model || "",
           capacityWeightKg: newVehicle.capacityWeightKg ?? undefined,
           capacityVolumeM3: newVehicle.capacityVolumeM3 ?? undefined,
-          year: newVehicle.year || 2020,
           status:
             typeof newVehicle.status === "object" && newVehicle.status !== null
               ? newVehicle.status.name === "ACTIVE"
@@ -204,6 +204,85 @@ export const useFleetDashboard = () => {
     setStatusFilter(status);
   }, []);
 
+  // Handle delete vehicle
+  const handleDeleteVehicle = useCallback(async (vehicleId: number) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa phương tiện này?")) {
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    try {
+      await VehicleListAPI.deleteVehicle(vehicleId);
+      // Remove vehicle from local state
+      setVehicles(prev => prev.filter(v => v.id !== vehicleId));
+      // Update pagination if needed
+      const newTotal = pagination.total - 1;
+      const newTotalPages = Math.ceil(newTotal / pagination.size) || 1;
+      if (pagination.page > newTotalPages) {
+        setPagination(prev => ({
+          ...prev,
+          page: newTotalPages,
+          total: newTotal,
+          totalPages: newTotalPages
+        }));
+      } else {
+        setPagination(prev => ({
+          ...prev,
+          total: newTotal,
+          totalPages: newTotalPages
+        }));
+      }
+    } catch (err: any) {
+      setError("Không thể xóa phương tiện: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pagination]);
+
+  // Handle edit vehicle
+  const handleEditVehicle = useCallback((vehicle: UIVehicle) => {
+    setEditingVehicle(vehicle);
+    setShowEditForm(true);
+    setShowAddForm(false); // Đóng form thêm nếu đang mở
+  }, []);
+
+  // Handle update vehicle
+  const handleUpdateVehicle = useCallback(async (vehicleId: number, updatedData: Partial<UIVehicle>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Map UI data to API format
+      const apiData: any = {
+        licensePlate: updatedData.licensePlate,
+        vehicleType: updatedData.type,
+        capacityWeightKg: updatedData.capacityWeightKg,
+        capacityVolumeM3: updatedData.capacityVolumeM3,
+      };
+      
+      await VehicleListAPI.editVehicle(vehicleId, apiData);
+      
+      // Update vehicle in local state
+      setVehicles(prev => prev.map(v => 
+        v.id === vehicleId ? { ...v, ...updatedData } : v
+      ));
+      
+      // Close edit form
+      setShowEditForm(false);
+      setEditingVehicle(null);
+    } catch (err: any) {
+      setError("Không thể cập nhật phương tiện: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Handle cancel edit
+  const handleCancelEdit = useCallback(() => {
+    setShowEditForm(false);
+    setEditingVehicle(null);
+  }, []);
+
   return {
     // State
     tab,
@@ -213,6 +292,8 @@ export const useFleetDashboard = () => {
     isLoading,
     showAddForm,
     setShowAddForm,
+    showEditForm,
+    editingVehicle,
     error,
     pagination,
 
@@ -227,6 +308,10 @@ export const useFleetDashboard = () => {
     handleStatusFilter,
     handlePageChange,
     handlePageSizeChange,
+    handleDeleteVehicle,
+    handleEditVehicle,
+    handleUpdateVehicle,
+    handleCancelEdit,
   };
 };
 

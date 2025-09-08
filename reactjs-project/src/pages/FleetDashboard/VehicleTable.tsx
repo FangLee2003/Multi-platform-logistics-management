@@ -1,7 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Edit, Eye, MoreVertical, Calendar, AlertCircle, CheckCircle, Clock } from "lucide-react";
-import type { FleetVehicle } from "../../types/dashboard";
-
+import { Edit, MoreVertical, AlertCircle, CheckCircle, Clock } from "lucide-react";
 
 export interface Vehicle {
   id: number;
@@ -11,7 +9,6 @@ export interface Vehicle {
   model?: string;
   capacityWeightKg?: number;
   capacityVolumeM3?: number;
-  year: number;
   status: "Hoạt động" | "Bảo trì" | "Cần bảo trì";
   lastMaintenance: string;
   nextMaintenance: string;
@@ -19,17 +16,17 @@ export interface Vehicle {
   mileage?: number;
 }
 
+export type FleetVehicle = Vehicle;
+
 
 interface VehicleTableProps {
-  vehicles: FleetVehicle[];
-  onEdit?: (vehicle: FleetVehicle) => void;
-  onView?: (vehicle: FleetVehicle) => void;
-  onAssignDriver?: (vehicleId: number) => void;
-  onScheduleMaintenance?: (vehicleId: number) => void;
+  vehicles: Vehicle[];
+  onEdit?: (vehicle: Vehicle) => void;
+  onDelete?: (vehicleId: number) => void;
 }
 
 // Enhanced Status Badge Component
-const StatusBadge = React.memo<{ status: FleetVehicle["status"] }>(({ status }) => {
+const StatusBadge = React.memo<{ status: Vehicle["status"] }>(({ status }) => {
   const statusConfig = useMemo(() => {
     switch (status) {
       case "Hoạt động":
@@ -71,12 +68,10 @@ StatusBadge.displayName = "StatusBadge";
 
 // Action Dropdown Component
 const ActionDropdown = React.memo<{
-  vehicle: FleetVehicle;
-  onEdit?: (vehicle: FleetVehicle) => void;
-  onView?: (vehicle: FleetVehicle) => void;
-  onAssignDriver?: (vehicleId: number) => void;
-  onScheduleMaintenance?: (vehicleId: number) => void;
-}>(({ vehicle, onEdit, onView, onAssignDriver, onScheduleMaintenance }) => {
+  vehicle: Vehicle;
+  onEdit?: (vehicle: Vehicle) => void;
+  onDelete?: (vehicleId: number) => void;
+}>(({ vehicle, onEdit, onDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -88,26 +83,13 @@ const ActionDropdown = React.memo<{
       >
         <MoreVertical size={18} />
       </button>
-      
       {isOpen && (
         <>
           <div 
             className="fixed inset-0 z-10" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-            {onView && (
-              <button
-                onClick={() => {
-                  onView(vehicle);
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-              >
-                <Eye size={16} />
-                Xem chi tiết
-              </button>
-            )}
+          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-30">
             {onEdit && (
               <button
                 onClick={() => {
@@ -120,27 +102,16 @@ const ActionDropdown = React.memo<{
                 Chỉnh sửa
               </button>
             )}
-            {onAssignDriver && (
+            {onDelete && (
               <button
                 onClick={() => {
-                  onAssignDriver(vehicle.id);
+                  onDelete(vehicle.id);
                   setIsOpen(false);
                 }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
               >
-                {vehicle.driver ? "Thay đổi tài xế" : "Gán tài xế"}
-              </button>
-            )}
-            {onScheduleMaintenance && (
-              <button
-                onClick={() => {
-                  onScheduleMaintenance(vehicle.id);
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-              >
-                <Calendar size={16} />
-                Lập lịch bảo trì
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+                Xóa
               </button>
             )}
           </div>
@@ -156,9 +127,7 @@ ActionDropdown.displayName = "ActionDropdown";
 const VehicleTable: React.FC<VehicleTableProps> = ({ 
   vehicles, 
   onEdit, 
-  onView, 
-  onAssignDriver, 
-  onScheduleMaintenance 
+  onDelete
 }) => {
   // Calculate days until next maintenance
   const getDaysUntilMaintenance = (nextMaintenance: string): number | null => {
@@ -216,10 +185,6 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                     <div className="text-gray-900 font-semibold">{vehicle.capacityVolumeM3?.toLocaleString() ?? "-"} m³</div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-gray-500 font-medium">Năm sản xuất:</span>
-                    <div className="text-gray-900">{vehicle.year}</div>
-                  </div>
-                  <div className="space-y-1">
                     <span className="text-gray-500 font-medium">Tài xế:</span>
                     <div className="text-gray-900">
                       {vehicle.driver || (
@@ -275,9 +240,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                 <ActionDropdown
                   vehicle={vehicle}
                   onEdit={onEdit}
-                  onView={onView}
-                  onAssignDriver={onAssignDriver}
-                  onScheduleMaintenance={onScheduleMaintenance}
+                  onDelete={onDelete}
                 />
               </div>
             </div>

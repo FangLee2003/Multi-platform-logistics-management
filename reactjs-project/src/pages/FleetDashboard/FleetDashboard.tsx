@@ -48,6 +48,8 @@ export default function FleetDashboard({ user, onLogout }: FleetDashboardProps) 
     isLoading,
     showAddForm,
     setShowAddForm,
+    showEditForm,
+    editingVehicle,
     pagination,
     // Computed values
     fleetStats,
@@ -58,6 +60,10 @@ export default function FleetDashboard({ user, onLogout }: FleetDashboardProps) 
     handleSearch,
     handleStatusFilter,
     handlePageChange,
+    handleDeleteVehicle,
+    handleEditVehicle,
+    handleUpdateVehicle,
+    handleCancelEdit,
   } = useFleetDashboard();
 
   return (
@@ -129,8 +135,16 @@ export default function FleetDashboard({ user, onLogout }: FleetDashboardProps) 
                       </div>
                     )}
                   </div>
-                  <AddVehicleForm onAdd={handleAddVehicle} />
+                  <AddVehicleForm onSuccess={handleAddVehicle} />
                 </div>
+              )}
+              {showEditForm && editingVehicle && (
+                <AddVehicleForm
+                  mode="edit"
+                  editingVehicle={editingVehicle}
+                  onUpdate={handleUpdateVehicle}
+                  onCancel={handleCancelEdit}
+                />
               )}
               <div className="bg-white/30 hover:bg-white/40 rounded-xl p-6 shadow-lg">
                 <div className="flex items-center justify-between mb-6">
@@ -154,7 +168,11 @@ export default function FleetDashboard({ user, onLogout }: FleetDashboardProps) 
                   </div>
                 ) : (
                   <>
-                    <VehicleTable vehicles={filteredVehicles} />
+                    <VehicleTable 
+                      vehicles={filteredVehicles}
+                      onEdit={handleEditVehicle}
+                      onDelete={handleDeleteVehicle}
+                    />
                     <Pagination
                       page={pagination.page}
                       totalPages={pagination.totalPages}
