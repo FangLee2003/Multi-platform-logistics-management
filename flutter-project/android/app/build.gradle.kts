@@ -10,6 +10,7 @@ plugins {
 android {
     namespace = "com.ktc.logistics_driver"
     compileSdk = 35
+    // compileSdk = 36
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
