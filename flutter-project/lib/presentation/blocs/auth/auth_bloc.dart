@@ -1,27 +1,17 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
-import '../../../domain/usecases/usecases.dart';
+import '../../../services/auth_services.dart';
+import '../../../domain/models/auth/auth_models.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 import 'user_model.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final LoginUseCase _loginUseCase;
-  final LogoutUseCase _logoutUseCase;
-  final CheckLoginStatusUseCase _checkLoginStatusUseCase;
-  final GetCurrentUserUseCase _getCurrentUserUseCase;
+  final AuthServices _authServices;
 
-  AuthBloc({
-    required LoginUseCase loginUseCase,
-    required LogoutUseCase logoutUseCase,
-    required CheckLoginStatusUseCase checkLoginStatusUseCase,
-    required GetCurrentUserUseCase getCurrentUserUseCase,
-  }) : _loginUseCase = loginUseCase,
-       _logoutUseCase = logoutUseCase,
-       _checkLoginStatusUseCase = checkLoginStatusUseCase,
-       _getCurrentUserUseCase = getCurrentUserUseCase,
-       super(AuthInitialState()) {
-    
+  AuthBloc({required AuthServices authServices})
+      : _authServices = authServices,
+        super(AuthInitialState()) {
     on<LoginEvent>(_onLogin);
     on<CheckLoginEvent>(_onCheckLogin);
     on<LogOutEvent>(_onLogOut);
@@ -33,34 +23,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       emit(AuthLoadingState());
 
-      final authResponse = await _loginUseCase.call(
-        LoginParams(email: event.email, password: event.password)
-      );
+      // Gọi trực tiếp service đăng nhập
+      final loginResponse = await _authServices.login(event.email, event.password);
 
       // Thêm delay để hiển thị loading
       await Future.delayed(const Duration(milliseconds: 500));
-
-      if (authResponse.success) {
-        // Convert từ auth_models.User sang repository User
-        final user = UserModel(
-          id: authResponse.user.uid,
-          email: authResponse.user.email,
-          name: authResponse.user.name,
-          phone: authResponse.user.phone,
-          avatar: authResponse.user.image.isNotEmpty ? authResponse.user.image : null,
-          rating: 4.8, // Default rating
-          totalDeliveries: 0, // Default value
-        );
-        
-        emit(AuthenticatedState(
-          user: user,
-          token: authResponse.token,
-        ));
-      } else {
-        emit(AuthErrorState(message: 'Đăng nhập thất bại'));
-      }
+      
+      // Chuyển đổi từ LoginResponse của API sang UserModel
+      final userModel = _convertToUserModel(loginResponse);
+      
+      emit(AuthenticatedState(
+        user: userModel,
+        token: loginResponse.accessToken,
+      ));
     } catch (e) {
-      emit(AuthErrorState(message: 'Lỗi kết nối: ${e.toString()}'));
+      emit(AuthErrorState(message: 'Đăng nhập thất bại: ${e.toString()}'));
     }
   }
 
@@ -68,27 +45,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       emit(AuthLoadingState());
 
-      final isLoggedIn = await _checkLoginStatusUseCase.call(NoParams());
+      // Kiểm tra trạng thái đăng nhập trực tiếp từ service
+      final isAuthenticated = await _authServices.checkAuthStatus();
 
-      if (isLoggedIn) {
-        final user = await _getCurrentUserUseCase.call(NoParams());
-        if (user != null) {
-          // Create UserModel from User
-          final userModel = UserModel(
-            id: user.uid,
-            email: user.email,
-            name: user.name,
-            phone: user.phone,
-            avatar: user.image.isNotEmpty ? user.image : null,
-            rating: 4.8, // Default rating
-            totalDeliveries: 0, // Default value
-          );
+      if (isAuthenticated) {
+        try {
+          // Làm mới token
+          final loginResponse = await _authServices.refreshToken();
+          
+          // Chuyển đổi sang UserModel
+          final userModel = _convertToUserModel(loginResponse);
           
           emit(AuthenticatedState(
             user: userModel,
-            token: 'mock_token_${userModel.id}',
+            token: loginResponse.accessToken,
           ));
-        } else {
+        } catch (e) {
           emit(UnauthenticatedState());
         }
       } else {
@@ -101,7 +73,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onLogOut(LogOutEvent event, Emitter<AuthState> emit) async {
     try {
-      await _logoutUseCase.call(NoParams());
+      // Gọi trực tiếp service đăng xuất
+      await _authServices.logout();
       emit(UnauthenticatedState());
     } catch (e) {
       emit(AuthErrorState(message: 'Lỗi đăng xuất: ${e.toString()}'));
@@ -109,17 +82,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onRefreshToken(RefreshTokenEvent event, Emitter<AuthState> emit) async {
-    try {
-      // Mock refresh token logic
-      if (state is AuthenticatedState) {
-        final currentState = state as AuthenticatedState;
+    if (state is AuthenticatedState) {
+      try {
+        // Gọi trực tiếp service làm mới token
+        final loginResponse = await _authServices.refreshToken();
+        
+        // Chuyển đổi sang UserModel
+        final userModel = _convertToUserModel(loginResponse);
+        
         emit(AuthenticatedState(
-          user: currentState.user,
-          token: 'refreshed_token_${currentState.user.id}',
+          user: userModel,
+          token: loginResponse.accessToken,
         ));
+      } catch (e) {
+        emit(AuthErrorState(message: 'Lỗi làm mới token: ${e.toString()}'));
       }
-    } catch (e) {
-      emit(AuthErrorState(message: 'Lỗi làm mới token: ${e.toString()}'));
     }
   }
 
@@ -147,6 +124,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(AuthErrorState(message: 'Lỗi cập nhật thông tin: ${e.toString()}'));
     }
+  }
+  
+  // Phương thức helper để chuyển đổi LoginResponse thành UserModel
+  UserModel _convertToUserModel(LoginResponse loginResponse) {
+    return UserModel(
+      id: loginResponse.userId.toString(),
+      name: loginResponse.username,
+      email: loginResponse.username,  // Giả sử username là email
+      phone: '',  // Điền thông tin nếu có
+      avatar: '',  // Điền thông tin nếu có
+      vehicle: '',  // Điền thông tin nếu có
+      rating: 0.0,  // Giá trị mặc định
+      totalDeliveries: 0,  // Giá trị mặc định
+    );
   }
 }
 

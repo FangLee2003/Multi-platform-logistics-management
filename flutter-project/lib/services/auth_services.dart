@@ -1,136 +1,198 @@
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../data/env/environment.dart';
-import '../domain/models/auth/auth_response.dart';
+import '../data/local_secure/secure_storage.dart';
+import '../data/network/http_client.dart';
+import '../domain/models/auth/auth_models.dart';
 
 class AuthServices {
-  final FlutterSecureStorage secureStorage;
+  final Environment _env = Environment.getInstance();
+  final SecureStorageFrave secureStorage = SecureStorageFrave();
+  late final HttpClient _httpClient;
+  
+  String get baseUrl => _env.apiBaseUrl;
+  
+  AuthServices() {
+    _httpClient = HttpClient(baseUrl: baseUrl, secureStorage: secureStorage);
+  }
 
-  AuthServices({required this.secureStorage});
-
-  /// Login với HTTP request tới Spring Boot backend
-  Future<AuthResponse> loginController(String email, String password) async {
+  // Đăng nhập với API chung
+  Future<LoginResponse> login(String username, String password) async {
     try {
-      final env = Environment.getInstance();
-      final response = await http.post(
-        Uri.parse('${env.endpointApi}/auth/login'),
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      );
-
-      final Map<String, dynamic> responseData = jsonDecode(response.body);
-      
-      // Chuyển đổi từ format cũ sang format mới
-      final Map<String, dynamic> convertedData = {
-        'success': responseData['resp'] ?? false,
-        'token': responseData['token'] ?? '',
-        'user': {
-          'uid': responseData['user']?['uid']?.toString() ?? '',
-          'name': '${responseData['user']?['firstName'] ?? ''} ${responseData['user']?['lastName'] ?? ''}'.trim(),
-          'email': responseData['user']?['email'] ?? '',
-          'phone': responseData['user']?['phone'] ?? '',
-          'image': responseData['user']?['image'] ?? '',
-          'role': responseData['user']?['rolId'] == 2 ? 'DRIVER' : 'USER',
-          'isActive': true,
-          'permissions': ['DRIVE', 'TRACK']
-        }
+      final Map<String, dynamic> requestBody = {
+        'username': username,
+        'password': password,
       };
-
-      return AuthResponse.fromJson(convertedData);
-    } catch (e) {
-      return AuthResponse(
-        success: false,
-        token: '',
-        user: User(
-          uid: '',
-          name: '',
-          email: '',
-          phone: '',
-          image: '',
-          role: '',
-          isActive: false,
-          permissions: [],
-        ),
+      
+      final data = await _httpClient.post<Map<String, dynamic>>(
+        '/auth/login',
+        body: requestBody,
       );
+      
+      final loginResponse = LoginResponse.fromJson(data);
+      
+      // Lưu token và refresh token vào secure storage
+      await secureStorage.persistentToken(loginResponse.accessToken);
+      await secureStorage.persistentRefreshToken(loginResponse.refreshToken);
+      
+      // Lưu userId như driverId vì driver cũng là user với role Driver
+      await secureStorage.persistentDriverId(loginResponse.userId.toString());
+      
+      return loginResponse;
+    } catch (e) {
+      // Thử dùng API cũ nếu API mới thất bại
+      return _loginLegacy(username, password);
+    }
+  }
+  
+  // Phương thức legacy để tương thích với API cũ
+  Future<LoginResponse> _loginLegacy(String username, String password) async {
+    final resp = await http.post(
+      Uri.parse('$baseUrl/auth/login'),
+      headers: {'Accept': 'application/json'},
+      body: {'username': username, 'password': password}
+    );
+
+    if(resp.statusCode == 200){
+      final body = json.decode(resp.body);
+      
+      // Lấy userId từ response
+      final userId = int.tryParse(body['userId']?.toString() ?? body['data']?['userId']?.toString() ?? '0') ?? 0;
+      
+      // Adapt the legacy response to LoginResponse
+      final loginResponse = LoginResponse(
+        accessToken: body['token'] ?? body['data']?['token'] ?? '',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+        refreshToken: body['refreshToken'] ?? body['data']?['refreshToken'] ?? '',
+        userId: userId,
+        driverId: userId, // Driver ID là User ID
+        username: body['username'] ?? body['data']?['username'] ?? '',
+        roles: body['roles'] != null ? List<String>.from(body['roles']) : 
+              body['data']?['roles'] != null ? List<String>.from(body['data']['roles']) : ['DRIVER'],
+      );
+      
+      await secureStorage.persistentToken(loginResponse.accessToken);
+      await secureStorage.persistentDriverId(loginResponse.userId.toString()); // Dùng userId
+      
+      return loginResponse;
+    }
+    
+    throw Exception('Invalid Credentials');
+  }
+
+  // Làm mới token với API mới
+  Future<LoginResponse> refreshToken() async {
+    try {
+      final refreshToken = await secureStorage.readRefreshToken();
+      if (refreshToken == null) {
+        throw Exception('Refresh token not found');
+      }
+      
+      final Map<String, dynamic> requestBody = {
+        'refreshToken': refreshToken,
+      };
+      
+      final data = await _httpClient.post<Map<String, dynamic>>(
+        '/auth/refresh',
+        body: requestBody,
+      );
+      
+      final loginResponse = LoginResponse.fromJson(data);
+      
+      // Lưu token và refresh token mới
+      await secureStorage.persistentToken(loginResponse.accessToken);
+      await secureStorage.persistentRefreshToken(loginResponse.refreshToken);
+      
+      return loginResponse;
+    } catch (e) {
+      throw Exception('Failed to refresh token: $e');
     }
   }
 
-  /// Renew token
-  Future<AuthResponse> renewLoginController() async {
+  // Đăng xuất với API mới
+  Future<bool> logout() async {
     try {
-      final token = await secureStorage.read(key: 'token');
-      final env = Environment.getInstance();
-
-      final response = await http.get(
-        Uri.parse('${env.endpointApi}/renew-token-login'),
-        headers: {
-          'Accept': 'application/json',
-          'xx-token': token!,
-        },
+      await _httpClient.post<bool>(
+        '/auth/logout',
+        body: {},
       );
-
-      final Map<String, dynamic> responseData = jsonDecode(response.body);
       
-      // Chuyển đổi từ format cũ sang format mới
-      final Map<String, dynamic> convertedData = {
-        'success': responseData['resp'] ?? false,
-        'token': responseData['token'] ?? '',
-        'user': {
-          'uid': responseData['user']?['uid']?.toString() ?? '',
-          'name': '${responseData['user']?['firstName'] ?? ''} ${responseData['user']?['lastName'] ?? ''}'.trim(),
-          'email': responseData['user']?['email'] ?? '',
-          'phone': responseData['user']?['phone'] ?? '',
-          'image': responseData['user']?['image'] ?? '',
-          'role': responseData['user']?['rolId'] == 2 ? 'DRIVER' : 'USER',
-          'isActive': true,
-          'permissions': ['DRIVE', 'TRACK']
-        }
-      };
-
-      return AuthResponse.fromJson(convertedData);
+      // Xóa token và driver ID trong mọi trường hợp
+      await secureStorage.deleteSecureStorage();
+      
+      return true;
     } catch (e) {
-      return AuthResponse(
-        success: false,
-        token: '',
-        user: User(
-          uid: '',
-          name: '',
-          email: '',
-          phone: '',
-          image: '',
-          role: '',
-          isActive: false,
-          permissions: [],
-        ),
-      );
+      // Xóa token và driver ID ngay cả khi API thất bại
+      await secureStorage.deleteSecureStorage();
+      return true;
     }
   }
 
-  /// Logout
-  Future<void> logout() async {
-    await secureStorage.delete(key: 'token');
-    await secureStorage.deleteAll();
+  // Kiểm tra trạng thái xác thực (token có hiệu lực hay không)
+  Future<bool> checkAuthStatus() async {
+    try {
+      final token = await secureStorage.readToken();
+      if (token == null) {
+        return false;
+      }
+      
+      // API mới để kiểm tra token
+      await _httpClient.get<bool>('/auth/verify');
+      return true;
+    } catch (e) {
+      // Token không hợp lệ hoặc hết hạn
+      return false;
+    }
   }
 
-  /// Check if user is logged in
-  Future<bool> isLoggedIn() async {
-    final token = await secureStorage.read(key: 'token');
-    return token != null;
+  // Đổi mật khẩu với API mới
+  Future<bool> changePassword(String oldPassword, String newPassword) async {
+    try {
+      final Map<String, dynamic> requestBody = {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      };
+      
+      return await _httpClient.post<bool>(
+        '/auth/change-password',
+        body: requestBody,
+      );
+    } catch (e) {
+      throw Exception('Failed to change password: $e');
+    }
   }
 
-  /// Get stored token
-  Future<String?> getToken() async {
-    return await secureStorage.read(key: 'token');
+  // Quên mật khẩu với API mới
+  Future<bool> forgotPassword(String email) async {
+    try {
+      final Map<String, dynamic> requestBody = {
+        'email': email,
+      };
+      
+      return await _httpClient.post<bool>(
+        '/auth/forgot-password',
+        body: requestBody,
+      );
+    } catch (e) {
+      throw Exception('Failed to initiate password reset: $e');
+    }
+  }
+
+  // Đặt lại mật khẩu với API mới
+  Future<bool> resetPassword(String token, String newPassword) async {
+    try {
+      final Map<String, dynamic> requestBody = {
+        'token': token,
+        'newPassword': newPassword,
+      };
+      
+      return await _httpClient.post<bool>(
+        '/auth/reset-password',
+        body: requestBody,
+      );
+    } catch (e) {
+      throw Exception('Failed to reset password: $e');
+    }
   }
 }
-
-final authServices = AuthServices(
-  secureStorage: const FlutterSecureStorage(),
-);

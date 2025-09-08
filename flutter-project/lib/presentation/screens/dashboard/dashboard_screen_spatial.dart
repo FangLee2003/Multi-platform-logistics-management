@@ -8,8 +8,8 @@ import '../../components/spatial_button.dart';
 import '../../components/spatial_glass_card.dart';
 import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
 import '../../components/delivery_charts.dart';
-import '../../../services/googlemaps_service.dart';
-import '../../../services/tracking_service.dart';
+import '../../../services/googlemaps_services.dart';
+import '../../../services/location_service.dart';
 import '../../../services/orders_services.dart';
 import '../../../domain/models/order/order_model.dart';
 

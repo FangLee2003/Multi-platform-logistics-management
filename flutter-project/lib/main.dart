@@ -11,11 +11,11 @@ import 'injection/dependency_injection.dart';
 
 // Firebase
 import 'firebase_options.dart';
-import 'services/push_notification_service.dart';
+import 'services/push_notification_services.dart';
 
 // Services
 import 'services/mapbox_services.dart' as mapbox;
-import 'services/tracking_service.dart';
+import 'services/location_service.dart';
 
 // Environment & Secrets
 import 'data/env/secrets.dart';

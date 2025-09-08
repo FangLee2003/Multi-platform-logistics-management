@@ -11,11 +11,17 @@ import 'package:ktc_logistics_driver/domain/usecases/usecases.dart';
 import 'package:ktc_logistics_driver/data/repositories/repository_implementations.dart'
     as mock_repo;
 import 'package:ktc_logistics_driver/services/mock_data_service.dart';
-import 'package:ktc_logistics_driver/services/mock_auth_service.dart';
 import 'package:ktc_logistics_driver/presentation/screens/map/route_map_screen.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/auth/auth_event.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/auth/auth_bloc.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/driver/driver_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/main_screen.dart';
-import 'services/push_notification_service.dart';
+import 'package:provider/provider.dart';
+import 'services/auth_services.dart';
+import 'services/driver_services.dart';
+import 'services/location_service.dart';
+import 'services/push_notification_services.dart';
 
 final getIt = GetIt.instance;
 
@@ -76,92 +82,87 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    // Sử dụng MultiProvider trực tiếp, không cần lớp trung gian
+    return MultiProvider(
       providers: [
-        // Temporarily using simplified BLoC providers without dependency injection
-        // TODO: Implement proper dependency injection with use cases
-        BlocProvider<UserBloc>(
-          create: (context) => UserBloc(userServices: getIt()),
-        ),
-        // Add AuthBloc provider to fix the "Provider<AuthBloc> not found" error
-        BlocProvider<AuthBloc>(
-          create: (context) => AuthBloc(
-            loginUseCase: LoginUseCase(
-              repository: mock_repo.AuthRepositoryImpl(
-                mockAuthService: MockAuthService(),
-                secureStorage: const FlutterSecureStorage(),
-              ),
-            ),
-            logoutUseCase: LogoutUseCase(
-              repository: mock_repo.AuthRepositoryImpl(
-                mockAuthService: MockAuthService(),
-                secureStorage: const FlutterSecureStorage(),
-              ),
-            ),
-            checkLoginStatusUseCase: CheckLoginStatusUseCase(
-              repository: mock_repo.AuthRepositoryImpl(
-                mockAuthService: MockAuthService(),
-                secureStorage: const FlutterSecureStorage(),
-              ),
-            ),
-            getCurrentUserUseCase: GetCurrentUserUseCase(
-              repository: mock_repo.AuthRepositoryImpl(
-                mockAuthService: MockAuthService(),
-                secureStorage: const FlutterSecureStorage(),
-              ),
-            ),
-          ),
-        ),
-        // Add TrackingBloc with mock implementation to fix Provider error
-        BlocProvider<TrackingBloc>(
-          create: (context) => TrackingBloc(
-            startRouteTrackingUseCase: StartRouteTrackingUseCase(
-              repository: mock_repo.TrackingRepositoryImpl(
-                  mockDataService: MockDataService()),
-            ),
-            endRouteTrackingUseCase: EndRouteTrackingUseCase(
-              repository: mock_repo.TrackingRepositoryImpl(
-                  mockDataService: MockDataService()),
-            ),
-            updateLocationUseCase: UpdateLocationUseCase(
-              repository: mock_repo.TrackingRepositoryImpl(
-                  mockDataService: MockDataService()),
-            ),
-            getTrackingHistoryUseCase: GetTrackingHistoryUseCase(
-              repository: mock_repo.TrackingRepositoryImpl(
-                  mockDataService: MockDataService()),
-            ),
-          ),
-        ),
-        // Add DeliveryBloc provider to fix "Provider<DeliveryBloc> not found" error
-        BlocProvider<DeliveryBloc>(
-          create: (context) => DeliveryBloc(),
+        // Location service với vòng đời được quản lý
+        Provider<LocationService>(
+          create: (_) => LocationService(),
+          dispose: (_, service) => service.stopBackgroundLocationService(),
         ),
       ],
-      child: MaterialApp(
-        title: 'KTC Logistics Driver',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
-            brightness: Brightness.light,
+      child: MultiBlocProvider(
+        providers: [
+          // Auth Bloc
+          BlocProvider<AuthBloc>(
+            create: (context) => AuthBloc(
+              authServices: AuthServices(),
+            )..add(CheckLoginEvent()),
           ),
-          fontFamily: 'Poppins',
-          scaffoldBackgroundColor: Colors.transparent,
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
-            brightness: Brightness.dark,
+          
+          // Driver Bloc
+          BlocProvider<DriverBloc>(
+            create: (context) => DriverBloc(
+              driverServices: DriverServices(),
+            ),
           ),
-          fontFamily: 'Poppins',
-          scaffoldBackgroundColor: Colors.transparent,
+          
+          // User Bloc
+          BlocProvider<UserBloc>(
+            create: (context) => UserBloc(userServices: getIt()),
+          ),
+          
+          // TrackingBloc
+          BlocProvider<TrackingBloc>(
+            create: (context) => TrackingBloc(
+              startRouteTrackingUseCase: StartRouteTrackingUseCase(
+                repository: mock_repo.TrackingRepositoryImpl(
+                    mockDataService: MockDataService()),
+              ),
+              endRouteTrackingUseCase: EndRouteTrackingUseCase(
+                repository: mock_repo.TrackingRepositoryImpl(
+                    mockDataService: MockDataService()),
+              ),
+              updateLocationUseCase: UpdateLocationUseCase(
+                repository: mock_repo.TrackingRepositoryImpl(
+                    mockDataService: MockDataService()),
+              ),
+              getTrackingHistoryUseCase: GetTrackingHistoryUseCase(
+                repository: mock_repo.TrackingRepositoryImpl(
+                    mockDataService: MockDataService()),
+              ),
+            ),
+          ),
+          // Add DeliveryBloc provider 
+          BlocProvider<DeliveryBloc>(
+            create: (context) => DeliveryBloc(),
+          ),
+        ],
+        child: MaterialApp(
+          title: 'KTC Logistics Driver',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blue,
+              brightness: Brightness.light,
+            ),
+            fontFamily: 'Poppins',
+            scaffoldBackgroundColor: Colors.transparent,
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blue,
+              brightness: Brightness.dark,
+            ),
+            fontFamily: 'Poppins',
+            scaffoldBackgroundColor: Colors.transparent,
+          ),
+          themeMode: ThemeMode.system,
+          onGenerateRoute: AppRouter.generateRoute,
+          home: const SplashScreen(),
         ),
-        themeMode: ThemeMode.system,
-        onGenerateRoute: AppRouter.generateRoute,
-        home: const SplashScreen(),
       ),
     );
   }

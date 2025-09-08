@@ -9,10 +9,10 @@ import 'package:http/http.dart' as http;
 import '../data/env/environment.dart';
 
 // Services (theo mẫu project tham khảo)
-import '../services/api_service.dart';
+import '../services/api_services.dart';
 import '../services/socket_service.dart';
 import '../services/mapbox_services.dart';
-import '../services/push_notification_service.dart';
+import '../services/push_notification_services.dart';
 import '../services/auth_services.dart';
 import '../services/user_services.dart';
 
@@ -59,7 +59,7 @@ Future<void> setupDependencyInjection() async {
 
   // Domain Services (sử dụng Firebase trực tiếp theo mẫu project tham khảo)
   getIt.registerLazySingleton<AuthServices>(
-    () => AuthServices(secureStorage: getIt<FlutterSecureStorage>()),
+    () => AuthServices(),
   );
 
   // Thay đổi cách đăng ký UserServices để tránh vòng lặp vô hạn

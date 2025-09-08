@@ -7,7 +7,7 @@
 	},
 	"item": [
 		{
-			"name": "Auth/Login/Users",
+			"name": "Auth",
 			"item": [
 				{
 					"name": "Login",
