@@ -1,3 +1,4 @@
+
 package ktc.spring_project.dtos.store;
 
 import jakarta.validation.constraints.*;

@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Service xử lý logic nghiệp vụ cho hóa đơn điện tử
+ * Service xử lý logic nghiệp vụ cho hóa đơn thanh toán
  * Bao gồm: tạo hóa đơn, kiểm tra điều kiện, quản lý trạng thái, và tích hợp với hệ thống khác
  */
 @Service
@@ -84,7 +84,7 @@ public class InvoiceService {
 
         // 2. Kiểm tra đơn hàng đã có hóa đơn chưa
         if (invoiceRepository.existsByOrderId(orderId)) {
-            return new ValidationResult(false, "Đơn hàng đã có hóa đơn điện tử");
+            return new ValidationResult(false, "Đơn hàng đã có hóa đơn thanh toán");
         }
 
         // 3. Kiểm tra trạng thái đơn hàng hợp lệ
@@ -126,7 +126,7 @@ public class InvoiceService {
     }
 
     /**
-     * Tạo hóa đơn điện tử cho đơn hàng
+     * Tạo hóa đơn thanh toán cho đơn hàng
      * 
      * @param orderId ID đơn hàng
      * @param createdByUserId ID người tạo hóa đơn
@@ -137,7 +137,7 @@ public class InvoiceService {
     @Transactional
     public ElectronicInvoice createInvoice(Long orderId, Long createdByUserId, 
                                          String customerEmail, String customerName) {
-        log.info("Bắt đầu tạo hóa đơn điện tử cho order {}", orderId);
+        log.info("Bắt đầu tạo hóa đơn thanh toán cho order {}", orderId);
 
         // 1. Kiểm tra điều kiện nghiệp vụ
         ValidationResult validation = validateInvoiceEligibility(orderId);
@@ -198,7 +198,7 @@ public class InvoiceService {
             activityLogService.logUserActivity(
                 createdByUserId,
                 "CREATE",
-                String.format("Tạo hóa đơn điện tử %s cho đơn hàng %d", 
+                String.format("Tạo hóa đơn thanh toán %s cho đơn hàng %d", 
                     invoiceNumber, orderId)
             );
         } catch (Exception e) {

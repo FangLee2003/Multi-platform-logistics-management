@@ -39,7 +39,7 @@ public class OrderItemController {
         orderItem.setOrder(orderOpt.get());
         orderItem.setProduct(productOpt.get());
         orderItem.setQuantity(dto.getQuantity());
-        orderItem.setNotes(dto.getNotes());
+    orderItem.setNotes(dto.getNotes());
         OrderItem saved = orderItemService.saveWithShippingCalculation(orderItem);
         return ResponseEntity.created(URI.create("/api/order-items/" + saved.getId())).body(saved);
     }

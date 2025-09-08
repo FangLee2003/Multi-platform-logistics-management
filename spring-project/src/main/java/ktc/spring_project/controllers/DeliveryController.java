@@ -1,6 +1,7 @@
 package ktc.spring_project.controllers;
 
 import ktc.spring_project.entities.Delivery;
+import ktc.spring_project.dtos.delivery.CreateDeliveryRequestDTO;
 import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Vehicle;
 import ktc.spring_project.entities.Status;
@@ -173,6 +174,37 @@ public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id)
         // Chuyển logic tạo delivery vào service
         Delivery createdDelivery = deliveryService.createDeliveryFromDTO(dto);
         
+        Map<String, Object> result = new ObjectMapper().convertValue(createdDelivery, Map.class);
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
+    }
+    public ResponseEntity<Map<String, Object>> createDelivery(
+            @Valid @RequestBody CreateDeliveryRequestDTO dto,
+            Authentication authentication) {
+
+        Delivery delivery = new Delivery();
+        // Map DTO sang entity
+        delivery.setOrder(orderService.getOrderById(dto.getOrderId()));
+        delivery.setTransportMode(dto.getTransportMode());
+        delivery.setServiceType(dto.getServiceType());
+        delivery.setPickupDate(dto.getPickupDate());
+        delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
+        delivery.setOrderDate(dto.getOrderDate());
+        delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
+        delivery.setDeliveryNotes(dto.getDeliveryNotes());
+        if (dto.getVehicleId() != null) {
+            delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
+        }
+        if (dto.getDriverId() != null) {
+            delivery.setDriver(userService.getUserById(dto.getDriverId()));
+        }
+        if (dto.getRouteId() != null) {
+            delivery.setRoute(routeService.getRouteById(dto.getRouteId()));
+        }
+
+        // Sử dụng method với auto-calculation thay vì createDelivery thông thường
+        Delivery createdDelivery = deliveryService.createDeliveryWithFeeCalculation(delivery);
+
+        // Chuyển đổi kết quả thành Map
         Map<String, Object> result = new ObjectMapper().convertValue(createdDelivery, Map.class);
         return new ResponseEntity<>(result, HttpStatus.CREATED);
     }

@@ -21,6 +21,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +34,17 @@ import org.springframework.util.ReflectionUtils;
 
 @Service
 public class UserService {
+    // Simple OTP cache: email -> OTP, expire in 5 minutes (demo, nên dùng Redis hoặc DB cho thực tế)
+    public static final java.util.concurrent.ConcurrentHashMap<String, OtpEntry> otpCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static class OtpEntry {
+    public String otp;
+    public long expireTime;
+        OtpEntry(String otp, long expireTime) {
+            this.otp = otp;
+            this.expireTime = expireTime;
+        }
+    }
 
     @Autowired
     private UserJpaRepository userRepository;
@@ -45,8 +58,11 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JavaMailSender mailSender;
+
     public User createUser(User user) {
-        System.out.println("==> Đã vào createUser với email: " + user.getEmail());
+    // Log bảo mật giữ lại nếu cần
         
         // Check if email already exists
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
@@ -63,29 +79,42 @@ public class UserService {
                 counter++;
             }
             user.setUsername(username);
-        } else if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            throw new EntityDuplicateException("Username");
+            System.out.println("==> Đã gán username: " + username);
+        } else {
+            // Check if provided username already exists
+            if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+                throw new EntityDuplicateException("Username đã được sử dụng");
+            }
         }
-
-        // Gán role mặc định nếu chưa có (nếu business cần)
+        
+        // Gán role mặc định nếu chưa có
         if (user.getRole() == null) {
             Role customerRole = roleRepository.findByRoleName("CUSTOMER")
                 .orElseGet(() -> roleRepository.findByRoleName("USER")
                     .orElseThrow(() -> new RuntimeException("No default role found")));
             user.setRole(customerRole);
+            System.out.println("==> Đã gán role: " + customerRole.getRoleName());
         }
         
         // Encode password
-        String rawPassword = user.getPassword();
-        String encodedPassword = passwordEncoder.encode(rawPassword);
-        user.setPassword(encodedPassword);
-        System.out.println("==> Đã encode password");
+    String rawPassword = user.getPassword();
+    // Log bảo mật: chỉ giữ lại nếu cần debug
+    String encodedPassword = passwordEncoder.encode(rawPassword);
+    user.setPassword(encodedPassword);
         
         User savedUser = userRepository.save(user);
-        System.out.println("==> Đã lưu user với ID: " + savedUser.getId());
         
         return savedUser;
     }
+
+        // Hàm gửi email OTP/TOTP
+        public void sendOtpEmail(String toEmail, String otpOrSecret) {
+            org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject("Mã OTP xác thực đăng nhập");
+            message.setText(otpOrSecret);
+            mailSender.send(message);
+        }
 
     public User getUserById(Long id) {
     return userRepository.findById(id)
@@ -102,7 +131,7 @@ public class UserService {
             user.setEmail(userDetails.getEmail());
         }
         if (userDetails.getPassword() != null) {
-            user.setPassword(userDetails.getPassword());
+                user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
         }
         if (userDetails.getFullName() != null) {
             user.setFullName(userDetails.getFullName());
@@ -123,7 +152,7 @@ public class UserService {
     }
 
     public void deleteUser(Long id) {
-        User user = getUserById(id);
+User user = getUserById(id);
         userRepository.delete(user);
     }
 
@@ -164,7 +193,12 @@ public class UserService {
             Field field = ReflectionUtils.findField(User.class, key);
             if (field != null) {
                 field.setAccessible(true);
-                ReflectionUtils.setField(field, user, value);
+                if ("password".equals(key) && value instanceof String) {
+                    String encodedPassword = passwordEncoder.encode((String) value);
+                    ReflectionUtils.setField(field, user, encodedPassword);
+                } else {
+                    ReflectionUtils.setField(field, user, value);
+                }
             }
         });
 
@@ -214,8 +248,15 @@ public class UserService {
             if (email == null || name == null || googleId == null) {
                 throw new HttpException("Missing required fields from Google API response", org.springframework.http.HttpStatus.BAD_REQUEST);
             }
-
-            Optional<User> existingUser = userRepository.findByEmail(email);
+        // Sinh mã OTP 6 số cho xác thực qua email
+        String otp = String.valueOf(100000 + (int)(Math.random() * 900000));
+        // Lưu OTP vào cache với email và thời hạn 5 phút
+        otpCache.put(email, new OtpEntry(otp, System.currentTimeMillis() + 5 * 60 * 1000));
+        String otpEmailContent = "Chào mừng bạn đăng nhập FastRoute!\n\n"
+            + "Mã OTP xác thực của bạn là: " + otp + "\n\n"
+            + "Vui lòng nhập mã này vào hệ thống để hoàn tất xác thực đăng nhập.";
+        sendOtpEmail(email, otpEmailContent);
+        Optional<User> existingUser = userRepository.findByEmail(email);
 
             Role customerRole = roleRepository.findByRoleName("CUSTOMER")
                 .orElseThrow(() -> new RuntimeException("Role CUSTOMER not found"));
@@ -240,8 +281,22 @@ public class UserService {
                 // Gán password mặc định cho user Google
                 String defaultPassword = passwordEncoder.encode("GOOGLE_LOGIN");
                 newUser.setPassword(defaultPassword);
-                System.out.println("[GoogleLogin] Password before save: " + newUser.getPassword());
-                return userRepository.save(newUser);
+                // Đánh dấu chưa xác thực OTP
+                newUser.setTotpEnabled(false);
+                // ...existing code...
+                User savedUser = userRepository.save(newUser);
+                // Sinh secret TOTP và gửi email mã OTP/TOTP cho user
+                String secret = getOrCreateTotpSecret(email);
+                // Tạo link QR cho app Authenticator
+                String qrUrl = new ktc.spring_project.services.TotpService().getQRBarcode(email, secret);
+                // Gửi email hướng dẫn cấu hình app Authenticator
+                String emailContent = "Chào mừng bạn đăng ký FastRoute!\n\n" +
+                    "Để kích hoạt bảo mật 2 lớp, hãy cấu hình ứng dụng Google Authenticator hoặc Microsoft Authenticator với thông tin sau:\n" +
+                    "- Secret: " + secret + "\n" +
+                    "- Hoặc quét mã QR: " + qrUrl + "\n\n" +
+                    "Sau khi cấu hình, hãy nhập mã OTP 6 số từ app vào hệ thống để hoàn tất xác thực.";
+                sendOtpEmail(email, emailContent);
+                return savedUser;
             }
 
         } catch (Exception e) {
@@ -301,16 +356,49 @@ public class UserService {
                 newUser.setFullName(name);
                 newUser.setGoogleId(googleId);
                 newUser.setUsername(email);
-                newUser.setRole(customerRole);
-                // Gán password mặc định cho user Google
-                String defaultPassword = passwordEncoder.encode("GOOGLE_LOGIN");
-                newUser.setPassword(defaultPassword);
-                System.out.println("[GoogleLoginWithCredential] Password before save: " + newUser.getPassword());
+
+                // Gán role mặc định USER
+                Role defaultRole = roleRepository.findByRoleName("USER")
+                    .orElseThrow(() -> new RuntimeException("Default role USER not found"));
+                newUser.setRole(defaultRole);
+
                 return userRepository.save(newUser);
             }
 
         } catch (Exception e) {
             throw new HttpException("Google credential login failed: " + e.getMessage(), org.springframework.http.HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    // Lấy hoặc tạo secret TOTP cho user
+    public String getOrCreateTotpSecret(String email) {
+        User user = findByEmail(email);
+        if (user.getTotpSecret() == null || user.getTotpSecret().isEmpty()) {
+            String secret = new ktc.spring_project.services.TotpService().generateSecret();
+            user.setTotpSecret(secret);
+            userRepository.save(user);
+            return secret;
+        }
+        return user.getTotpSecret();
+    }
+
+    // Lấy secret TOTP của user
+    public String getTotpSecret(String email) {
+        User user = findByEmail(email);
+        return user.getTotpSecret();
+    }
+
+    // Kích hoạt trạng thái 2FA cho user
+    public void enableTotp(String email) {
+        User user = findByEmail(email);
+        user.setTotpEnabled(true);
+        userRepository.save(user);
+    }
+
+    // Hủy kích hoạt trạng thái 2FA cho user
+    public void disableTotp(String email) {
+        User user = findByEmail(email);
+        user.setTotpEnabled(false);
+        userRepository.save(user);
     }
 }

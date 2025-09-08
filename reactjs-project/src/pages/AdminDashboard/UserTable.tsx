@@ -34,10 +34,25 @@ interface UserTableProps {
   onUserCountUpdate?: () => void;
 }
 
+// Định nghĩa interface cho user để dùng cho state
+interface DashboardUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  roleValue?: string;
+  roleIcon: any;
+  status: string;
+  lastLogin: string;
+  phone?: string;
+  password?: string;
+  notes?: string | null;
+  googleId?: string | null;
+}
+
 export default function UserTable({ onUserCountUpdate }: UserTableProps) {
+  const [users, setUsers] = useState<DashboardUser[]>([]);
   const [search, setSearch] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [users, setUsers] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState<{
     name: string;
@@ -238,6 +253,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       ...user,
       roleValue: user.roleValue,
       status: user.status === "active" ? "active" : "inactive",
+
     }); // Đảm bảo có trường roleValue và status đúng cho form
     setShowForm(true);
   };
@@ -412,6 +428,8 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
               roleIcon: roleInfo.icon,
               status,
               lastLogin,
+              phone: u.phone || "",
+              password: u.password || "",
             };
           })
         );
@@ -466,7 +484,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
           <table className="min-w-full">
             <thead>
               <tr className="text-left text-gray-600 border-b">
-                <th className="py-2 pr-4">Name</th>
+                <th className="py-2 pr-4">Full Name</th>
                 <th className="py-2 pr-4">Email</th>
                 <th className="py-2 pr-4">Role</th>
                 <th className="py-2 pr-4">Status</th>

@@ -1,14 +1,37 @@
-
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { fetchOrders } from "../../services/OrderAPI";
+import { searchLocation } from "../../services/mapboxAPI";
 
 export default function MapboxTrackingMap() {
   const { selectedOrder } = useDispatcherContext();
   const [start, setStart] = useState<[number, number] | null>(null);
   const [end, setEnd] = useState<[number, number] | null>(null);
-  const [route, setRoute] = useState<any>(null);
+  // State cho nhập mã đơn hàng
+  const [orderCode, setOrderCode] = useState("");
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderError, setOrderError] = useState("");
+  // State hiển thị thông tin đơn hàng đã tìm
+  const [orderInfo, setOrderInfo] = useState<any>(null);
+
+    type Route = {
+      geometry: {
+        coordinates: [number, number][];
+      };
+      legs: Array<{
+        steps: Array<{
+          maneuver: {
+            location: [number, number];
+          };
+        }>;
+      }>;
+      distance: number;
+      duration: number;
+      // ...other Mapbox route fields
+    };
+    const [route, setRoute] = useState<Route | null>(null);
   const [waypoints, setWaypoints] = useState<[number, number][]>([]);
   const [vehiclePos, setVehiclePos] = useState<[number, number] | null>(null);
   const realTruckMarker = useRef<mapboxgl.Marker | null>(null);
@@ -16,6 +39,7 @@ export default function MapboxTrackingMap() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
   const waypointMarkers = useRef<mapboxgl.Marker[]>([]);
 
   // Đoạn đường đã đi qua: từ start đến vị trí xe hiện tại, lấy theo các waypoint
@@ -151,7 +175,10 @@ export default function MapboxTrackingMap() {
     // Draw route line
     const routeFeature: GeoJSON.Feature<GeoJSON.LineString> = {
       type: 'Feature',
-      geometry: route.geometry,
+      geometry: {
+        type: 'LineString',
+        coordinates: route.geometry.coordinates,
+      },
       properties: {}
     };
     if (map.current.getSource('route')) {
@@ -227,8 +254,7 @@ export default function MapboxTrackingMap() {
       }
       setIsLoaded(false);
     };
-  }, []);
-
+  }, [MAPBOX_TOKEN]);
   // Handle manual route input (when no order selected)
   const handleGetRoute = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,7 +289,7 @@ export default function MapboxTrackingMap() {
               <span><strong>Đến:</strong> {selectedOrder.address?.address}</span>
             </div>
           </div>
-          {route && (
+          {route && typeof route.distance === 'number' && typeof route.duration === 'number' && (
             <div className="mt-2 text-xs text-blue-600">
               <strong>Khoảng cách:</strong> {(route.distance / 1000).toFixed(1)} km | 
               <strong> Thời gian:</strong> {Math.round(route.duration / 60)} phút
@@ -308,6 +334,7 @@ export default function MapboxTrackingMap() {
           </div>
         )}
       </div>
+
  {/* Hiển thị danh sách waypoint nếu có */}
       {/* {waypoints.length > 0 && (
         <div className="mt-2 p-2 bg-gray-50 rounded">

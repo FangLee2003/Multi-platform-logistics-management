@@ -1,3 +1,4 @@
+
 package ktc.spring_project.dtos.delivery;
 
 import ktc.spring_project.enums.TransportMode;
@@ -19,6 +20,8 @@ public class CreateDeliveryRequestDTO {
     private BigDecimal deliveryFee;
 
     private TransportMode transportMode = TransportMode.ROAD;
+
+    @NotNull(message = "Service type is required")
     private ServiceType serviceType = ServiceType.STANDARD;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -36,6 +39,7 @@ public class CreateDeliveryRequestDTO {
     private Timestamp orderDate;
     @NotNull(message = "Vehicle ID is required")
     private Long vehicleId;
+
     private Long driverId;
     private Long routeId;
     
