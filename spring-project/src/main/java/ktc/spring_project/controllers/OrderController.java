@@ -1,7 +1,9 @@
 package ktc.spring_project.controllers;
 
+import ktc.spring_project.dtos.common.ApiResponse;
 import ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO;
 import ktc.spring_project.dtos.order.DeliveryOrderResponseDTO;
+import ktc.spring_project.dtos.order.OrderByStoreResponseDTO;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Vehicle;
@@ -47,19 +49,16 @@ public class OrderController {
      * Tạo đơn hàng mới
      */
     @PostMapping
-    public ResponseEntity<Order> createOrder(@RequestBody Order order) {
+    public ResponseEntity<Order> createOrder(@Valid @RequestBody CreateDeliveryOrderRequestDTO dto) {
         try {
-            // Đặt giá trị mặc định nếu không được cung cấp
-            if (order.getBenefitPerOrder() == null) {
-                order.setBenefitPerOrder(BigDecimal.ZERO);
-            }
-            if (order.getOrderProfitPerOrder() == null) {
-                order.setOrderProfitPerOrder(BigDecimal.ZERO);
-            }
-            if (order.getTotalAmount() == null) {
-                order.setTotalAmount(BigDecimal.valueOf(500.00)); // Giá trị mặc định từ JSON của bạn
-            }
-            
+            Order order = new Order();
+            order.setDescription(dto.getDescription());
+            order.setNotes(dto.getNotes());
+            order.setTotalAmount(dto.getTotalAmount());
+            order.setBenefitPerOrder(BigDecimal.ZERO); // hoặc tính toán nếu cần
+            order.setOrderProfitPerOrder(BigDecimal.ZERO); // hoặc tính toán nếu cần
+            // Map các trường khác nếu cần
+            // Ví dụ: set address, vehicle, status, store, createdBy nếu có logic
             Order createdOrder = orderService.createOrder(order);
             return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
@@ -276,4 +275,4 @@ public ResponseEntity<Order> putOrder(
         }
     }
 
-}
+    }

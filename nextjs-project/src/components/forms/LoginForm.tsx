@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthResponse } from "../../types/User";
+import { setTokenCookie, setRefreshTokenCookie, removeTokenCookie, removeRefreshTokenCookie } from "../../lib/auth";
 import Link from "next/dist/client/link";
 import { loginApi, googleLoginApi } from "../../server/auth.api";
 import { FaLock, FaLockOpen } from "react-icons/fa";
 import ForgotPasswordForm from "./ForgotPasswordForm";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { app } from "../../lib/firebase";
+import TwoFactorForm from "./TwoFactorForm";
 
 interface LoginFormProps {
   onLogin: (response: AuthResponse) => void;
@@ -19,21 +21,32 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
+      // Đăng nhập Google bằng Firebase Auth
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      // Lấy access token Google đúng chuẩn từ credential
+      // Lấy accessToken Google để gửi lên backend
       const credential = GoogleAuthProvider.credentialFromResult(result);
-      const token = credential?.accessToken;
-      if (!token) {
+      const accessToken = credential?.accessToken;
+      console.log("Google accessToken:", accessToken);
+      if (!accessToken) {
         alert("Không lấy được access token từ Google!");
         return;
       }
-      // Gọi API backend để kiểm tra role
-      const res = await googleLoginApi(token);
+      // Gửi accessToken này lên backend để xác thực Google login và nhận OTP
+      const res = await googleLoginApi(accessToken);
       const data = await res.json();
-      console.log("Google login response:", data);
+  console.log("Google login response:", data);
+  console.log("totpEnabled type:", typeof data.user?.totpEnabled, "value:", data.user?.totpEnabled);
       if (data.user?.role?.toLowerCase() === "customer") {
-        alert("Đăng nhập Google thành công!\n" + user.email);
+        if (!data.user?.totpEnabled) {
+          // Nếu chưa xác thực OTP, hiển thị form nhập OTP
+          setPending2FA(true);
+          setPendingUser(data.user);
+          return;
+        }
+        // Nếu đã xác thực OTP, đăng nhập luôn
+        setTokenCookie(data.token);
+        setRefreshTokenCookie(data.refreshToken);
         if (onLogin) onLogin(data);
       } else {
         alert("This application is for customers only. Please use the employee application.");
@@ -48,6 +61,8 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
+  const [pending2FA, setPending2FA] = useState(false);
+  const [pendingUser, setPendingUser] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,15 +75,20 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         return;
       }
       const data = await res.json();
-      // Check if user is customer
       const userRole = data.user?.role?.toLowerCase();
       if (userRole !== "customer") {
         setError("This application is for customers only!");
         return;
       }
+      if (data.user?.totpEnabled) {
+        setPending2FA(true);
+        setPendingUser(data.user);
+        return;
+      }
       if (typeof window !== "undefined") {
+        setTokenCookie(data.token);
+        setRefreshTokenCookie(data.refreshToken);
         localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("token", data.token);
         const accountsStr = localStorage.getItem("accounts");
         const accounts = accountsStr ? (() => { try { return JSON.parse(accountsStr); } catch { return {}; } })() : {};
         accounts[email] = password;
@@ -81,6 +101,18 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       setLoading(false);
     }
   };
+
+  if (pending2FA && pendingUser) {
+    return <TwoFactorForm email={pendingUser.email} onSuccess={(token) => {
+      setPending2FA(false);
+      if (typeof window !== "undefined") {
+        setTokenCookie(token);
+        localStorage.setItem("user", JSON.stringify(pendingUser));
+      }
+      if (onLogin) onLogin({ user: pendingUser, token });
+      router.push("/account");
+    }} />;
+  }
 
   if (showForgot) {
     return <ForgotPasswordForm onBack={() => setShowForgot(false)} />;

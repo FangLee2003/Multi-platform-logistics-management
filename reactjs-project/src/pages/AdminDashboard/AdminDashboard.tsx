@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { User } from "../../types/User";
+
 import { fetchUsers, fetchActivityLogs } from "../../services/adminAPI";
 
 // Simple user interface for dashboard display
@@ -12,6 +13,7 @@ interface DashboardUser {
   lastLogin: string;
   phone: string;
   password: string;
+  roleIcon?: any;
 }
 import UserTable from "./UserTable";
 import RoleTable from "./RoleTable";
@@ -32,6 +34,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const [active, setActive] = useState<AdminTab>("users");
+
   const [users, setUsers] = useState<DashboardUser[]>([]);
   const [auditCount, setAuditCount] = useState<number>(0);
 
@@ -74,13 +77,29 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         const userData = await fetchUsers();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mappedUsers: DashboardUser[] = userData.map((u: any) => {
+          let roleIcon = null;
+          switch (u.role?.roleName) {
+            case "DISPATCHER":
+              roleIcon = <span style={{fontWeight: 'bold'}}>D</span>; break;
+            case "FLEET_MANAGER":
+              roleIcon = <span style={{fontWeight: 'bold'}}>F</span>; break;
+            case "DRIVER":
+              roleIcon = <span style={{fontWeight: 'bold'}}>Dr</span>; break;
+            case "ADMIN":
+              roleIcon = <span style={{fontWeight: 'bold'}}>A</span>; break;
+            case "OPERATIONS_MANAGER":
+              roleIcon = <span style={{fontWeight: 'bold'}}>O</span>; break;
+            default:
+              roleIcon = null;
+          }
           return {
-            id: typeof u.id === 'string' ? parseInt(u.id) : u.id,
+            id: u.id,
             name: u.fullName || u.username || "",
             email: u.email,
             role: u.role?.roleName || "",
+            roleIcon,
             status: u.status?.name?.toLowerCase() === "active" ? "active" : "inactive",
-            lastLogin: "-", // Will be updated from backend later
+            lastLogin: u.updatedAt ? new Date(u.updatedAt).toLocaleString() : "-",
             phone: u.phone || "",
             password: u.password || "",
           };
@@ -167,6 +186,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
             </div>
           ))}
         </div>
+
         {/* Content - Scrollable */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 md:p-10 pt-3 md:pt-4">
