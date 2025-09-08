@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { removeTokenCookie, removeRefreshTokenCookie } from "../../lib/auth";
 import { User } from "../../types/User";
 import { Layout, Menu, Button, Typography, Avatar, Spin, Space } from "antd";
 import {
@@ -59,6 +60,9 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
   const handleLogout = () => {
     if (typeof window !== "undefined") {
       localStorage.clear();
+      removeTokenCookie();
+      removeRefreshTokenCookie();
+      console.log("[Logout] Token và RefreshToken đã bị xóa khỏi cookie.");
     }
     router.push("/login");
   };

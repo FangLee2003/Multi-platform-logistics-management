@@ -49,8 +49,7 @@ public class StoreService {
 
     public void deleteStore(Long id) {
     Store store = getStoreById(id);
-    store.setIsActive(false); // Soft delete
-    storeRepository.save(store);
+    storeRepository.delete(store);
 }
 
 public List<Store> getStoresByUserId(Long userId) {
