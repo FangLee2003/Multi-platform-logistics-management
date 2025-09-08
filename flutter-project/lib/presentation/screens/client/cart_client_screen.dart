@@ -6,7 +6,7 @@ import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
 import 'package:ktc_logistics_driver/presentation/screens/client/check_out_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/client/client_home_screen.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class CartClientScreen extends StatelessWidget {
   const CartClientScreen({super.key});

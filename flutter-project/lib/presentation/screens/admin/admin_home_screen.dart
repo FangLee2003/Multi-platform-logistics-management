@@ -11,7 +11,7 @@ import 'package:ktc_logistics_driver/presentation/screens/home/select_role_scree
 import 'package:ktc_logistics_driver/presentation/screens/onboarding/spatial_checking_login_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/profile/change_password_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/profile/edit_profile_screen.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});

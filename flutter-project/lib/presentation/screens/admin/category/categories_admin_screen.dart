@@ -3,7 +3,7 @@ import 'package:ktc_logistics_driver/domain/models/product/category_all_response
 import 'package:ktc_logistics_driver/services/category_services.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
 import 'package:ktc_logistics_driver/presentation/screens/admin/category/add_category_admin_screen.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class CategoriesAdminScreen extends StatelessWidget {
   const CategoriesAdminScreen({super.key});

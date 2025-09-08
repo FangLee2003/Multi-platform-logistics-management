@@ -12,7 +12,7 @@ import 'package:ktc_logistics_driver/presentation/screens/client/cart_client_scr
 import 'package:ktc_logistics_driver/presentation/screens/client/details_product_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/client/search_for_category_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/profile/list_addresses_screen.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class ClientHomeScreen extends StatelessWidget {
   const ClientHomeScreen({super.key});

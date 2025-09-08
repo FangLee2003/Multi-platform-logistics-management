@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
+import '../../services/auth_services.dart';
 import '../../services/mock_auth_service.dart';
-import '../../services/real_auth_service.dart';
 
 /// Lớp helper để xử lý chuyển đổi giữa mock auth và real auth
 /// Sử dụng real auth khi có thể, fallback về mock auth khi không có kết nối
@@ -9,7 +9,7 @@ class AuthHelper {
   static AuthHelper getInstance() => _instance;
   
   final MockAuthService _mockAuth = MockAuthService();
-  final RealAuthService _realAuth = RealAuthService.getInstance();
+  final AuthServices _realAuth = AuthServices();
   
   bool _useRealAuth = true;
   bool get useRealAuth => _useRealAuth;
@@ -31,7 +31,8 @@ class AuthHelper {
   Future<Map<String, dynamic>?> login(String email, String password) async {
     if (_useRealAuth) {
       try {
-        return await _realAuth.login(email, password);
+        final loginResponse = await _realAuth.login(email, password);
+        return loginResponse.toJson();
       } catch (e) {
         // Thử lại với mock auth nếu real auth thất bại
         debugPrint('⚠️ Đăng nhập real auth thất bại: $e');
@@ -52,9 +53,23 @@ class AuthHelper {
   Future<Map<String, dynamic>?> checkLoginStatus() async {
     if (_useRealAuth) {
       try {
-        return await _realAuth.checkLoginStatus();
+        final isLoggedIn = await _realAuth.checkAuthStatus();
+        if (isLoggedIn) {
+          // Trả về dữ liệu giả định vì AuthServices không cung cấp thông tin người dùng
+          final token = await _realAuth.secureStorage.readToken();
+          final driverId = await _realAuth.secureStorage.readDriverId();
+          if (token != null && driverId != null) {
+            return {
+              'id': driverId,
+              'token': token,
+              'isAuthenticated': true,
+            };
+          }
+        }
+        return null;
       } catch (e) {
         _handleConnectionError();
+        return null;
       }
     }
     
@@ -71,16 +86,26 @@ class AuthHelper {
 
   // Lấy thông tin người dùng hiện tại
   Map<String, dynamic>? getCurrentUser() {
-    return _useRealAuth ? _realAuth.currentUser : _mockAuth.currentUser;
+    if (_useRealAuth) {
+      // AuthServices không có thuộc tính currentUser, nên trả về null hoặc dữ liệu giả
+      return null;
+    }
+    return _mockAuth.currentUser;
   }
 
   // Lấy token xác thực cho API calls
-  String? getAuthToken() {
-    return _useRealAuth ? _realAuth.token : null;
+  Future<String?> getAuthToken() async {
+    if (_useRealAuth) {
+      return await _realAuth.secureStorage.readToken();
+    }
+    return null;
   }
 
   // Kiểm tra đã đăng nhập chưa
-  bool isLoggedIn() {
-    return _useRealAuth ? _realAuth.isLoggedIn : _mockAuth.isLoggedIn;
+  Future<bool> isLoggedIn() async {
+    if (_useRealAuth) {
+      return await _realAuth.checkAuthStatus();
+    }
+    return _mockAuth.isLoggedIn;
   }
 }

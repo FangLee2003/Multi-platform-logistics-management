@@ -7,7 +7,7 @@ import 'package:ktc_logistics_driver/services/orders_services.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
 import 'package:ktc_logistics_driver/presentation/helpers/date_custom.dart';
 import 'package:ktc_logistics_driver/presentation/screens/client/client_map_screen.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 
 class ClientDetailsOrderScreen extends StatelessWidget {

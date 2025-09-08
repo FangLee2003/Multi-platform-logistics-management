@@ -4,7 +4,7 @@ import 'package:ktc_logistics_driver/presentation/screens/client/cart_client_scr
 import 'package:ktc_logistics_driver/presentation/screens/client/client_home_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/client/profile_client_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/client/search_client_screen.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class BottomNavigationFrave extends StatelessWidget {
 

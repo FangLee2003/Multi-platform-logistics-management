@@ -7,7 +7,7 @@ import 'package:ktc_logistics_driver/services/products_services.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
 import 'package:ktc_logistics_driver/presentation/helpers/helpers.dart';
 import 'package:ktc_logistics_driver/presentation/screens/admin/products/add_new_product_screen.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class ListProductsScreen extends StatefulWidget {
   const ListProductsScreen({super.key});

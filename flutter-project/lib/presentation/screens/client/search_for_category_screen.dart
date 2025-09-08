@@ -5,7 +5,7 @@ import '../../../services/products_services.dart';
 import '../../components/staggered_dual_view.dart';
 import '../../components/components.dart';
 import './details_product_screen.dart';
-import '../../themes/colors_frave.dart';
+import '../../design/colors_frave.dart';
 
 class SearchForCategoryScreen extends StatelessWidget {
 

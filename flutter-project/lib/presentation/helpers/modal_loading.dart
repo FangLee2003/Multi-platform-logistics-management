@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 void modalLoading(BuildContext context){
 

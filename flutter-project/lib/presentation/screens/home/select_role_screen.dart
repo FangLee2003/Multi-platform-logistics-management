@@ -4,7 +4,7 @@ import 'package:ktc_logistics_driver/presentation/components/components.dart';
 import 'package:ktc_logistics_driver/presentation/screens/admin/admin_home_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/client/client_home_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/dashboard/dashboard_screen_spatial.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class SelectRoleScreen extends StatelessWidget {
   const SelectRoleScreen({super.key});
