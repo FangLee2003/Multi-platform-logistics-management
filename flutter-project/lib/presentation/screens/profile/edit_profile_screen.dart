@@ -52,7 +52,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           modalLoading(context);
         } else if (state is SuccessUserState) {
           Navigator.pop(context);
-          modalSuccess(context, 'Profile updated successfully', () => Navigator.pop(context));
+          modalSuccess(context, 'Profile updated successfully',
+              () => Navigator.pop(context));
         } else if (state is FailureUserState) {
           Navigator.pop(context);
           errorMessageSnack(context, state.error);
@@ -60,8 +61,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       },
       child: Scaffold(
         backgroundColor: isDark
-          ? SpatialDesignSystem.darkBackgroundColor
-          : SpatialDesignSystem.backgroundColor,
+            ? SpatialDesignSystem.darkBackgroundColor
+            : SpatialDesignSystem.backgroundColor,
         appBar: AppBar(
           backgroundColor: isDark
               ? SpatialDesignSystem.darkBackgroundColor
@@ -69,11 +70,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           elevation: 0,
           centerTitle: true,
           title: Text(
-            'Profile', 
+            'Profile',
             style: SpatialDesignSystem.subtitleLarge.copyWith(
               color: isDark
-                ? SpatialDesignSystem.textDarkPrimaryColor
-                : SpatialDesignSystem.textPrimaryColor,
+                  ? SpatialDesignSystem.textDarkPrimaryColor
+                  : SpatialDesignSystem.textPrimaryColor,
             ),
           ),
           automaticallyImplyLeading: false, // Remove back button
@@ -86,8 +87,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 // Split name into first and last name
                 final nameParts = state.user!.name.split(' ');
                 final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-                final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
-                
+                final lastName =
+                    nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
                 _nameController.text = firstName;
                 _lastNameController.text = lastName;
                 _phoneController.text = state.user!.phone;
@@ -98,7 +100,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 key: _keyForm,
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 20.0),
                   children: [
                     // Profile Image Section
                     GlassCard(
@@ -111,40 +114,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 width: 100,
                                 height: 100,
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: isDark
-                                    ? Colors.grey[800]
-                                    : Colors.grey[200],
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      blurRadius: 10,
-                                      spreadRadius: 2
-                                    )
-                                  ]
-                                ),
-                                child: state.user?.image != null && state.user!.image.isNotEmpty
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(50),
-                                      child: Image.network(
-                                        state.user!.image,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Icon(
-                                          Icons.person,
-                                          size: 50,
-                                          color: isDark
+                                    shape: BoxShape.circle,
+                                    color: isDark
+                                        ? Colors.grey[800]
+                                        : Colors.grey[200],
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.1),
+                                          blurRadius: 10,
+                                          spreadRadius: 2)
+                                    ]),
+                                child: state.user?.image != null &&
+                                        state.user!.image.isNotEmpty
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(50),
+                                        child: Image.network(
+                                          state.user!.image,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Icon(
+                                            Icons.person,
+                                            size: 50,
+                                            color: isDark
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600],
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: isDark
                                             ? Colors.grey[400]
                                             : Colors.grey[600],
-                                        ),
                                       ),
-                                    )
-                                  : Icon(
-                                      Icons.person,
-                                      size: 50,
-                                      color: isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
-                                    ),
                               ),
                               Positioned(
                                 bottom: 0,
@@ -169,8 +172,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             state.user?.name ?? "Update Your Profile",
                             style: SpatialDesignSystem.subtitleLarge.copyWith(
                               color: isDark
-                                ? SpatialDesignSystem.textDarkPrimaryColor
-                                : SpatialDesignSystem.textPrimaryColor,
+                                  ? SpatialDesignSystem.textDarkPrimaryColor
+                                  : SpatialDesignSystem.textPrimaryColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -179,16 +182,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             state.user?.email ?? "",
                             style: SpatialDesignSystem.bodyMedium.copyWith(
                               color: isDark
-                                ? SpatialDesignSystem.textDarkSecondaryColor
-                                : SpatialDesignSystem.textSecondaryColor,
+                                  ? SpatialDesignSystem.textDarkSecondaryColor
+                                  : SpatialDesignSystem.textSecondaryColor,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Form Section
                     GlassCard(
                       padding: const EdgeInsets.all(20),
@@ -205,54 +208,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Personal Information',
-                                style: SpatialDesignSystem.subtitleMedium.copyWith(
+                                style:
+                                    SpatialDesignSystem.subtitleMedium.copyWith(
                                   color: isDark
-                                    ? SpatialDesignSystem.textDarkPrimaryColor
-                                    : SpatialDesignSystem.textPrimaryColor,
+                                      ? SpatialDesignSystem.textDarkPrimaryColor
+                                      : SpatialDesignSystem.textPrimaryColor,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // First Name field
                           SpatialTextField(
                             label: 'First Name',
                             hint: 'Enter your first name',
                             controller: _nameController,
                             prefix: Icon(
-                              Icons.person_outline, 
+                              Icons.person_outline,
                               color: SpatialDesignSystem.primaryColor,
                               size: 20,
                             ),
-                            validator: (value) => value!.isEmpty ? 'First name is required' : null,
+                            validator: (value) => value!.isEmpty
+                                ? 'First name is required'
+                                : null,
                             isGlass: true,
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // Last Name field
                           SpatialTextField(
                             label: 'Last Name',
                             hint: 'Enter your last name',
                             controller: _lastNameController,
                             prefix: Icon(
-                              Icons.person_outline, 
+                              Icons.person_outline,
                               color: SpatialDesignSystem.primaryColor,
                               size: 20,
                             ),
-                            validator: (value) => value!.isEmpty ? 'Last name is required' : null,
+                            validator: (value) =>
+                                value!.isEmpty ? 'Last name is required' : null,
                             isGlass: true,
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // Phone Number field
                           SpatialTextField(
                             label: 'Phone Number',
-                            hint: '000-000-000',
+                            hint: '000-000-0000',
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
                             prefix: Icon(
-                              Icons.phone_outlined, 
+                              Icons.phone_outlined,
                               color: SpatialDesignSystem.primaryColor,
                               size: 20,
                             ),
@@ -260,13 +267,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             isGlass: true,
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // Email field (read-only)
                           SpatialTextField(
                             label: 'Email Address',
+                            hint: 'abc@gmail.com',
                             controller: _emailController,
                             prefix: Icon(
-                              Icons.email_outlined, 
+                              Icons.email_outlined,
                               color: SpatialDesignSystem.primaryColor,
                               size: 20,
                             ),
@@ -276,21 +284,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     // Save Button
                     SpatialButton(
                       text: 'Save Changes',
                       onPressed: () {
-                        if (_keyForm.currentState!.validate() && userBloc.state.user != null) {
-                          userBloc.add(OnEditUserEvent(_nameController.text, _lastNameController.text, _phoneController.text));
+                        if (_keyForm.currentState!.validate() &&
+                            userBloc.state.user != null) {
+                          userBloc.add(OnEditUserEvent(_nameController.text,
+                              _lastNameController.text, _phoneController.text));
                         }
                       },
                       iconData: Icons.save,
                       isGradient: true,
                     ),
-                    
+
                     const SizedBox(height: 20),
                   ],
                 ),

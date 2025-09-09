@@ -49,8 +49,11 @@ class AuthServices {
   Future<LoginResponse> _loginLegacy(String email, String password) async {
     final resp = await http.post(
       Uri.parse('$baseUrl/auth/login'),
-      headers: {'Accept': 'application/json'},
-      body: {'email': email, 'password': password}
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: jsonEncode({'email': email, 'password': password})
     );
 
     if(resp.statusCode == 200){
