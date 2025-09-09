@@ -25,17 +25,18 @@ export default function StepStoreInfo({ store }: Props) {
           label="Địa chỉ giao hàng"
           rules={[{ required: true, message: "Vui lòng nhập địa chỉ giao hàng!" }]}
         >
-          <TextArea rows={2} placeholder="Nhập địa chỉ giao hàng" />
+
+          <Input.TextArea rows={2} placeholder="Nhập địa chỉ giao hàng" />
         </Form.Item>
       </Col>
       <Col xs={24}>
         <Form.Item name="description" label="Mô tả đơn hàng">
-          <TextArea rows={3} placeholder="Mô tả chi tiết (không bắt buộc)" />
+          <Input.TextArea rows={3} placeholder="Mô tả chi tiết (không bắt buộc)" />
         </Form.Item>
       </Col>
       <Col xs={24}>
         <Form.Item name="notes" label="Ghi chú">
-          <TextArea rows={3} placeholder="Ghi chú bổ sung (nếu có)" />
+          <Input.TextArea rows={3} placeholder="Ghi chú bổ sung (nếu có)" />
         </Form.Item>
       </Col>
     </Row>

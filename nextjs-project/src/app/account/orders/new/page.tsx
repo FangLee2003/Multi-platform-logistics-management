@@ -1,14 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Card, Steps, Typography, Button, Form, message } from "antd";
-import { ShopOutlined, BoxPlotOutlined, DollarOutlined } from "@ant-design/icons";
+import {
+  ShopOutlined,
+  BoxPlotOutlined,
+  DollarOutlined,
+} from "@ant-design/icons";
 import { Store } from "@/types/Store";
 import { storeService } from "@/services/storeService";
-import { useWatch } from "antd/es/form/Form";
 import StepStoreInfo from "../components/StepStoreInfo";
 import StepOrderItems from "../components/StepOrderItems";
 import StepInvoice from "../components/StepInvoice";
-import { OrderItem, OrderForm } from "@/types/orders";
+import { OrderForm, OrderItem } from "@/types/orders";
 
 const { Title } = Typography;
 
@@ -16,9 +19,9 @@ const calculateShippingFee = (items: OrderItem[]): number => {
   if (!items || items.length === 0) return 0;
   return items.reduce((total, item) => {
     let fee = 15000;
-    fee += item.weight * 10000;
-    fee += (item.height + item.width) * 1000;
-    fee *= item.quantity;
+    fee += (item.weight || 0) * 10000;
+    fee += ((item.height || 0) + (item.width || 0)) * 1000;
+    fee *= item.quantity || 1;
     return total + fee;
   }, 0);
 };
@@ -27,14 +30,6 @@ export default function CreateOrder() {
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
   const [store, setStore] = useState<Store | null>(null);
-
-  // watch form
-  const shippingAddress = useWatch("shipping_address", form);
-  const description = useWatch("description", form);
-  const notes = useWatch("notes", form);
-  const items = useWatch("items", form) || [];
-  const isFragile = useWatch("is_fragile", form);
-  const serviceType = useWatch("service_type", form);
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -57,44 +52,59 @@ export default function CreateOrder() {
   };
 
   const steps = [
-    { title: "Thông tin cửa hàng", icon: <ShopOutlined />, content: <StepStoreInfo store={store} /> },
-    { title: "Chi tiết đơn hàng", icon: <BoxPlotOutlined />, content: <StepOrderItems items={items} /> },
+    {
+      title: "Thông tin cửa hàng",
+      icon: <ShopOutlined />,
+      content: <StepStoreInfo store={store} />,
+    },
+    {
+      title: "Chi tiết đơn hàng",
+      icon: <BoxPlotOutlined />,
+      content: <StepOrderItems form={form} />, // chỉ truyền form, không cần items props
+    },
     {
       title: "Hoá đơn",
       icon: <DollarOutlined />,
-      content: (
-        <StepInvoice
-          store={store}
-          shippingAddress={shippingAddress}
-          description={description}
-          notes={notes}
-          items={items}
-          isFragile={isFragile}
-          serviceType={serviceType}
-          calculateShippingFee={calculateShippingFee}
-        />
-      ),
+      content: <StepInvoice form={form} store={store} calculateShippingFee={calculateShippingFee} />,
     },
   ];
 
   const next = async () => {
     try {
       await form.validateFields();
-      setCurrentStep(currentStep + 1);
-    } catch (e) {}
+      setCurrentStep((prev) => prev + 1);
+    } catch {
+      // bỏ qua error log
+    }
   };
-  const prev = () => setCurrentStep(currentStep - 1);
+
+  const prev = () => setCurrentStep((prev) => prev - 1);
 
   return (
     <Card>
       <Title level={2}>Tạo đơn hàng mới</Title>
-      <Steps current={currentStep} items={steps.map((s) => ({ title: s.title, icon: s.icon }))} />
+      <Steps
+        current={currentStep}
+        items={steps.map((s) => ({ title: s.title, icon: s.icon }))}
+      />
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         {steps[currentStep].content}
         <div style={{ marginTop: 24, textAlign: "right" }}>
-          {currentStep > 0 && <Button onClick={prev}>Quay lại</Button>}
-          {currentStep < steps.length - 1 && <Button type="primary" onClick={next}>Tiếp tục</Button>}
-          {currentStep === steps.length - 1 && <Button type="primary" onClick={() => form.submit()}>Tạo đơn hàng</Button>}
+          {currentStep > 0 && (
+            <Button onClick={prev} style={{ marginRight: 8 }}>
+              Quay lại
+            </Button>
+          )}
+          {currentStep < steps.length - 1 && (
+            <Button type="primary" onClick={next}>
+              Tiếp tục
+            </Button>
+          )}
+          {currentStep === steps.length - 1 && (
+            <Button type="primary" htmlType="submit">
+              Tạo đơn hàng
+            </Button>
+          )}
         </div>
       </Form>
     </Card>

@@ -1,30 +1,25 @@
 import { Card, Row, Col, Divider, Typography, Table, Checkbox, Select, Form } from "antd";
 import { Store } from "@/types/Store";
 import { OrderItem } from "@/types/orders";
+import { FormInstance } from "antd";
 
 const { Text, Title } = Typography;
 
 interface Props {
+  form: FormInstance<any>;
   store: Store | null;
-  shippingAddress?: string;
-  description?: string;
-  notes?: string;
-  items: OrderItem[];
-  isFragile?: boolean;
-  serviceType?: string;
   calculateShippingFee: (items: OrderItem[]) => number;
 }
 
-export default function StepInvoice({
-  store,
-  shippingAddress,
-  description,
-  notes,
-  items,
-  isFragile,
-  serviceType,
-  calculateShippingFee,
-}: Props) {
+export default function StepInvoice({ form, store, calculateShippingFee }: Props) {
+  const values = form.getFieldsValue();
+  const shippingAddress = Form.useWatch("shipping_address", form);
+  const description = Form.useWatch("description", form) || values.description;
+  const notes = Form.useWatch("notes", form) || values.notes;
+  const items: OrderItem[] = Form.useWatch("items", form) || values.items || [];
+  const isFragile = Form.useWatch("is_fragile", form) || values.is_fragile;
+  const serviceType = Form.useWatch("service_type", form) || values.service_type;
+
   const validItems = items.filter(
     (i) => i && i.product_name && i.quantity > 0 && i.weight > 0
   );
@@ -45,6 +40,15 @@ export default function StepInvoice({
   const totalFee = Math.round(
     baseShippingFee * serviceFeeMultiplier * fragileFeeMultiplier
   );
+
+  // Debug để kiểm tra giá trị
+  console.log("StepInvoice Debug:", {
+    shippingAddress,
+    description,
+    notes,
+    items: items.length,
+    formValues: form.getFieldsValue()
+  });
 
   return (
     <Card>
