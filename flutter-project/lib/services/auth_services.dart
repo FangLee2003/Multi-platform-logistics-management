@@ -17,10 +17,10 @@ class AuthServices {
   }
 
   // Đăng nhập với API chung
-  Future<LoginResponse> login(String username, String password) async {
+  Future<LoginResponse> login(String email, String password) async {
     try {
       final Map<String, dynamic> requestBody = {
-        'username': username,
+        'email': email,      // Sửa thành email thay vì username
         'password': password,
       };
       
@@ -41,16 +41,16 @@ class AuthServices {
       return loginResponse;
     } catch (e) {
       // Thử dùng API cũ nếu API mới thất bại
-      return _loginLegacy(username, password);
+      return _loginLegacy(email, password);
     }
   }
   
   // Phương thức legacy để tương thích với API cũ
-  Future<LoginResponse> _loginLegacy(String username, String password) async {
+  Future<LoginResponse> _loginLegacy(String email, String password) async {
     final resp = await http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: {'Accept': 'application/json'},
-      body: {'username': username, 'password': password}
+      body: {'email': email, 'password': password}
     );
 
     if(resp.statusCode == 200){
