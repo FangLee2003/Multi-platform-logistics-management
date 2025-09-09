@@ -1,15 +1,13 @@
-
-
 package ktc.spring_project.exceptions;
 
 import org.springframework.http.HttpStatus;
 
-public class EntityDuplicateException extends RuntimeException {
+public class VehicleInvalidCapacityException extends RuntimeException {
     private final HttpStatus status;
 
-    public EntityDuplicateException(String message) {
+    public VehicleInvalidCapacityException(String message) {
         super(message);
-        this.status = HttpStatus.CONFLICT;
+        this.status = HttpStatus.BAD_REQUEST;
     }
 
     public HttpStatus getStatus() {

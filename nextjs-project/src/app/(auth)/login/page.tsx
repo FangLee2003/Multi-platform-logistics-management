@@ -23,7 +23,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-cover bg-center relative overflow-hidden"
+    <div className="h-screen w-full flex items-center justify-center bg-cover bg-center relative overflow-hidden"
      style={{ backgroundImage: "url('/login.webp')" }}>
       <div className="absolute inset-0 backdrop-blur-xs z-0"></div>
       <div className="relative z-10 flex flex-col items-center w-full max-w-md px-6">

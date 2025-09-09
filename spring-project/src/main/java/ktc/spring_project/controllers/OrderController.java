@@ -186,7 +186,7 @@ public class OrderController {
     @PatchMapping("/{id}")
     public ResponseEntity<Order> patchOrder(
             @PathVariable Long id,
-            @RequestBody Order orderDetails) {
+            @Valid @RequestBody Order orderDetails) {
         try {
             Order updatedOrder = orderService.updateOrder(id, orderDetails);
             return ResponseEntity.ok(updatedOrder);
@@ -198,7 +198,7 @@ public class OrderController {
     @PutMapping("/{id}")
 public ResponseEntity<Order> putOrder(
         @PathVariable Long id,
-        @RequestBody Order orderDetails) {
+    @Valid @RequestBody Order orderDetails) {
     try {
         Order updatedOrder = orderService.updateOrder(id, orderDetails);
         return ResponseEntity.ok(updatedOrder);
@@ -222,7 +222,7 @@ public ResponseEntity<Order> putOrder(
     @PatchMapping("/{id}/status")
     public ResponseEntity<Order> updateOrderStatus(
             @PathVariable Long id,
-            @RequestBody UpdateOrderStatusDTO dto) {
+            @Valid @RequestBody UpdateOrderStatusDTO dto) {
         try {
             Order order = orderService.getOrderById(id);
             if (dto.statusId != null) {
@@ -241,7 +241,7 @@ public ResponseEntity<Order> putOrder(
     @PatchMapping("/{id}/vehicle")
     public ResponseEntity<Order> updateOrderVehicle(
             @PathVariable Long id,
-            @RequestBody UpdateOrderVehicleDTO dto) {
+            @Valid @RequestBody UpdateOrderVehicleDTO dto) {
         try {
             Order order = orderService.getOrderById(id);
             if (dto.vehicleId != null && dto.vehicleId > 0) {

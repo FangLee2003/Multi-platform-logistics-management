@@ -5,37 +5,38 @@ import ktc.spring_project.enums.TransportMode;
 import ktc.spring_project.enums.ServiceType;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * DTO for creating a new delivery
  */
 public class CreateDeliveryRequestDTO {
-
+    
     @NotNull(message = "Order ID is required")
     private Long orderId;
 
+    @DecimalMin(value = "0.0", inclusive = true, message = "Delivery fee must be >= 0")
     private BigDecimal deliveryFee;
 
-    @NotNull(message = "Transport mode is required")
     private TransportMode transportMode = TransportMode.ROAD;
 
     @NotNull(message = "Service type is required")
     private ServiceType serviceType = ServiceType.STANDARD;
-
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp pickupDate;
 
-    // @NotNull(message = "Schedule delivery time is required")
+    @NotNull(message = "Schedule delivery time is required")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp scheduleDeliveryTime;
 
-    @NotNull(message = "Late delivery risk is required")
     private Boolean lateDeliveryRisk = false;
-
+    @Size(max = 500, message = "Delivery notes must not exceed 500 characters")
     private String deliveryNotes;
-
-    @NotNull(message = "Order date is required")
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp orderDate;
-
     @NotNull(message = "Vehicle ID is required")
     private Long vehicleId;
 

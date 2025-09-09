@@ -35,6 +35,7 @@ public class OrderListResponseDTO {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class StatusInfo {
         private Long id;
         private String name;
