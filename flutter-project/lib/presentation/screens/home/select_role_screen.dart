@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
-import 'package:ktc_logistics_driver/presentation/screens/admin/admin_home_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/client/client_home_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/dashboard/dashboard_screen_spatial.dart';
 import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
@@ -32,13 +31,6 @@ class SelectRoleScreen extends StatelessWidget {
               const TextCustom(text: 'How do you want to continue?', color: ColorsFrave.secundaryColor, fontSize: 25,),
               const SizedBox(height: 30.0),
               // Role-based navigation (simplified for now - using placeholder logic)
-              _BtnRol(
-                svg: 'assets/svg/restaurante.svg',
-                text: 'Restaurant',
-                color1: ColorsFrave.primaryColor.withValues(alpha: .2),
-                color2: Colors.greenAccent.withValues(alpha: .1),
-                onPressed: () => Navigator.pushAndRemoveUntil(context, routeFrave(page: AdminHomeScreen()), (route) => false),
-              ),
               _BtnRol(
                 svg: 'assets/svg/bussiness-man.svg',
                 text: 'Client',

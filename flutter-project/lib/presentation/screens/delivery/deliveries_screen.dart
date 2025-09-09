@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:ktc_logistics_driver/domain/models/delivery/driver_delivery.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ktc_logistics_driver/domain/models/delivery/delivery.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/delivery/delivery_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
-import 'package:ktc_logistics_driver/presentation/controllers/deliveries_screen_controller.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/screens/delivery/delivery_detail_screen.dart';
-import 'package:ktc_logistics_driver/services/mock_deliveries_service.dart';
 import 'package:intl/intl.dart';
 
 class DeliveriesScreen extends StatefulWidget {
@@ -17,26 +17,14 @@ class DeliveriesScreen extends StatefulWidget {
 class _DeliveriesScreenState extends State<DeliveriesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late DeliveriesScreenController _controller;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     
-    // Initialize the mock service and controller
-    final mockService = MockDeliveriesService();
-    _controller = DeliveriesScreenController(mockService);
-    
-    // Load deliveries
-    _loadDeliveries();
-  }
-  
-  Future<void> _loadDeliveries() async {
-    await _controller.loadDeliveries();
-    if (mounted) {
-      setState(() {});
-    }
+    // Load deliveries using DeliveryBloc
+    context.read<DeliveryBloc>().add(LoadDeliveriesEvent());
   }
 
   @override
@@ -99,17 +87,42 @@ class UpcomingDeliveriesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildNextDeliveriesCard(context),
-        ],
+      child: BlocBuilder<DeliveryBloc, DeliveryState>(
+        builder: (context, state) {
+          if (state is DeliveryLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is DeliveriesLoadedState) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildNextDeliveriesCard(context, state.deliveries),
+              ],
+            );
+          } else if (state is DeliveryError) {
+            return Center(child: Text(state.message));
+          } else {
+            // Initial state or unhandled state
+            return const Center(child: Text('No deliveries available'));
+          }
+        },
       ),
     );
   }
 
-  Widget _buildNextDeliveriesCard(BuildContext context) {
+  Widget _buildNextDeliveriesCard(BuildContext context, List<Delivery> deliveries) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Filter upcoming deliveries
+    final upcomingDeliveries = deliveries.where((delivery) => 
+      delivery.status != 'Completed' && delivery.status != 'Failed' && delivery.status != 'Cancelled'
+    ).toList();
+    
+    // Sort by scheduled time if available
+    upcomingDeliveries.sort((a, b) {
+      if (a.scheduleDeliveryTime == null) return 1;
+      if (b.scheduleDeliveryTime == null) return -1;
+      return a.scheduleDeliveryTime!.compareTo(b.scheduleDeliveryTime!);
+    });
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,74 +138,46 @@ class UpcomingDeliveriesTab extends StatelessWidget {
         const SizedBox(height: 16),
         GlassCard(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //   children: [
-              //     Text(
-              //       "Upcoming Deliveries",
-              //       style: SpatialDesignSystem.subtitleMedium.copyWith(
-              //         color: isDark
-              //             ? SpatialDesignSystem.textDarkPrimaryColor
-              //             : SpatialDesignSystem.textPrimaryColor,
-              //       ),
-              //     ),
-              //     Text(
-              //       "3 Remaining",
-              //       style: SpatialDesignSystem.captionText.copyWith(
-              //         color: SpatialDesignSystem.warningColor,
-              //         fontWeight: FontWeight.w600,
-              //       ),
-              //     ),
-              //   ],
-              // ),
-              // const SizedBox(height: 16),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-09-01-042",
-                "123 Nguyen Hue St, District 1",
-                "12:30 PM",
-                "Next",
+          child: upcomingDeliveries.isEmpty 
+            ? const Center(child: Text('No upcoming deliveries'))
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (int i = 0; i < upcomingDeliveries.length; i++) ...[
+                    if (i > 0) const Divider(),
+                    _buildDeliveryItem(
+                      context,
+                      "DEL-${upcomingDeliveries[i].id}",
+                      _getDeliveryAddress(upcomingDeliveries[i]),
+                      _formatDeliveryTime(upcomingDeliveries[i].scheduleDeliveryTime),
+                      i == 0 ? "Next" : "Pending",
+                    ),
+                  ],
+                ],
               ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-09-01-055",
-                "456 Le Loi St, District 1",
-                "1:15 PM",
-                "Pending",
-              ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-09-01-063",
-                "789 Vo Van Tan St, District 3",
-                "2:00 PM",
-                "Pending",
-              ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-09-01-068",
-                "258 Dinh Tien Hoang St, District 1",
-                "3:30 PM",
-                "Pending",
-              ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-09-01-072",
-                "147 Nguyen Dinh Chieu St, District 3",
-                "4:15 PM",
-                "Pending",
-              ),
-            ],
-          ),
         ),
       ],
     );
+  }
+  
+  String _getDeliveryAddress(Delivery delivery) {
+    // Trích xuất địa chỉ từ order nếu có
+    if (delivery.order != null && delivery.order!.containsKey('shippingAddress')) {
+      return delivery.order!['shippingAddress'] ?? 'No address';
+    }
+    return 'No address available';
+  }
+  
+  String _formatDeliveryTime(String? timeString) {
+    if (timeString == null) return 'No time';
+    
+    try {
+      final dateTime = DateTime.parse(timeString);
+      final format = DateFormat('h:mm a');
+      return format.format(dateTime);
+    } catch (e) {
+      return timeString;
+    }
   }
 
   Widget _buildDeliveryItem(
@@ -343,17 +328,42 @@ class DeliveryHistoryTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildCompletedDeliveriesSection(context),
-        ],
+      child: BlocBuilder<DeliveryBloc, DeliveryState>(
+        builder: (context, state) {
+          if (state is DeliveryLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is DeliveriesLoadedState) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCompletedDeliveriesSection(context, state.deliveries),
+              ],
+            );
+          } else if (state is DeliveryError) {
+            return Center(child: Text(state.message));
+          } else {
+            // Initial state or unhandled state
+            return const Center(child: Text('No delivery history available'));
+          }
+        },
       ),
     );
   }
 
-  Widget _buildCompletedDeliveriesSection(BuildContext context) {
+  Widget _buildCompletedDeliveriesSection(BuildContext context, List<Delivery> deliveries) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Filter completed deliveries
+    final completedDeliveries = deliveries.where((delivery) => 
+      delivery.status == 'Completed' || delivery.status == 'Failed' || delivery.status == 'Cancelled'
+    ).toList();
+    
+    // Sort by actual delivery time if available
+    completedDeliveries.sort((a, b) {
+      if (a.actualDeliveryTime == null) return 1;
+      if (b.actualDeliveryTime == null) return -1;
+      return b.actualDeliveryTime!.compareTo(a.actualDeliveryTime!);
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,57 +379,49 @@ class DeliveryHistoryTab extends StatelessWidget {
         const SizedBox(height: 16),
         GlassCard(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-08-14-034",
-                "123 Le Loi Street, District 1",
-                "Today, 11:45 AM",
-                "Done",
-                SpatialDesignSystem.successColor,
+          child: completedDeliveries.isEmpty
+            ? const Center(child: Text('No completed deliveries'))
+            : Column(
+                children: [
+                  for (int i = 0; i < completedDeliveries.length; i++) ...[
+                    if (i > 0) const Divider(),
+                    _buildDeliveryItem(
+                      context,
+                      "DEL-${completedDeliveries[i].id}",
+                      _getDeliveryAddress(completedDeliveries[i]),
+                      _formatDeliveryTimeWithDay(completedDeliveries[i].actualDeliveryTime),
+                      completedDeliveries[i].status == 'Failed' ? "Failed" : "Done",
+                      completedDeliveries[i].status == 'Failed' 
+                        ? SpatialDesignSystem.errorColor 
+                        : SpatialDesignSystem.successColor,
+                    ),
+                  ],
+                ],
               ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-08-14-029",
-                "456 Nguyen Hue Street, District 1",
-                "Today, 09:30 AM",
-                "Done",
-                SpatialDesignSystem.successColor,
-              ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-08-14-018",
-                "789 Pasteur Street, District 3",
-                "Today, 08:15 AM",
-                "Done",
-                SpatialDesignSystem.successColor,
-              ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-08-13-095",
-                "321 Nam Ky Khoi Nghia Street, District 3",
-                "Yesterday, 03:20 PM",
-                "Failed",
-                SpatialDesignSystem.errorColor,
-              ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "DEL-2025-08-13-078",
-                "654 Hai Ba Trung Street, District 1",
-                "Yesterday, 01:45 PM",
-                "Done",
-                SpatialDesignSystem.successColor,
-              ),
-            ],
-          ),
         ),
       ],
     );
+  }
+  
+  String _formatDeliveryTimeWithDay(String? timeString) {
+    if (timeString == null) return 'No time';
+    
+    try {
+      final dateTime = DateTime.parse(timeString);
+      final now = DateTime.now();
+      
+      if (dateTime.year == now.year && dateTime.month == now.month) {
+        if (dateTime.day == now.day) {
+          return 'Today, ${DateFormat('h:mm a').format(dateTime)}';
+        } else if (dateTime.day == now.day - 1) {
+          return 'Yesterday, ${DateFormat('h:mm a').format(dateTime)}';
+        }
+      }
+      
+      return DateFormat('MMM dd, h:mm a').format(dateTime);
+    } catch (e) {
+      return timeString;
+    }
   }
   
   Widget _buildDeliveryItem(
@@ -544,5 +546,13 @@ class DeliveryHistoryTab extends StatelessWidget {
         ),
       ),
     );
+  }
+  
+  String _getDeliveryAddress(Delivery delivery) {
+    // Trích xuất địa chỉ từ order nếu có
+    if (delivery.order != null && delivery.order!.containsKey('shippingAddress')) {
+      return delivery.order!['shippingAddress'] ?? 'No address';
+    }
+    return 'No address available';
   }
 }
