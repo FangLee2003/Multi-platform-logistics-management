@@ -13,12 +13,12 @@ interface Props {
 
 export default function StepInvoice({ form, store, calculateShippingFee }: Props) {
   const values = form.getFieldsValue();
-  const shippingAddress = Form.useWatch("shipping_address", form);
-  const description = Form.useWatch("description", form) || values.description;
-  const notes = Form.useWatch("notes", form) || values.notes;
-  const items: OrderItem[] = Form.useWatch("items", form) || values.items || [];
-  const isFragile = Form.useWatch("is_fragile", form) || values.is_fragile;
-  const serviceType = Form.useWatch("service_type", form) || values.service_type;
+  const shippingAddress = values.shipping_address;
+  const description = values.description;
+  const notes = values.notes;
+  const items: OrderItem[] = values.items || [];
+  const isFragile = values.is_fragile;
+  const serviceType = values.service_type;
 
   const validItems = items.filter(
     (i) => i && i.product_name && i.quantity > 0 && i.weight > 0
@@ -40,15 +40,6 @@ export default function StepInvoice({ form, store, calculateShippingFee }: Props
   const totalFee = Math.round(
     baseShippingFee * serviceFeeMultiplier * fragileFeeMultiplier
   );
-
-  // Debug để kiểm tra giá trị
-  console.log("StepInvoice Debug:", {
-    shippingAddress,
-    description,
-    notes,
-    items: items.length,
-    formValues: form.getFieldsValue()
-  });
 
   return (
     <Card>
