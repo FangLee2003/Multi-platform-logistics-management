@@ -57,7 +57,11 @@ export default function StepOrderItems({ form }: Props) {
                       rules={[{ required: true, message: "Nhập cân nặng" }]}
                       style={{ margin: 0 }}
                     >
-                      <InputNumber min={0} step={0.1} style={{ width: "100%" }} />
+                      <InputNumber
+                        min={0}
+                        step={0.1}
+                        style={{ width: "100%" }}
+                      />
                     </Form.Item>
                   ),
                 },

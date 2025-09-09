@@ -46,8 +46,8 @@ export default function CreateOrder() {
     fetchStore();
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSubmit = async (values: OrderForm) => {
-    console.log("OrderData:", values);
     message.success("Tạo đơn hàng thành công!");
   };
 
@@ -65,7 +65,13 @@ export default function CreateOrder() {
     {
       title: "Hoá đơn",
       icon: <DollarOutlined />,
-      content: <StepInvoice form={form} store={store} calculateShippingFee={calculateShippingFee} />,
+      content: (
+        <StepInvoice
+          form={form}
+          store={store}
+          calculateShippingFee={calculateShippingFee}
+        />
+      ),
     },
   ];
 

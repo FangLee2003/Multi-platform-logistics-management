@@ -132,9 +132,9 @@ export default function OrdersPage() {
     setIsTrackingModalVisible(true);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleViewInvoice = (orderId: string) => {
     // TODO: Implement invoice viewing functionality
-    console.log(`View invoice for order ${orderId}`);
   };
 
   const columns = [
@@ -219,7 +219,11 @@ export default function OrdersPage() {
   return (
     <Card className="orders-page" style={{ margin: "24px" }}>
       <div className="orders-header" style={{ marginBottom: "24px" }}>
-        <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Row
+          justify="space-between"
+          align="middle"
+          style={{ marginBottom: 24 }}
+        >
           <Col>
             <Title level={2}>Quản lý đơn hàng</Title>
           </Col>
@@ -253,7 +257,7 @@ export default function OrdersPage() {
           total: orders.length,
           pageSize: 10,
           showTotal: (total) => `${total} đơn hàng`,
-          position: ['bottomCenter']
+          position: ["bottomCenter"],
         }}
       />
 
