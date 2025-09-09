@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../data/env/environment.dart';
 import '../data/local_secure/secure_storage.dart';
@@ -36,7 +37,12 @@ class AuthServices {
       await secureStorage.persistentRefreshToken(loginResponse.refreshToken);
       
       // Lưu userId như driverId vì driver cũng là user với role Driver
-      await secureStorage.persistentDriverId(loginResponse.userId.toString());
+      if (loginResponse.userId > 0) {
+        await secureStorage.persistentDriverId(loginResponse.userId.toString());
+        debugPrint('Stored driverId: ${loginResponse.userId}');
+      } else {
+        debugPrint('Warning: Not storing driverId because userId is ${loginResponse.userId}');
+      }
       
       return loginResponse;
     } catch (e) {
@@ -76,7 +82,12 @@ class AuthServices {
       );
       
       await secureStorage.persistentToken(loginResponse.accessToken);
-      await secureStorage.persistentDriverId(loginResponse.userId.toString()); // Dùng userId
+      if (loginResponse.userId > 0) {
+        await secureStorage.persistentDriverId(loginResponse.userId.toString()); // Dùng userId
+        debugPrint('Stored driverId from legacy login: ${loginResponse.userId}');
+      } else {
+        debugPrint('Warning: Not storing driverId from legacy login because userId is ${loginResponse.userId}');
+      }
       
       return loginResponse;
     }

@@ -20,10 +20,17 @@ class DeliveryServices {
   /// Get driver ID from secure storage
   Future<int?> _getDriverId() async {
     final driverId = await secureStorage.readDriverId();
-    if (driverId == null) {
+    if (driverId == null || driverId == "0" || driverId.isEmpty) {
+      // Debug log to trace the issue
+      debugPrint('Warning: driverId is null, empty, or zero. Returning null.');
       return null;
     }
-    return int.parse(driverId);
+    try {
+      return int.parse(driverId);
+    } catch (e) {
+      debugPrint('Error parsing driverId: $e. Value was: $driverId');
+      return null;
+    }
   }
 
   /// Get all deliveries assigned to the current driver
@@ -62,8 +69,9 @@ class DeliveryServices {
         : '';
     
     try {
+      // Fix URL duplication - remove extra /api since apiBaseUrl already includes it
       final resp = await http.get(
-        Uri.parse('${_env.apiBaseUrl}/api/driver/$driverId/deliveries$queryString'),
+        Uri.parse('${_env.apiBaseUrl}/driver/$driverId/deliveries$queryString'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
 

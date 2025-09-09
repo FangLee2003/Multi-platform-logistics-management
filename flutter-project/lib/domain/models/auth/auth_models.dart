@@ -40,15 +40,22 @@ class LoginResponse {
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    // Extract user info if it exists in the response
+    final userInfo = json['user'] as Map<String, dynamic>?;
+    
+    // Get userId either directly or from nested user object
+    final userId = json['userId'] ?? userInfo?['id'] ?? 0;
+    
     return LoginResponse(
-      accessToken: json['accessToken'] ?? '',
+      accessToken: json['accessToken'] ?? json['token'] ?? '',
       tokenType: json['tokenType'] ?? 'Bearer',
       expiresIn: json['expiresIn'] ?? 0,
       refreshToken: json['refreshToken'] ?? '',
-      userId: json['userId'] ?? 0,
-      driverId: json['driverId'] ?? 0,
-      username: json['username'] ?? '',
-      roles: json['roles'] != null ? List<String>.from(json['roles']) : [],
+      userId: userId,
+      driverId: json['driverId'] ?? userId, // Use userId as driverId if not explicitly provided
+      username: json['username'] ?? userInfo?['username'] ?? '',
+      roles: json['roles'] != null ? List<String>.from(json['roles']) : 
+             userInfo?['role'] != null ? [userInfo?['role']] : [],
     );
   }
 
