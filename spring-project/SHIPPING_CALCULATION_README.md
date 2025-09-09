@@ -42,7 +42,6 @@ Hệ thống phân biệt rõ ràng:
   | STANDARD      | 1.0   |
   | FIRST_CLASS   | 1.3   |
   | EXPRESS       | 1.8   |
-  | PRIORITY      | 2.0   |
 
 ### 2.2. Delivery Fee (Delivery)
 
