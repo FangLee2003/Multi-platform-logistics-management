@@ -121,6 +121,31 @@ class HttpClient {
     }
   }
 
+  /// Generic PATCH request
+  Future<T> patch<T>(
+    String endpoint, {
+    dynamic body,
+    T Function(Map<String, dynamic> json)? fromJson,
+    bool requiresAuth = true,
+  }) async {
+    final url = '$baseUrl$endpoint';
+    final headers = requiresAuth ? await _getAuthHeaders() : {'Content-Type': 'application/json'};
+    
+    try {
+      final response = await _client.patch(
+        Uri.parse(url),
+        headers: headers,
+        body: body != null ? jsonEncode(body) : null,
+      );
+      
+      return _handleResponse<T>(response, fromJson: fromJson);
+    } on SocketException {
+      throw ApiException('No internet connection');
+    } catch (e) {
+      throw ApiException('Error performing PATCH request: $e');
+    }
+  }
+
   /// Generic DELETE request
   Future<T> delete<T>(
     String endpoint, {

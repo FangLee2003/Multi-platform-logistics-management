@@ -15,7 +15,7 @@ import 'services/push_notification_services.dart';
 
 // Services
 import 'services/mapbox_services.dart' as mapbox;
-import 'services/location_service.dart';
+import 'services/tracking_services.dart';
 
 // Environment & Secrets
 import 'data/env/secrets.dart';

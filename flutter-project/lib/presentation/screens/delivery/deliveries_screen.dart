@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:ktc_logistics_driver/domain/models/delivery/driver_delivery.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
+import 'package:ktc_logistics_driver/presentation/controllers/deliveries_screen_controller.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/screens/delivery/delivery_detail_screen.dart';
+import 'package:ktc_logistics_driver/services/mock_deliveries_service.dart';
+import 'package:intl/intl.dart';
 
 class DeliveriesScreen extends StatefulWidget {
   const DeliveriesScreen({super.key});
@@ -13,11 +17,26 @@ class DeliveriesScreen extends StatefulWidget {
 class _DeliveriesScreenState extends State<DeliveriesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late DeliveriesScreenController _controller;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // Initialize the mock service and controller
+    final mockService = MockDeliveriesService();
+    _controller = DeliveriesScreenController(mockService);
+    
+    // Load deliveries
+    _loadDeliveries();
+  }
+  
+  Future<void> _loadDeliveries() async {
+    await _controller.loadDeliveries();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override

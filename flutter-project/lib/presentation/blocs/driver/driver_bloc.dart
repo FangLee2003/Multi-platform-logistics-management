@@ -3,9 +3,6 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 
-import '../../../domain/models/delivery/delivery.dart';
-import '../../../domain/models/order/order.dart';
-import '../../../domain/models/delivery/delivery_status_update.dart';
 import '../../../domain/models/driver/driver_profile.dart';
 import '../../../domain/models/analytics/driver_analytics.dart';
 import '../../../services/driver_services.dart';
@@ -14,70 +11,18 @@ part 'driver_event.dart';
 part 'driver_state.dart';
 
 /// Bloc để quản lý các tương tác liên quan đến tài xế
+/// Tập trung vào thông tin cá nhân, hồ sơ và trạng thái của tài xế
 class DriverBloc extends Bloc<DriverEvent, DriverState> {
   final DriverServices _driverServices;
 
   DriverBloc({required DriverServices driverServices})
       : _driverServices = driverServices,
         super(DriverInitial()) {
-    on<LoadDeliveriesEvent>(_onLoadDeliveries);
-    on<LoadDeliveryDetailsEvent>(_onLoadDeliveryDetails);
-    on<LoadOrderDetailsEvent>(_onLoadOrderDetails);
-    on<UpdateDeliveryStatusEvent>(_onUpdateDeliveryStatus);
     on<LoadDriverProfileEvent>(_onLoadDriverProfile);
     on<LoadDriverAnalyticsEvent>(_onLoadDriverAnalytics);
     on<UpdateDriverProfileEvent>(_onUpdateDriverProfile);
-  }
-
-  Future<void> _onLoadDeliveries(
-      LoadDeliveriesEvent event, Emitter<DriverState> emit) async {
-    emit(DriverLoading());
-    try {
-      final deliveries = await _driverServices.getDriverDeliveries(
-        status: event.status,
-        sortBy: event.sortBy,
-        sortDirection: event.sortDirection,
-      );
-      emit(DeliveriesLoadedState(deliveries));
-    } catch (e) {
-      emit(DriverError('Không thể tải danh sách giao hàng: ${e.toString()}'));
-    }
-  }
-
-  Future<void> _onLoadDeliveryDetails(
-      LoadDeliveryDetailsEvent event, Emitter<DriverState> emit) async {
-    emit(DriverLoading());
-    try {
-      final delivery = await _driverServices.getDeliveryById(event.deliveryId);
-      emit(DeliveryDetailsLoadedState(delivery));
-    } catch (e) {
-      emit(DriverError('Không thể tải chi tiết giao hàng: ${e.toString()}'));
-    }
-  }
-
-  Future<void> _onLoadOrderDetails(
-      LoadOrderDetailsEvent event, Emitter<DriverState> emit) async {
-    emit(DriverLoading());
-    try {
-      final order = await _driverServices.getOrderForDelivery(event.deliveryId);
-      emit(OrderDetailsLoadedState(order));
-    } catch (e) {
-      emit(DriverError('Không thể tải chi tiết đơn hàng: ${e.toString()}'));
-    }
-  }
-
-  Future<void> _onUpdateDeliveryStatus(
-      UpdateDeliveryStatusEvent event, Emitter<DriverState> emit) async {
-    emit(DriverLoading());
-    try {
-      final updatedDelivery = await _driverServices.updateDeliveryStatus(
-        event.deliveryId,
-        event.statusUpdate,
-      );
-      emit(DeliveryStatusUpdatedState(updatedDelivery));
-    } catch (e) {
-      emit(DriverError('Không thể cập nhật trạng thái: ${e.toString()}'));
-    }
+    on<UpdateDriverStatusEvent>(_onUpdateDriverStatus);
+    on<UploadDriverDocumentEvent>(_onUploadDriverDocument);
   }
 
   Future<void> _onLoadDriverProfile(
@@ -109,10 +54,44 @@ class DriverBloc extends Bloc<DriverEvent, DriverState> {
       UpdateDriverProfileEvent event, Emitter<DriverState> emit) async {
     emit(DriverLoading());
     try {
-      final updatedProfile = await _driverServices.updateDriverProfile(event.profile);
+      final updatedProfile =
+          await _driverServices.updateDriverProfile(event.profile);
       emit(DriverProfileLoadedState(updatedProfile));
     } catch (e) {
       emit(DriverError('Không thể cập nhật thông tin tài xế: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onUpdateDriverStatus(
+      UpdateDriverStatusEvent event, Emitter<DriverState> emit) async {
+    emit(DriverLoading());
+    try {
+      final result = await _driverServices.updateDriverStatus(event.statusId);
+      if (result['success'] == true) {
+        // Tải lại profile để cập nhật trạng thái mới
+        final profile = await _driverServices.getDriverProfile();
+        emit(DriverStatusUpdatedState(
+            profile, result['message'] ?? 'Cập nhật trạng thái thành công'));
+      } else {
+        emit(DriverError(result['message'] ?? 'Không thể cập nhật trạng thái'));
+      }
+    } catch (e) {
+      emit(
+          DriverError('Không thể cập nhật trạng thái tài xế: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onUploadDriverDocument(
+      UploadDriverDocumentEvent event, Emitter<DriverState> emit) async {
+    emit(DriverLoading());
+    try {
+      final documentUrl = await _driverServices.uploadDriverDocument(
+        event.filePath,
+        event.documentType,
+      );
+      emit(DocumentUploadedState(documentUrl));
+    } catch (e) {
+      emit(DriverError('Không thể tải lên tài liệu: ${e.toString()}'));
     }
   }
 }

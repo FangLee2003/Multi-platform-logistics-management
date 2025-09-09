@@ -4,67 +4,69 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:meta/meta.dart';
 import 'package:ktc_logistics_driver/domain/models/order/product_cart.dart';
 import 'package:ktc_logistics_driver/services/orders_services.dart';
-import 'package:ktc_logistics_driver/services/user_services.dart';
-import 'package:ktc_logistics_driver/main.dart';
 
 part 'orders_event.dart';
 part 'orders_state.dart';
 
 class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
+  final OrdersServices ordersServices;
 
-  OrdersBloc() : super(OrdersState()){
-
-    on<OnAddNewOrdersEvent>( _onAddNewOrders );
-    on<OnUpdateStatusOrderToDispatchedEvent>( _onUpdateStatusOrderToDispatched );
-    on<OnUpdateStatusOrderOnWayEvent>( _onUpdateStatusOrderOnWay );
-    on<OnUpdateStatusOrderDeliveredEvent>( _onUpdateStatusOrderDelivered );
-
+  OrdersBloc({required this.ordersServices}) : super(OrdersState()) {
+    on<OnAddNewOrdersEvent>(_onAddNewOrders);
+    on<OnUpdateStatusOrderToDispatchedEvent>(_onUpdateStatusOrderToDispatched);
+    on<OnUpdateStatusOrderOnWayEvent>(_onUpdateStatusOrderOnWay);
+    on<OnUpdateStatusOrderDeliveredEvent>(_onUpdateStatusOrderDelivered);
+    
+    // Đăng ký các event handler mới
+    on<LoadDriverOrdersEvent>(_onLoadDriverOrders);
+    on<LoadOrderDetailsEvent>(_onLoadOrderDetails);
+    on<LoadOrderForDeliveryEvent>(_onLoadOrderForDelivery);
   }
 
 
 
   Future<void> _onAddNewOrders(OnAddNewOrdersEvent event, Emitter<OrdersState> emit) async {
-
     try {
-
-      emit( LoadingOrderState() );
+      emit(LoadingOrderState());
 
       await Future.delayed(Duration(milliseconds: 1500));
 
       final resp = await ordersServices.addNewOrders(event.uidAddress, event.total, event.typePayment, event.products);
 
-      if( resp.resp ) {
-
+      if(resp.resp) {
         // TODO: Implement push notification service
         // final listTokens = await userServices.getAdminsNotificationToken();
         // Map<String, dynamic> data = { 'click_action' : 'FLUTTER_NOTIFICATION_CLICK' };
 
-       emit( SuccessOrdersState() );
+       emit(SuccessOrdersState());
 
       } else {
-        emit( FailureOrdersState( resp.msg ) );
+        emit(FailureOrdersState(resp.msg));
       }
-
       
     } catch (e) {
-      emit( FailureOrdersState( e.toString() ) );
+      emit(FailureOrdersState(e.toString()));
     }
-
   }
 
 
   Future<void> _onUpdateStatusOrderToDispatched(OnUpdateStatusOrderToDispatchedEvent event, Emitter<OrdersState> emit) async {
-
     try {
+      emit(LoadingOrderState());
 
-      emit( LoadingOrderState() );
-
-      final resp = await ordersServices.updateStatusOrderToDispatched(event.idOrder, event.idDelivery);
+      // Convert to int for the new API
+      int orderId = int.parse(event.idOrder);
+      
+      // Use the updated API with statusId = 2 (Processing/Dispatched)
+      final resp = await ordersServices.updateDriverOrderStatus(
+        orderId, 
+        2, 
+        'Order dispatched to delivery ID: ${event.idDelivery}'
+      );
 
       await Future.delayed(Duration(seconds: 1));
 
-      if( resp.resp ){
-
+      if(resp.resp){
         // TODO: Implement push notification service
         // Map<String, dynamic> data = { 'click_action' : 'FLUTTER_NOTIFICATION_CLICK' };
         // await pushNotification.sendNotification(
@@ -74,65 +76,119 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
         //   'New order assigned'
         // );
 
-
-
-        emit( SuccessOrdersState() );
-
+        emit(SuccessOrdersState());
       } else {
-        emit( FailureOrdersState(resp.msg) );
+        emit(FailureOrdersState(resp.msg));
       } 
-
-      
     } catch (e) {
-      emit( FailureOrdersState(e.toString()) );
+      emit(FailureOrdersState(e.toString()));
     }
-
   }
 
 
-  Future<void> _onUpdateStatusOrderOnWay( OnUpdateStatusOrderOnWayEvent event, Emitter<OrdersState> emit ) async {
-
+  Future<void> _onUpdateStatusOrderOnWay(OnUpdateStatusOrderOnWayEvent event, Emitter<OrdersState> emit) async {
     try {
+      emit(LoadingOrderState());
 
-      emit(  LoadingOrderState() );
-
-      final resp = await ordersServices.updateOrderStatusOnWay(event.idOrder, event.locationDelivery.latitude.toString(), event.locationDelivery.longitude.toString());
+      // Convert to int for the new API
+      int orderId = int.parse(event.idOrder);
+      
+      // Use the updated API with statusId = 3 (In Delivery)
+      final resp = await ordersServices.updateDriverOrderStatus(
+        orderId, 
+        3, 
+        'Driver location: ${event.locationDelivery.latitude}, ${event.locationDelivery.longitude}'
+      );
 
       await Future.delayed(Duration(seconds: 1));
 
-      if( resp.resp ) {
-        emit( SuccessOrdersState() );
+      if(resp.resp) {
+        emit(SuccessOrdersState());
       } else {
-        emit( FailureOrdersState(resp.msg) );
+        emit(FailureOrdersState(resp.msg));
       }
       
     } catch (e) {
-      emit( FailureOrdersState(e.toString()) );
+      emit(FailureOrdersState(e.toString()));
     }
-
   }
 
 
-  Future<void> _onUpdateStatusOrderDelivered( OnUpdateStatusOrderDeliveredEvent event, Emitter<OrdersState> emit ) async {
-
+  Future<void> _onUpdateStatusOrderDelivered(OnUpdateStatusOrderDeliveredEvent event, Emitter<OrdersState> emit) async {
     try {
+      emit(LoadingOrderState());
 
-      emit( LoadingOrderState() );
-
-      final resp = await ordersServices.updateOrderStatusDelivered(event.idOrder);
+      // Convert to int for the new API
+      int orderId = int.parse(event.idOrder);
+      
+      // Use the updated API with statusId = 4 (Delivered)
+      final resp = await ordersServices.updateDriverOrderStatus(
+        orderId, 
+        4, 
+        'Order delivered successfully'
+      );
 
       await Future.delayed(Duration(milliseconds: 450));
 
-      if( resp.resp ) {
-        emit( SuccessOrdersState() );
+      if(resp.resp) {
+        emit(SuccessOrdersState());
       } else {
-        emit( FailureOrdersState(resp.msg) );
+        emit(FailureOrdersState(resp.msg));
       }
       
     } catch (e) {
-      emit( FailureOrdersState(e.toString()) );
+      emit(FailureOrdersState(e.toString()));
     }
+  }
 
+  // Handler mới cho việc tải danh sách đơn hàng của tài xế
+  Future<void> _onLoadDriverOrders(
+      LoadDriverOrdersEvent event, Emitter<OrdersState> emit) async {
+    try {
+      emit(LoadingOrderState());
+      
+      final orders = await ordersServices.getDriverOrdersList();
+      emit(DriverOrdersLoadedState(orders));
+      
+    } catch (e) {
+      emit(FailureOrdersState('Không thể tải danh sách đơn hàng: ${e.toString()}'));
+    }
+  }
+
+  // Handler mới cho việc tải chi tiết đơn hàng
+  Future<void> _onLoadOrderDetails(
+      LoadOrderDetailsEvent event, Emitter<OrdersState> emit) async {
+    try {
+      emit(LoadingOrderState());
+      
+      final orderDetails = await ordersServices.getDriverOrderDetail(event.orderId);
+      if (orderDetails != null) {
+        emit(OrderDetailsLoadedState(orderDetails));
+      } else {
+        emit(FailureOrdersState('Không thể tải chi tiết đơn hàng: Không tìm thấy'));
+      }
+      
+    } catch (e) {
+      emit(FailureOrdersState('Không thể tải chi tiết đơn hàng: ${e.toString()}'));
+    }
+  }
+
+  // Handler mới cho việc tải đơn hàng cho một giao hàng
+  Future<void> _onLoadOrderForDelivery(
+      LoadOrderForDeliveryEvent event, Emitter<OrdersState> emit) async {
+    try {
+      emit(LoadingOrderState());
+      
+      final order = await ordersServices.getOrderForDelivery(event.deliveryId);
+      if (order != null) {
+        emit(OrderForDeliveryLoadedState(order));
+      } else {
+        emit(FailureOrdersState('Không thể tải đơn hàng cho giao hàng: Không tìm thấy'));
+      }
+      
+    } catch (e) {
+      emit(FailureOrdersState('Không thể tải đơn hàng cho giao hàng: ${e.toString()}'));
+    }
   }
 
 

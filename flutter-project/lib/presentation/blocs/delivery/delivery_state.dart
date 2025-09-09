@@ -1,22 +1,45 @@
 part of 'delivery_bloc.dart';
 
 @immutable
-class DeliveryState {
-  final String idDelivery;
-  final String notificationTokenDelivery;
+abstract class DeliveryState {}
 
-  const DeliveryState({
-    this.idDelivery = '0',
-    this.notificationTokenDelivery = ''
-  });
+/// Trạng thái khởi tạo của DeliveryBloc
+class DeliveryInitial extends DeliveryState {}
 
-  DeliveryState copyWith({String? idDelivery, String? notificationTokenDelivery })
-    => DeliveryState(
-      idDelivery: idDelivery ?? this.idDelivery,
-      notificationTokenDelivery: notificationTokenDelivery ?? this.notificationTokenDelivery
-    );
+/// Trạng thái đang tải dữ liệu
+class DeliveryLoading extends DeliveryState {}
 
+/// Trạng thái lỗi
+class DeliveryError extends DeliveryState {
+  final String message;
 
+  DeliveryError(this.message);
 }
 
+/// Trạng thái sau khi tải danh sách giao hàng thành công
+class DeliveriesLoadedState extends DeliveryState {
+  final List<Delivery> deliveries;
 
+  DeliveriesLoadedState(this.deliveries);
+}
+
+/// Trạng thái sau khi tải danh sách giao hàng đang hoạt động thành công
+class ActiveDeliveriesLoadedState extends DeliveryState {
+  final List<Delivery> deliveries;
+
+  ActiveDeliveriesLoadedState(this.deliveries);
+}
+
+/// Trạng thái sau khi tải chi tiết giao hàng thành công
+class DeliveryDetailsLoadedState extends DeliveryState {
+  final Delivery delivery;
+
+  DeliveryDetailsLoadedState(this.delivery);
+}
+
+/// Trạng thái sau khi cập nhật trạng thái giao hàng thành công
+class DeliveryStatusUpdatedState extends DeliveryState {
+  final Delivery delivery;
+
+  DeliveryStatusUpdatedState(this.delivery);
+}

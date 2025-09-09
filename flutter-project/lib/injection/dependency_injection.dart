@@ -9,12 +9,19 @@ import 'package:http/http.dart' as http;
 import '../data/env/environment.dart';
 
 // Services (theo mẫu project tham khảo)
-import '../services/api_services.dart';
 import '../services/socket_service.dart';
 import '../services/mapbox_services.dart';
 import '../services/push_notification_services.dart';
 import '../services/auth_services.dart';
 import '../services/user_services.dart';
+import '../services/delivery_services.dart';
+import '../services/driver_services.dart';
+import '../services/orders_services.dart';
+
+// Blocs
+import '../presentation/blocs/driver/driver_bloc.dart';
+import '../presentation/blocs/delivery/delivery_bloc.dart';
+import '../presentation/blocs/orders/orders_bloc.dart';
 
 // Get_It singleton instance
 final GetIt getIt = GetIt.instance;
@@ -45,10 +52,6 @@ Future<void> setupDependencyInjection() async {
     () => PushNotificationService(),
   );
 
-  getIt.registerLazySingleton<ApiService>(
-    () => ApiService(),
-  );
-
   getIt.registerLazySingleton<SocketService>(
     () => SocketService(),
   );
@@ -66,14 +69,43 @@ Future<void> setupDependencyInjection() async {
   getIt.registerLazySingleton<UserServices>(
     () => UserServices(),
   );
+  
+  // Đăng ký các services mới
+  getIt.registerLazySingleton<DeliveryServices>(
+    () => DeliveryServices(),
+  );
+  
+  getIt.registerLazySingleton<DriverServices>(
+    () => DriverServices(),
+  );
+  
+  getIt.registerLazySingleton<OrdersServices>(
+    () => OrdersServices(),
+  );
+  
+  // Đăng ký các Blocs
+  getIt.registerFactory<DriverBloc>(
+    () => DriverBloc(driverServices: getIt<DriverServices>()),
+  );
+  
+  getIt.registerFactory<DeliveryBloc>(
+    () => DeliveryBloc(deliveryServices: getIt<DeliveryServices>()),
+  );
+  
+  getIt.registerFactory<OrdersBloc>(
+    () => OrdersBloc(ordersServices: getIt<OrdersServices>()),
+  );
 
   print('✅ Dependency Injection setup completed');
 }
 
 // Service Getters
-ApiService get apiService => getIt<ApiService>();
 SocketService get socketService => getIt<SocketService>();
 MapBoxServices get mapBoxServices => getIt<MapBoxServices>();
 PushNotificationService get pushNotificationService => getIt<PushNotificationService>();
 AuthServices get authServices => getIt<AuthServices>();
 UserServices get userServices => getIt<UserServices>();
+DeliveryServices get deliveryServices => getIt<DeliveryServices>();
+DriverServices get driverServices => getIt<DriverServices>();
+DriverBloc get driverBloc => getIt<DriverBloc>();
+DeliveryBloc get deliveryBloc => getIt<DeliveryBloc>();

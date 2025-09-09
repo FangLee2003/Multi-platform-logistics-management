@@ -12,15 +12,15 @@ import 'package:ktc_logistics_driver/data/repositories/repository_implementation
     as mock_repo;
 import 'package:ktc_logistics_driver/services/mock_data_service.dart';
 import 'package:ktc_logistics_driver/presentation/screens/map/route_map_screen.dart';
-import 'package:ktc_logistics_driver/presentation/blocs/auth/auth_event.dart';
-import 'package:ktc_logistics_driver/presentation/blocs/auth/auth_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/blocs/driver/driver_bloc.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/delivery/delivery_bloc.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/orders/orders_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/main_screen.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_services.dart';
 import 'services/driver_services.dart';
-import 'services/location_service.dart';
+import 'services/tracking_services.dart';
 import 'services/push_notification_services.dart';
 
 final getIt = GetIt.instance;
@@ -135,7 +135,15 @@ class _AppState extends State<App> {
           ),
           // Add DeliveryBloc provider 
           BlocProvider<DeliveryBloc>(
-            create: (context) => DeliveryBloc(),
+            create: (context) => DeliveryBloc(
+              deliveryServices: getIt(),
+            ),
+          ),
+          // Add OrdersBloc provider
+          BlocProvider<OrdersBloc>(
+            create: (context) => OrdersBloc(
+              ordersServices: getIt(),
+            ),
           ),
         ],
         child: MaterialApp(

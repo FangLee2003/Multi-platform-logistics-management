@@ -2473,7 +2473,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/deliveries/85794",
+							"raw": "http://localhost:8080/api/driver/20696/deliveries/85796",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -2484,7 +2484,7 @@
 								"driver",
 								"20696",
 								"deliveries",
-								"85794"
+								"85796"
 							]
 						},
 						"description": "Lấy thông tin chi tiết về đơn giao hàng"
@@ -2540,7 +2540,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/api/driver/orders/26013",
+							"raw": "http://localhost:8080/api/driver/20696/orders/26013",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -2549,6 +2549,7 @@
 							"path": [
 								"api",
 								"driver",
+								"20696",
 								"orders",
 								"26013"
 							]
@@ -2705,7 +2706,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8080/api/driver/status",
+							"raw": "http://localhost:8080/api/driver/20696/status",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -2714,6 +2715,7 @@
 							"path": [
 								"api",
 								"driver",
+								"20696",
 								"status"
 							]
 						},
