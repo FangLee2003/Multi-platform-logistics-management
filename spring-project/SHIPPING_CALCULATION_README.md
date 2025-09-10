@@ -43,6 +43,7 @@ Hệ thống phân biệt rõ ràng:
   | FIRST_CLASS  | 1.3   |
   | EXPRESS      | 1.8   |
 
+
 ### 2.2. Delivery Fee (Delivery)
 
 **TỔNG DELIVERY FEE = (PHÍ KHOẢNG CÁCH + PHÍ CƠ BẢN DELIVERY) × HỆ SỐ SERVICE_TYPE**
