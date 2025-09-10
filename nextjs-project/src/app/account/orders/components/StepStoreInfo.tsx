@@ -97,8 +97,8 @@ export default function StepStoreInfo({ store }: Props) {
     
     console.log('Found names:', { provinceName, districtName, wardName });
     
+    // Địa chỉ lưu backend chỉ gồm số nhà, xã/phường, quận/huyện
     let addressParts = [];
-    
     if (street.trim()) {
       addressParts.push(street.trim());
     }
@@ -108,23 +108,25 @@ export default function StepStoreInfo({ store }: Props) {
     if (districtName) {
       addressParts.push(districtName);
     }
+    const addressForBackend = addressParts.join(", ");
+
+    // Địa chỉ hiển thị cho user vẫn gồm cả tỉnh/thành phố
+    let displayParts = [...addressParts];
     if (provinceName) {
-      addressParts.push(provinceName);
+      displayParts.push(provinceName);
     }
-    
-    const fullAddress = addressParts.join(", ");
-    console.log('Generated fullAddress:', fullAddress);
-    
-    if (fullAddress && provinceName) {
-      setAddressValue(fullAddress);
+    const displayAddress = displayParts.join(", ");
+
+    setAddressValue(displayAddress);
+    if (addressForBackend && provinceName) {
       form.setFieldsValue({
-        shipping_address: fullAddress, // Hiển thị cho user
+        shipping_address: displayAddress, // Hiển thị cho user
         city: provinceName, // Lưu tỉnh/thành phố riêng biệt cho backend
-        address: fullAddress, // Lưu địa chỉ đầy đủ cho backend
+        address: addressForBackend, // Lưu địa chỉ chỉ gồm 3 trường
       });
-      console.log('Form values set:', { shipping_address: fullAddress, city: provinceName, address: fullAddress });
+      console.log('Form values set:', { shipping_address: displayAddress, city: provinceName, address: addressForBackend });
     } else {
-      console.log('Conditions not met:', { fullAddress: !!fullAddress, provinceName: !!provinceName });
+      console.log('Conditions not met:', { addressForBackend: !!addressForBackend, provinceName: !!provinceName });
     }
   };
 
