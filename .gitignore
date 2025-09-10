@@ -1,5 +1,8 @@
 requirements/PROJECT_KTC_2025.code-workspace
 .idea
+.DS_Store
+/.cursor
+/spring-project/document
 /ETL_csv_to_db/location_fix/delivery_tracking_fix/sql_output2
 /ETL_csv_to_db/location_fix/delivery_tracking_fix/sql_output3
 /~
