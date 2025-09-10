@@ -1,0 +1,14 @@
+2025-08-21 13:51:17,865 - INFO - 🔧 === EXPERT DATA INTEGRITY HANDLER ===
+2025-08-21 13:51:17,865 - INFO - Database: fastroute_test
+2025-08-21 13:51:18,940 - INFO - ✅ Database connected
+2025-08-21 13:51:18,941 - INFO - 🔍 Analyzing data integrity...
+2025-08-21 13:51:19,436 - INFO - 📊 DATA INTEGRITY ANALYSIS:
+2025-08-21 13:51:19,436 - INFO -    Total order_items: 180,519
+2025-08-21 13:51:19,436 - INFO -    Orphaned order_items: 105,238
+2025-08-21 13:51:19,436 - INFO -    Items without products: 0
+2025-08-21 13:51:19,436 - INFO -    Items with NULL shipping_fee: 105,238
+2025-08-21 13:51:21,482 - INFO - 📋 Found 105,238 orphaned order_items
+2025-08-21 13:51:21,482 - INFO - 🔧 Creating missing orders and deliveries...
+2025-08-21 13:51:21,482 - ERROR - ❌ Failed to create orders/deliveries: Transaction already in progress
+2025-08-21 13:51:21,487 - ERROR - 💥 Failed to fix orphaned records
+2025-08-21 13:51:21,488 - INFO - ✅ Database disconnected

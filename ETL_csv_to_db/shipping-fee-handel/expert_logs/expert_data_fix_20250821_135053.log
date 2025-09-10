@@ -1,0 +1,14 @@
+2025-08-21 13:50:53,012 - INFO - 🔧 === EXPERT DATA INTEGRITY HANDLER ===
+2025-08-21 13:50:53,013 - INFO - Database: fastroute_test
+2025-08-21 13:50:53,191 - INFO - ✅ Database connected
+2025-08-21 13:50:53,191 - INFO - 🔍 Analyzing data integrity...
+2025-08-21 13:50:53,433 - INFO - 📊 DATA INTEGRITY ANALYSIS:
+2025-08-21 13:50:53,433 - INFO -    Total order_items: 180,519
+2025-08-21 13:50:53,434 - INFO -    Orphaned order_items: 105,238
+2025-08-21 13:50:53,434 - INFO -    Items without products: 0
+2025-08-21 13:50:53,434 - INFO -    Items with NULL shipping_fee: 105,238
+2025-08-21 13:50:53,442 - ERROR - ❌ Failed to get orphaned items: 1054 (42S22): Unknown column 'oi.unit_price' in 'field list'
+2025-08-21 13:50:53,442 - INFO - 💰 Calculating shipping fees for ALL order_items...
+2025-08-21 13:50:53,658 - INFO - ✅ Shipping fees calculated: 0/0
+2025-08-21 13:50:53,658 - ERROR - 💥 Failed to calculate shipping fees
+2025-08-21 13:50:53,659 - INFO - ✅ Database disconnected
