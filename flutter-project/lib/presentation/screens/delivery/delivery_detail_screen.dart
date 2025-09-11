@@ -71,6 +71,11 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       setState(() {});
     });
 
+    // Ensure selected status is valid
+    if (!_statusOptions.contains(_selectedStatus)) {
+      _selectedStatus = _statusOptions.first;
+    }
+
     // Lấy dữ liệu chi tiết của chuyến giao hàng từ API
     _loadDeliveryDetails();
   }
@@ -120,6 +125,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           // Cập nhật trạng thái từ dữ liệu API
           if (detail.status != null) {
             _selectedStatus = _mapApiStatusToUiStatus(detail.status!);
+            // Ensure the selected status is in the options list
+            if (!_statusOptions.contains(_selectedStatus)) {
+              _selectedStatus = _statusOptions.first;
+            }
           }
         });
       } else {
@@ -138,20 +147,35 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
   // Chuyển đổi trạng thái từ API sang trạng thái hiển thị UI
   String _mapApiStatusToUiStatus(String apiStatus) {
+    String mappedStatus;
+    
     switch (apiStatus.toUpperCase()) {
       case 'ASSIGNED':
-        return 'Assigned';
+        mappedStatus = 'Assigned';
+        break;
       case 'STARTED':
-        return 'Started';
+        mappedStatus = 'Started';
+        break;
       case 'IN_PROGRESS':
-        return 'In Progress';
+        mappedStatus = 'In Progress';
+        break;
       case 'COMPLETED':
-        return 'Completed';
+        mappedStatus = 'Completed';
+        break;
       case 'CANCELLED':
-        return 'Cancelled';
+        mappedStatus = 'Cancelled';
+        break;
       default:
-        return apiStatus; // Giữ nguyên nếu không có mapping
+        mappedStatus = apiStatus; // Giữ nguyên nếu không có mapping
+        break;
     }
+    
+    // Ensure the mapped status is in the valid options list
+    if (!_statusOptions.contains(mappedStatus)) {
+      mappedStatus = _statusOptions.first; // Default to first status if invalid
+    }
+    
+    return mappedStatus;
   }
 
   @override
@@ -580,9 +604,11 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                     );
                   }).toList(),
                   onChanged: (newValue) {
-                    setState(() {
-                      _selectedStatus = newValue!;
-                    });
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedStatus = newValue;
+                      });
+                    }
                   },
                 ),
                 const SizedBox(height: 16),
@@ -597,8 +623,25 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                 SpatialButton(
                   text: "Update Status",
                   onPressed: _isUpdatingStatus
-                      ? () {}
+                      ? () {} // Empty function instead of null
                       : () {
+                          // Ensure selected status is valid before proceeding
+                          if (_selectedStatus.isEmpty ||
+                              !_statusOptions.contains(_selectedStatus)) {
+                            // If status is invalid, reset to a valid one
+                            setState(() {
+                              _selectedStatus = _statusOptions.first;
+                            });
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Invalid status selected, reset to default'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
                           setState(() {
                             _isUpdatingStatus = true;
                           });
@@ -609,11 +652,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Mock status update to $_selectedStatus'),
-                                  backgroundColor: SpatialDesignSystem.successColor,
+                                  content: Text(
+                                      'Mock status update to $_selectedStatus'),
+                                  backgroundColor:
+                                      SpatialDesignSystem.successColor,
                                 ),
                               );
-                              
+
                               setState(() {
                                 _isUpdatingStatus = false;
                               });
@@ -621,7 +666,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                           });
                         },
                   isGlass: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   height: 40,
                   width: double.infinity,
                 ),
@@ -962,7 +1008,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Add order status update section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -974,13 +1020,14 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    OrderDetailScreen(orderId: order.id.toString()),
+                                builder: (context) => OrderDetailScreen(
+                                    orderId: order.id.toString()),
                               ),
                             );
                           },
                           isGlass: true,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
                           height: 50,
                         ),
                       ),
@@ -993,7 +1040,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                           },
                           isGlass: true,
                           backgroundColor: SpatialDesignSystem.primaryColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
                           height: 50,
                         ),
                       ),
@@ -1107,18 +1155,25 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   // Show dialog to update order status
   void _showOrderStatusUpdateDialog(dynamic order) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    String selectedStatus = order.status ?? 'PENDING';
     final TextEditingController notesController = TextEditingController();
     bool isUpdating = false;
 
-    // List of available order statuses
+    // List of available order statuses - ensure it matches _statusOptions format
     final List<String> orderStatusOptions = [
-      'PENDING',
-      'ASSIGNED',
-      'IN_PROGRESS',
-      'DELIVERED',
-      'CANCELLED'
+      'Assigned',
+      'Started',
+      'In Progress',
+      'Completed',
+      'Cancelled'
     ];
+    
+    // Convert API status to UI status format
+    String selectedStatus = _mapApiStatusToUiStatus(order.status ?? 'ASSIGNED');
+    
+    // Make sure selectedStatus is in the orderStatusOptions list
+    if (!orderStatusOptions.contains(selectedStatus)) {
+      selectedStatus = orderStatusOptions.first;
+    }
 
     showDialog(
       context: context,
@@ -1170,9 +1225,11 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                         );
                       }).toList(),
                       onChanged: (newValue) {
-                        setState(() {
-                          selectedStatus = newValue!;
-                        });
+                        if (newValue != null) {
+                          setState(() {
+                            selectedStatus = newValue;
+                          });
+                        }
                       },
                     ),
                     const SizedBox(height: 16),
@@ -1191,7 +1248,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     "Cancel",
-                    style: TextStyle(color: SpatialDesignSystem.textSecondaryColor),
+                    style: TextStyle(
+                        color: SpatialDesignSystem.textSecondaryColor),
                   ),
                 ),
                 ElevatedButton(
@@ -1201,13 +1259,26 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                   onPressed: isUpdating
                       ? null
                       : () async {
+                          // Validate selected status
+                          if (selectedStatus.isEmpty || 
+                              !orderStatusOptions.contains(selectedStatus)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Invalid status selected'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+                          
                           setState(() {
                             isUpdating = true;
                           });
 
                           // Get the status ID based on the selected status
-                          final int statusId = _getStatusIdFromString(selectedStatus);
-                          
+                          final int statusId =
+                              _getStatusIdFromString(selectedStatus);
+
                           // Create the update model
                           final statusUpdate = OrderStatusUpdate(
                             statusId: statusId,
@@ -1215,7 +1286,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                           );
 
                           // Call API service to update order status
-                          final success = await ordersServices.updateOrderStatus(
+                          final success =
+                              await ordersServices.updateOrderStatus(
                             orderId: order.id,
                             statusUpdate: statusUpdate,
                           );
@@ -1227,11 +1299,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                             // Show success message
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Order status updated to $selectedStatus'),
-                                backgroundColor: SpatialDesignSystem.successColor,
+                                content: Text(
+                                    'Order status updated to $selectedStatus'),
+                                backgroundColor:
+                                    SpatialDesignSystem.successColor,
                               ),
                             );
-                            
+
                             // Refresh delivery details to show updated status
                             _loadDeliveryDetails();
                           } else {
@@ -1274,7 +1348,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         return 1; // Default to pending
     }
   }
-  
+
   /*
   // Update delivery status via API - COMMENTED OUT BECAUSE API ENDPOINT DOESN'T EXIST
   Future<void> _updateDeliveryStatus() async {
@@ -1292,6 +1366,22 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     }
     
     try {
+      // Validate selected status before using it
+      if (!_statusOptions.contains(_selectedStatus)) {
+        setState(() {
+          _selectedStatus = _statusOptions.first; // Reset to a valid status
+          _isUpdatingStatus = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid status selected. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
       // Convert UI status to API format
       String apiStatus = _selectedStatus.toUpperCase().replaceAll(' ', '_');
       
@@ -1353,20 +1443,14 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           children: [
             Expanded(
               child: SpatialButton(
-                text: "Open Google Maps Navigation",
+                text: "Start Navigation",
                 iconData: Icons.directions,
                 onPressed: () {
                   _navigateToRouteMap();
                 },
-                isGradient: true,
-                gradient: LinearGradient(
-                  colors: [
-                    SpatialDesignSystem.primaryColor,
-                    SpatialDesignSystem.accentColor,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                isOutlined: true,
+                textColor: SpatialDesignSystem.primaryColor,
+                backgroundColor: SpatialDesignSystem.primaryColor,
               ),
             ),
           ],
@@ -1408,29 +1492,32 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       // Try to use the GoogleMapsService first for a better experience
       try {
         final googleMapsService = GoogleMapsService();
-        
+
         // Create location map for pickup
         final pickupAddress = _deliveryDetail!.pickupAddress ?? '';
         final pickupLocation = {
-          'latitude': 0.0, // Will use current location if coordinates not available
+          'latitude':
+              0.0, // Will use current location if coordinates not available
           'longitude': 0.0,
           'address': pickupAddress
         };
-        
+
         // Create location map for delivery (last order)
-        final lastOrderAddress = _deliveryDetail!.orders.last.deliveryAddress ?? '';
+        final lastOrderAddress =
+            _deliveryDetail!.orders.last.deliveryAddress ?? '';
         final deliveryLocation = {
           'latitude': 0.0,
           'longitude': 0.0,
           'address': lastOrderAddress
         };
-        
+
         // Create transit points from other orders (if any)
         List<Map<String, dynamic>> transitPoints = [];
         if (_deliveryDetail!.orders.length > 1) {
           for (var i = 0; i < _deliveryDetail!.orders.length - 1; i++) {
             final order = _deliveryDetail!.orders[i];
-            if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) {
+            if (order.deliveryAddress != null &&
+                order.deliveryAddress!.isNotEmpty) {
               transitPoints.add({
                 'latitude': 0.0,
                 'longitude': 0.0,
@@ -1439,7 +1526,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
             }
           }
         }
-        
+
         // Open Google Maps with route
         final success = await googleMapsService.openGoogleMapsWithRoute(
           context: context,
@@ -1447,7 +1534,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           deliveryLocation: deliveryLocation,
           transitPoints: transitPoints,
         );
-        
+
         if (success) return;
       } catch (e) {
         debugPrint('Error using GoogleMapsService: $e');
@@ -1457,35 +1544,38 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       // Fallback: Use the simpler URL launcher method
       // Get the pickup address (warehouse location)
       String origin = _deliveryDetail!.pickupAddress ?? "Current Location";
-      
+
       // Get all delivery addresses from orders
       List<String> deliveryAddresses = [];
       for (var order in _deliveryDetail!.orders) {
-        if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) {
+        if (order.deliveryAddress != null &&
+            order.deliveryAddress!.isNotEmpty) {
           deliveryAddresses.add(order.deliveryAddress!);
         }
       }
-      
+
       if (deliveryAddresses.isEmpty) {
         throw Exception('No valid delivery addresses found');
       }
-      
+
       // If we have multiple delivery addresses, use the first as waypoint and the last as destination
       if (deliveryAddresses.length > 1) {
         final destination = deliveryAddresses.last;
-        final waypoints = deliveryAddresses.sublist(0, deliveryAddresses.length - 1);
-        
+        final waypoints =
+            deliveryAddresses.sublist(0, deliveryAddresses.length - 1);
+
         // Use our enhanced method to open Google Maps with waypoints
         final success = await urlLauncherFrave.openMapWithWaypoints(
           origin: origin,
           destination: destination,
           waypoints: waypoints,
         );
-        
+
         if (!success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to open Google Maps. Please make sure it is installed.'),
+              content: Text(
+                  'Failed to open Google Maps. Please make sure it is installed.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -1493,11 +1583,12 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       } else {
         // For a single delivery address, just navigate directly to it
         final success = await urlLauncherFrave.openMap(deliveryAddresses.first);
-        
+
         if (!success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to open Google Maps. Please make sure it is installed.'),
+              content: Text(
+                  'Failed to open Google Maps. Please make sure it is installed.'),
               backgroundColor: Colors.red,
             ),
           );
