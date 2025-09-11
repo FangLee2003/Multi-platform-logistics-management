@@ -18,19 +18,22 @@ interface AddressData {
   fullAddress?: string;
 }
 
-interface Props {
-  visible: boolean;
-  onCancel: () => void;
-  onOk: (address: AddressData) => void;
-}
 
 interface Props {
   visible: boolean;
   onCancel: () => void;
-  onOk: (address: AddressData) => void;
+  onOk: (address: AddressData & {
+    contactName: string;
+    contactPhone: string;
+    contactEmail: string;
+  }) => void;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
 }
 
-export default function AddressFormModal({ visible, onCancel, onOk }: Props) {
+
+export default function AddressFormModal({ visible, onCancel, onOk, contactName, contactPhone, contactEmail }: Props) {
   const [form] = Form.useForm();
   const [selectedProvince, setSelectedProvince] = useState<string>("");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
@@ -98,30 +101,62 @@ export default function AddressFormModal({ visible, onCancel, onOk }: Props) {
     }
   };
 
-  const handleOk = () => {
-    form.validateFields().then((values) => {
-      const provinceName =
-        provinces.find((p) => p.code === values.province)?.name || "";
-      const districtName =
-        districts.find((d) => d.code === values.district)?.name || "";
+  // Hàm lấy lat/lng từ địa chỉ (dùng Nominatim OpenStreetMap)
+  const getLatLngFromAddress = async (address: string) => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return {
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+        };
+      }
+    } catch {
+      // ignore
+    }
+    return { latitude: null, longitude: null };
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      const provinceName = provinces.find((p) => p.code === values.province)?.name || "";
+      const districtName = districts.find((d) => d.code === values.district)?.name || "";
       const wardName = wards.find((w) => w.code === values.ward)?.name || "";
 
-      const fullAddress =
-        `${values.detailAddress}, ${wardName}, ${districtName}, ${provinceName}`
-          .replace(/^,\s*/, "")
-          .replace(/,\s*,/g, ",");
 
-      const addressData: AddressData = {
+      // Địa chỉ mô tả (address): nối detailAddress, wardName, districtName
+      const addressStr = [values.detailAddress, wardName, districtName]
+        .filter(Boolean)
+        .join(', ');
+
+      // Lấy lat/lng tự động
+      const { latitude, longitude } = await getLatLngFromAddress(`${addressStr}, ${provinceName}`);
+
+      const addressData = {
+        // Các trường cho frontend (giữ nguyên)
         province: provinceName,
         district: districtName,
         ward: wardName,
         detailAddress: values.detailAddress || "",
-        fullAddress: fullAddress,
+        fullAddress: `${values.detailAddress}, ${wardName}, ${districtName}, ${provinceName}`.replace(/^,\s*/, "").replace(/,\s*,/g, ","),
+        // Các trường cho backend
+        city: provinceName, // Tỉnh/Thành phố
+        address: addressStr, // Quận/Huyện, Phường/Xã, Địa chỉ cụ thể nối lại
+        contactName,
+        contactPhone,
+        contactEmail,
+        latitude,
+        longitude,
       };
 
       onOk(addressData);
       handleCancel();
-    });
+    } catch (e) {
+      // ignore
+    }
   };
 
   const handleCancel = () => {

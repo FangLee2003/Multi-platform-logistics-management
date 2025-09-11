@@ -20,7 +20,6 @@ import jakarta.validation.constraints.NotNull;
 @AllArgsConstructor
 public class CreateAddressRequestDTO {
 
-    @NotNull(message = "Address type is required")
     private AddressType addressType;
 
     @NotBlank(message = "Address is required")
@@ -34,12 +33,15 @@ public class CreateAddressRequestDTO {
 
     private String state;
 
-    @NotBlank(message = "Country is required")
     private String country;
 
     private String region;
     private String postalCode;
+
+    @NotBlank(message = "Contact name is required")
     private String contactName;
+
+    @NotBlank(message = "Contact phone is required")
     private String contactPhone;
 
     @Email(message = "Contact email must be valid")

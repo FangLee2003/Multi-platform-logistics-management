@@ -86,6 +86,59 @@ export default function CreateOrder() {
 
   const prev = () => setCurrentStep((prev) => prev - 1);
 
+  // Hàm test lưu address
+  const handleTestAddress = async () => {
+    try {
+      const values = await form.validateFields();
+      console.log('Form values:', values); // Debug log
+      
+      // Kiểm tra và đảm bảo có đủ dữ liệu bắt buộc
+      if (!values.address || !values.city) {
+        message.error('Vui lòng chọn đầy đủ địa chỉ giao hàng!');
+        return;
+      }
+      
+      // Lấy đúng tên trường form và gửi đủ dữ liệu cho backend
+      const addressPayload = {
+        addressType: values.addressType || 'DELIVERY', // DELIVERY, HOME, ...
+        address: values.address, // Địa chỉ đầy đủ từ hidden field
+        city: values.city, // Tỉnh/thành phố từ hidden field
+        contactName: values.receiver_name,
+        contactPhone: values.receiver_phone,
+        contactEmail: values.receiver_email || null,
+        // Các trường optional khác
+        state: null,
+        country: 'Vietnam',
+        region: null,
+        postalCode: null,
+        floorNumber: null,
+        latitude: values.latitude || null,
+        longitude: values.longitude || null,
+      };
+      
+      console.log('Address payload:', addressPayload); // Debug log
+      
+      const res = await fetch('/api/address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addressPayload),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error('Error response:', errorData);
+        throw new Error(`Lưu address thất bại: ${errorData.error || res.statusText}`);
+      }
+      
+      const result = await res.json();
+      console.log('Success response:', result);
+      message.success('Lưu address thành công!');
+    } catch (e: any) {
+      console.error('Error:', e);
+      message.error(e.message || 'Lỗi khi lưu address');
+    }
+  };
+
   return (
     <Card>
       <Title level={2}>Tạo đơn hàng mới</Title>
@@ -107,10 +160,14 @@ export default function CreateOrder() {
             </Button>
           )}
           {currentStep === steps.length - 1 && (
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
               Tạo đơn hàng
             </Button>
           )}
+          {/* Nút test lưu address */}
+          <Button onClick={handleTestAddress} type="dashed" style={{ marginLeft: 8 }}>
+            Xác nhận (Test Address)
+          </Button>
         </div>
       </Form>
     </Card>
