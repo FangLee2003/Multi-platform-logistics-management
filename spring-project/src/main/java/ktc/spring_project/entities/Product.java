@@ -27,7 +27,7 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "unit_price", precision = 15, scale = 2, nullable = false)
+    @Column(name = "unit_price", precision = 15, scale = 2, nullable = true)
     private BigDecimal unitPrice;
 
     @Column(precision = 10, scale = 3)
@@ -46,13 +46,12 @@ public class Product {
     private String productImage;
 
     @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = true)
     private Category category;
 
-    @Enumerated(EnumType.STRING) // hoặc EnumType.ORDINAL nếu bạn muốn lưu bằng tên
-@Column(name = "product_status", nullable = false)
-private ProductStatus productStatus = ProductStatus.ACTIVE;
-
+    @Convert(converter = ktc.spring_project.converters.ProductStatusConverter.class)
+    @Column(name = "product_status", nullable = false)
+    private ProductStatus productStatus = ProductStatus.ACTIVE;
 
     @Column(columnDefinition = "TEXT")
     private String notes;

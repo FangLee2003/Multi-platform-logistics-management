@@ -1,9 +1,11 @@
-import { Row, Col, Form, Input, Button, Select } from "antd";
+import { Row, Col, Form, Input, Button, Select, InputNumber } from "antd";
 import { Card } from "antd";
 import { CloseCircleOutlined } from "@ant-design/icons";
 import { Store } from "@/types/Store";
 import { useState, useEffect } from "react";
+
 import { addressService, Province, District, Ward } from "@/services/addressService";
+import { getCoordinatesFromAddress } from "@/server/geocode.api";
 
 const { TextArea } = Input;
 
@@ -13,17 +15,46 @@ interface Props {
 
 export default function StepStoreInfo({ store }: Props) {
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
-  const [addressValue, setAddressValue] = useState<string>("");
   const form = Form.useFormInstance();
 
   // States cho địa chỉ
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState<string>("");
-  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
-  const [selectedWard, setSelectedWard] = useState<string>("");
-  const [streetAddress, setStreetAddress] = useState<string>(""); // Thêm state cho số nhà/đường
+  // Khởi tạo state từ form nếu có dữ liệu, nếu không thì để rỗng
+  const [addressValue, setAddressValue] = useState<string>(() => form.getFieldValue("shipping_address") || "");
+  const [selectedProvince, setSelectedProvince] = useState<string>(() => form.getFieldValue("provinceCode") || "");
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(() => form.getFieldValue("districtCode") || "");
+  const [selectedWard, setSelectedWard] = useState<string>(() => form.getFieldValue("wardCode") || "");
+  const [streetAddress, setStreetAddress] = useState<string>(() => form.getFieldValue("streetAddress") || "");
+  // TODO: Uncomment khi cần dùng geocoding
+  const [coordinates, setCoordinates] = useState<{ latitude: number | null; longitude: number | null }>(() => ({
+    latitude: form.getFieldValue("latitude") ?? null,
+    longitude: form.getFieldValue("longitude") ?? null
+  })); // State cho tọa độ
+  const [isGeocodingLoading, setIsGeocodingLoading] = useState(false); // State cho loading geocoding
+
+  // Khi component mount, nếu form đã có dữ liệu thì khôi phục lại các state địa chỉ
+  useEffect(() => {
+    const shipping_address = form.getFieldValue("shipping_address") || "";
+    if (shipping_address && !addressValue) setAddressValue(shipping_address);
+    const provinceCode = form.getFieldValue("provinceCode") || "";
+    if (provinceCode && !selectedProvince) setSelectedProvince(provinceCode);
+    const districtCode = form.getFieldValue("districtCode") || "";
+    if (districtCode && !selectedDistrict) setSelectedDistrict(districtCode);
+    const wardCode = form.getFieldValue("wardCode") || "";
+    if (wardCode && !selectedWard) setSelectedWard(wardCode);
+    const street = form.getFieldValue("streetAddress") || "";
+    if (street && !streetAddress) setStreetAddress(street);
+    const lat = form.getFieldValue("latitude");
+    const lng = form.getFieldValue("longitude");
+    if ((lat || lng) && (!coordinates.latitude || !coordinates.longitude)) {
+      setCoordinates({ latitude: lat ?? null, longitude: lng ?? null });
+    }
+  }, []);
+
+  // Hàm getCoordinatesFromAddress đã được tách ra thành API riêng ở server/geocode.api.ts
+  // Sử dụng: import { getCoordinatesFromAddress } from "@/server/geocode.api";
 
   // Load danh sách tỉnh/thành phố khi component mount
   useEffect(() => {
@@ -47,7 +78,7 @@ export default function StepStoreInfo({ store }: Props) {
     setWards([]);
     
     // Cập nhật địa chỉ ngay khi chọn tỉnh
-    updateAddressDisplay(value, "", "", streetAddress);
+    await updateAddressDisplay(value, "", "", streetAddress);
     
     try {
       const districtsData = await addressService.getDistricts(value);
@@ -64,7 +95,7 @@ export default function StepStoreInfo({ store }: Props) {
     setWards([]);
     
     // Cập nhật địa chỉ khi chọn huyện
-    updateAddressDisplay(selectedProvince, value, "", streetAddress);
+    await updateAddressDisplay(selectedProvince, value, "", streetAddress);
     
     try {
       const wardsData = await addressService.getWards(value);
@@ -75,20 +106,20 @@ export default function StepStoreInfo({ store }: Props) {
   };
 
   // Xử lý khi chọn xã/phường
-  const handleWardChange = (value: string) => {
+  const handleWardChange = async (value: string) => {
     setSelectedWard(value);
-    updateAddressDisplay(selectedProvince, selectedDistrict, value, streetAddress);
+    await updateAddressDisplay(selectedProvince, selectedDistrict, value, streetAddress);
   };
 
   // Xử lý khi nhập số nhà/đường
-  const handleStreetAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStreetAddressChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setStreetAddress(value);
-    updateAddressDisplay(selectedProvince, selectedDistrict, selectedWard, value);
+    await updateAddressDisplay(selectedProvince, selectedDistrict, selectedWard, value);
   };
 
   // Cập nhật hiển thị địa chỉ đầy đủ
-  const updateAddressDisplay = (provinceCode: string, districtCode: string, wardCode: string, street: string) => {
+  const updateAddressDisplay = async (provinceCode: string, districtCode: string, wardCode: string, street: string) => {
     console.log('updateAddressDisplay called with:', { provinceCode, districtCode, wardCode, street });
     
     const provinceName = provinces.find(p => p.code === provinceCode)?.name || "";
@@ -118,15 +149,54 @@ export default function StepStoreInfo({ store }: Props) {
     const displayAddress = displayParts.join(", ");
 
     setAddressValue(displayAddress);
-    if (addressForBackend && provinceName) {
-      form.setFieldsValue({
-        shipping_address: displayAddress, // Hiển thị cho user
-        city: provinceName, // Lưu tỉnh/thành phố riêng biệt cho backend
-        address: addressForBackend, // Lưu địa chỉ chỉ gồm 3 trường
-      });
-      console.log('Form values set:', { shipping_address: displayAddress, city: provinceName, address: addressForBackend });
+
+    // Chỉ lấy tọa độ khi có đủ thông tin: ít nhất phải có tỉnh và quận
+    if (provinceName && districtName && displayAddress.trim()) {
+      // Luôn nối tỉnh/thành phố và 'Việt Nam' vào địa chỉ để tăng độ chính xác
+      let geocodeAddress = displayAddress;
+      if (!displayAddress.toLowerCase().includes(provinceName.toLowerCase())) {
+        geocodeAddress += `, ${provinceName}`;
+      }
+      if (!displayAddress.toLowerCase().includes('việt nam')) {
+        geocodeAddress += ', Việt Nam';
+      }
+      console.log('Getting coordinates for:', geocodeAddress);
+      try {
+        const coords = await getCoordinatesFromAddress(geocodeAddress);
+        setCoordinates(coords);
+        console.log('Coordinates received:', coords);
+        // Cập nhật form với cả địa chỉ và tọa độ
+        const formValues = {
+          shipping_address: displayAddress, // Hiển thị cho user
+          city: provinceName, // Lưu tỉnh/thành phố riêng biệt cho backend
+          address: addressForBackend, // Lưu địa chỉ chỉ gồm 3 trường
+          latitude: coords.latitude, // Thêm latitude
+          longitude: coords.longitude, // Thêm longitude
+        };
+        form.setFieldsValue(formValues);
+        console.log('Form values set with coordinates:', formValues);
+        // Kiểm tra lại form values sau khi set
+        setTimeout(() => {
+          const currentFormValues = form.getFieldsValue();
+          console.log('Current form values after set:', currentFormValues);
+        }, 100);
+      } catch (error) {
+        console.error('Error in geocoding process:', error);
+        setCoordinates({ latitude: null, longitude: null });
+      }
     } else {
-      console.log('Conditions not met:', { addressForBackend: !!addressForBackend, provinceName: !!provinceName });
+      // Reset tọa độ nếu không có đủ thông tin
+      console.log('Not enough address info for geocoding:', { provinceName, districtName, displayAddress });
+      setCoordinates({ latitude: null, longitude: null });
+      if (addressForBackend && provinceName) {
+        form.setFieldsValue({
+          shipping_address: displayAddress,
+          city: provinceName,
+          address: addressForBackend,
+          latitude: null,
+          longitude: null,
+        });
+      }
     }
   };
 
@@ -137,6 +207,8 @@ export default function StepStoreInfo({ store }: Props) {
     setSelectedWard("");
     setStreetAddress("");
     setAddressValue("");
+    setCoordinates({ latitude: null, longitude: null }); // Reset tọa độ
+    setIsGeocodingLoading(false); // Reset loading state
     setDistricts([]);
     setWards([]);
     
@@ -144,6 +216,8 @@ export default function StepStoreInfo({ store }: Props) {
       shipping_address: "",
       city: "",
       address: "",
+      latitude: null,
+      longitude: null,
     });
   };
 
@@ -151,21 +225,6 @@ export default function StepStoreInfo({ store }: Props) {
   const getProvinceName = (provinceCode: string) => {
     return provinces.find((p) => p.code === provinceCode)?.name || "";
   };
-
-  // Hàm submit tạo địa chỉ mới (ví dụ khi nhấn nút Lưu)
-  const handleCreateAddress = async () => {
-    const city = getProvinceName(selectedProvince);
-    const address = addressValue;
-    // ... lấy các trường khác nếu cần
-    const payload = {
-      city,
-      address,
-      // ... các trường khác như contactName, contactPhone, ...
-    };
-    // Gửi payload này tới API backend
-    // await fetch('/api/address', { method: 'POST', body: JSON.stringify(payload) })
-  };
-
 
   return (
     <>
@@ -175,6 +234,12 @@ export default function StepStoreInfo({ store }: Props) {
       </Form.Item>
       <Form.Item name="address" style={{ display: 'none' }}>
         <Input />
+      </Form.Item>
+      <Form.Item name="latitude" style={{ display: 'none' }}>
+        <InputNumber style={{ width: '100%' }} />
+      </Form.Item>
+      <Form.Item name="longitude" style={{ display: 'none' }}>
+        <InputNumber style={{ width: '100%' }} />
       </Form.Item>
       
       <Row gutter={[24, 16]}>
@@ -266,6 +331,62 @@ export default function StepStoreInfo({ store }: Props) {
                 ) : null
               }
             />
+            {/* Hiển thị tọa độ nếu có */}
+            {isGeocodingLoading && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#1890ff', 
+                marginBottom: 12,
+                padding: '4px 8px',
+                background: '#f0f8ff',
+                borderRadius: 4,
+                border: '1px solid #91d5ff'
+              }}>
+                🔄 Đang lấy tọa độ...
+              </div>
+            )}
+            {!isGeocodingLoading && coordinates.latitude && coordinates.longitude && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#52c41a', 
+                marginBottom: 12,
+                padding: '4px 8px',
+                background: '#f6ffed',
+                borderRadius: 4,
+                border: '1px solid #b7eb8f'
+              }}>
+                📍 Tọa độ: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
+              </div>
+            )}
+            {!isGeocodingLoading && addressValue && !coordinates.latitude && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#ff4d4f', 
+                marginBottom: 12,
+                padding: '4px 8px',
+                background: '#fff2f0',
+                borderRadius: 4,
+                border: '1px solid #ffccc7'
+              }}>
+                ⚠️ Không tìm thấy tọa độ cho địa chỉ này
+              </div>
+            )}
+
+            {/*
+            {process.env.NODE_ENV === 'development' && (
+              <div style={{ marginBottom: 12, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <Button size="small" onClick={handleDebugFormValues}>
+                  Debug Form Values
+                </Button>
+                <Button size="small" onClick={handleTestGeocoding} disabled={!addressValue}>
+                  Test Geocoding
+                </Button>
+                <Button size="small" onClick={handleTestWithFakeCoords} type="primary">
+                  Test với Fake Coords
+                </Button>
+              </div>
+            )}
+            */}
             <Row gutter={[12, 12]}>
               <Col xs={24} sm={12} md={6}>
                 <Select 

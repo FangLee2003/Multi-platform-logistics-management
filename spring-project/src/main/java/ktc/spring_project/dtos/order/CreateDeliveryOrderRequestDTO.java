@@ -9,66 +9,42 @@ import java.sql.Timestamp;
  * DTO for creating new delivery orders
  */
 public class CreateDeliveryOrderRequestDTO {
-    
-    @NotBlank(message = "Order code is required")
-    @Size(max = 50, message = "Order code must not exceed 50 characters")
+    // ...existing code...
     private String orderCode;
-    
-    @NotBlank(message = "Pickup address is required")
-    @Size(max = 255, message = "Pickup address must not exceed 255 characters")
     private String pickupAddress;
-    
     private Double pickupLatitude;
     private Double pickupLongitude;
-    
-    @NotBlank(message = "Delivery address is required")
-    @Size(max = 255, message = "Delivery address must not exceed 255 characters")
     private String deliveryAddress;
-    
     private Double deliveryLatitude;
     private Double deliveryLongitude;
-    
-    @NotBlank(message = "Recipient name is required")
-    @Size(max = 100, message = "Recipient name must not exceed 100 characters")
     private String recipientName;
-    
-    @Pattern(regexp = "^[+]?[0-9\\s\\-\\(\\)]{0,20}$", message = "Invalid phone number format")
     private String recipientPhone;
-    
-    @Size(max = 1000, message = "Description must not exceed 1000 characters")
     private String description;
-    
-    @DecimalMin(value = "0.0", inclusive = false, message = "Total amount must be greater than 0")
     private BigDecimal totalAmount;
-    
-    @DecimalMin(value = "0.0", inclusive = true, message = "Shipping fee must be 0 or greater")
     private BigDecimal shippingFee;
-    
     private TransportMode transportMode;
-    
     private Timestamp scheduledTime;
-    
-    @Size(max = 500, message = "Notes must not exceed 500 characters")
     private String notes;
-    
-    @NotNull(message = "Customer ID is required")
-    private Long customerId;
-    
     private Long vehicleId;
     private Long driverId;
     private Long routeId;
+
+    // Thay các trường id bằng object
+    private ktc.spring_project.entities.Store store;
+    private ktc.spring_project.entities.Address address;
+    private ktc.spring_project.entities.Status status;
+    private ktc.spring_project.entities.User createdBy;
     
     // Constructors
     public CreateDeliveryOrderRequestDTO() {}
     
     public CreateDeliveryOrderRequestDTO(String orderCode, String pickupAddress, String deliveryAddress, 
-                                       String recipientName, BigDecimal totalAmount, Long customerId) {
+                                       String recipientName, BigDecimal totalAmount) {
         this.orderCode = orderCode;
         this.pickupAddress = pickupAddress;
         this.deliveryAddress = deliveryAddress;
         this.recipientName = recipientName;
         this.totalAmount = totalAmount;
-        this.customerId = customerId;
     }
     
     // Getters and Setters
@@ -117,8 +93,6 @@ public class CreateDeliveryOrderRequestDTO {
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
     
-    public Long getCustomerId() { return customerId; }
-    public void setCustomerId(Long customerId) { this.customerId = customerId; }
     
     public Long getVehicleId() { return vehicleId; }
     public void setVehicleId(Long vehicleId) { this.vehicleId = vehicleId; }
@@ -128,4 +102,16 @@ public class CreateDeliveryOrderRequestDTO {
     
     public Long getRouteId() { return routeId; }
     public void setRouteId(Long routeId) { this.routeId = routeId; }
+    
+    public ktc.spring_project.entities.Store getStore() { return store; }
+    public void setStore(ktc.spring_project.entities.Store store) { this.store = store; }
+
+    public ktc.spring_project.entities.Address getAddress() { return address; }
+    public void setAddress(ktc.spring_project.entities.Address address) { this.address = address; }
+
+    public ktc.spring_project.entities.Status getStatus() { return status; }
+    public void setStatus(ktc.spring_project.entities.Status status) { this.status = status; }
+
+    public ktc.spring_project.entities.User getCreatedBy() { return createdBy; }
+    public void setCreatedBy(ktc.spring_project.entities.User createdBy) { this.createdBy = createdBy; }
 }

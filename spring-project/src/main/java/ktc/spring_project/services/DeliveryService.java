@@ -358,10 +358,12 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
             } catch (Exception e) {
                 throw new EntityNotFoundException("Order not found with id: " + dto.getOrderId());
             }
-            try {
-                delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
-            } catch (Exception e) {
-                throw new EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId());
+            if (dto.getVehicleId() != null) {
+                try {
+                    delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
+                } catch (Exception e) {
+                    throw new EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId());
+                }
             }
             if (dto.getDriverId() != null) {
                 try {
@@ -384,7 +386,14 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
             delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
             delivery.setDeliveryNotes(dto.getDeliveryNotes());
             delivery.setOrderDate(dto.getOrderDate());
-            if (delivery.getOrder() != null && delivery.getOrder().getAddress() != null) {
+            
+            // SỬ DỤNG DELIVERY FEE TỪ FRONTEND THAY VÌ TÍNH LẠI
+            if (dto.getDeliveryFee() != null) {
+                log.info("Using delivery fee from frontend: {}", dto.getDeliveryFee());
+                delivery.setDeliveryFee(dto.getDeliveryFee());
+                return createDelivery(delivery);
+            } else if (delivery.getOrder() != null && delivery.getOrder().getAddress() != null) {
+                log.info("Creating delivery with automatic fee calculation for Order ID: {}", dto.getOrderId());
                 return createDeliveryWithFeeCalculation(delivery);
             } else {
                 return createDelivery(delivery);

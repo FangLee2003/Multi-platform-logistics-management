@@ -18,9 +18,9 @@ public class CreateOrderItemRequestDTO {
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
 
-    @NotNull(message = "Unit price is required")
-    @DecimalMin(value = "0.0", inclusive = true, message = "Unit price must be 0 or greater")
-    private BigDecimal unitPrice;
+    // @NotNull(message = "Unit price is required")
+    // @DecimalMin(value = "0.0", inclusive = true, message = "Unit price must be 0 or greater")
+    // private BigDecimal unitPrice;
 
     @DecimalMin(value = "0.0", inclusive = true, message = "Shipping fee must be 0 or greater")
     private BigDecimal shippingFee;
@@ -35,7 +35,7 @@ public class CreateOrderItemRequestDTO {
         this.orderId = orderId;
         this.productId = productId;
         this.quantity = quantity;
-        this.unitPrice = unitPrice;
+        // this.unitPrice = unitPrice;
     }
 
     // Getters and Setters
@@ -48,8 +48,8 @@ public class CreateOrderItemRequestDTO {
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
-    public BigDecimal getUnitPrice() { return unitPrice; }
-    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+    // public BigDecimal getUnitPrice() { return unitPrice; }
+    // public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 
     public BigDecimal getShippingFee() { return shippingFee; }
     public void setShippingFee(BigDecimal shippingFee) { this.shippingFee = shippingFee; }
