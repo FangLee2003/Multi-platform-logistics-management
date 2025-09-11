@@ -163,7 +163,8 @@ public class SecurityConfig {
     .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
     .requestMatchers(HttpMethod.DELETE, "/api/stores/**").hasAnyRole("ADMIN", "USER", "CUSTOMER")
 // ...existing code...
-.requestMatchers(HttpMethod.POST, "/api/products/**").hasAnyRole("ADMIN", "USER", "CUSTOMER")
+// .requestMatchers(HttpMethod.POST, "/api/products/**").hasAnyRole("ADMIN", "USER", "CUSTOMER")
+.requestMatchers("/api/products/**").permitAll()
 .requestMatchers("/api/orders/**").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/**").permitAll()
     // .anyRequest().authenticated()

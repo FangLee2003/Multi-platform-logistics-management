@@ -39,9 +39,18 @@ public class OrderItemController {
         orderItem.setOrder(orderOpt.get());
         orderItem.setProduct(productOpt.get());
         orderItem.setQuantity(dto.getQuantity());
-    orderItem.setNotes(dto.getNotes());
-        OrderItem saved = orderItemService.saveWithShippingCalculation(orderItem);
-        return ResponseEntity.created(URI.create("/api/order-items/" + saved.getId())).body(saved);
+        orderItem.setNotes(dto.getNotes());
+        
+        // SỬ DỤNG SHIPPING FEE TỪ FRONTEND THAY VÌ TÍNH LẠI
+        if (dto.getShippingFee() != null) {
+            orderItem.setShippingFee(dto.getShippingFee());
+            OrderItem saved = orderItemService.save(orderItem); // Dùng save() thường, không tính lại
+            return ResponseEntity.created(URI.create("/api/order-items/" + saved.getId())).body(saved);
+        } else {
+            // Fallback: chỉ tính lại nếu frontend không gửi shippingFee
+            OrderItem saved = orderItemService.saveWithShippingCalculation(orderItem);
+            return ResponseEntity.created(URI.create("/api/order-items/" + saved.getId())).body(saved);
+        }
     }
 
     // Lấy order item theo id

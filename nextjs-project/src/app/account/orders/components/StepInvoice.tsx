@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Card,
   Row,
@@ -5,28 +6,26 @@ import {
   Divider,
   Typography,
   Table,
-  Checkbox,
   Select,
   Form,
 } from "antd";
 import { Store } from "@/types/Store";
 import { OrderItem } from "@/types/orders";
 import { FormInstance } from "antd";
+import { calculateShippingFee, getServiceMultiplier, calculateBaseShippingFee } from "@/utils/shipping";
+import { calculateDistanceFee, calculateTotalDistance } from "@/utils/distance";
+import { getMapboxRoute } from "@/utils/mapbox";
+import { isValidItem, calculateVolume } from "@/utils/orderItems";
 
 const { Text, Title } = Typography;
 
 interface Props {
   form: FormInstance<any>;
   store: Store | null;
-  calculateShippingFee: (items: OrderItem[]) => number;
 }
 
-export default function StepInvoice({
-  form,
-  store,
-  calculateShippingFee,
-}: Props) {
-  // Sử dụng form.getFieldValue() cho từng field để đảm bảo lấy được dữ liệu đã lưu
+export default function StepInvoice({ form, store }: Props) {
+  // Lấy dữ liệu từ form
   const shippingAddress = form.getFieldValue("shipping_address");
   const receiverName = form.getFieldValue("receiver_name");
   const receiverPhone = form.getFieldValue("receiver_phone");
@@ -35,39 +34,83 @@ export default function StepInvoice({
   const notes = form.getFieldValue("notes");
   const items: OrderItem[] = form.getFieldValue("items") || [];
 
-  // Watch những field cần real-time update (checkbox và select)
-  const isFragile = Form.useWatch("is_fragile", form) ?? false;
+  // Watch những field cần real-time update
   const serviceType = Form.useWatch("service_type", form) ?? "STANDARD";
 
-  const validItems = items.filter(
-    (i) => i && i.product_name && i.quantity > 0 && i.weight > 0
-  );
+  // State cho tính toán khoảng cách
+  const [distanceKm, setDistanceKm] = React.useState<number | null>(null);
+  const [distanceFee, setDistanceFee] = React.useState<number | null>(null);
+  const [distanceRegion, setDistanceRegion] = React.useState<string>("");
+  const [loadingRoute, setLoadingRoute] = React.useState(false);
 
-  const baseShippingFee = calculateShippingFee(validItems);
+  // Tự động lấy route và tính phí khi đủ tọa độ
+  React.useEffect(() => {
+    const fetchRouteAndCalculate = async () => {
+      // Reset state
+      setDistanceKm(null);
+      setDistanceFee(null);
+      setDistanceRegion("");
+      
+      // Kiểm tra tọa độ
+      if (!store?.longitude || !store?.latitude) return;
+      
+      const endLat = form.getFieldValue("latitude");
+      const endLng = form.getFieldValue("longitude");
+      if (!endLat || !endLng) return;
+      
+      setLoadingRoute(true);
+      
+      try {
+        // Lấy route từ Mapbox
+        const coordinates = await getMapboxRoute(
+          store.longitude,
+          store.latitude,
+          endLng,
+          endLat
+        );
+        
+        // Tính khoảng cách
+        if (coordinates.length >= 2) {
+          const distance = calculateTotalDistance(coordinates);
+          setDistanceKm(distance);
+          
+          // Tính phí theo khoảng cách
+          const feeResult = calculateDistanceFee(distance);
+          console.log(`🗺️ Distance: ${distance.toFixed(2)}km, Fee result:`, feeResult);
+          setDistanceFee(feeResult.fee);
+          setDistanceRegion(feeResult.region);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tính toán route:", error);
+      } finally {
+        setLoadingRoute(false);
+      }
+    };
 
-  let serviceFeeMultiplier = 1;
-  switch (serviceType) {
-    case "SECOND_CLASS":
-      serviceFeeMultiplier = 0.8;
-      break;
-    case "STANDARD":
-      serviceFeeMultiplier = 1.0;
-      break;
-    case "FIRST_CLASS":
-      serviceFeeMultiplier = 1.3;
-      break;
-    case "EXPRESS":
-      serviceFeeMultiplier = 1.8;
-      break;
-    default:
-      serviceFeeMultiplier = 1.0;
-      break;
-  }
+    fetchRouteAndCalculate();
+  }, [store?.longitude, store?.latitude, form.getFieldValue("latitude"), form.getFieldValue("longitude")]);
 
-  const fragileFeeMultiplier = isFragile ? 1.3 : 1;
-  const totalFee = Math.round(
-    baseShippingFee * serviceFeeMultiplier * fragileFeeMultiplier
-  );
+  // Tính toán phí vận chuyển
+  const serviceFeeMultiplier = getServiceMultiplier(serviceType);
+  
+  // Tính tổng phí sản phẩm (chỉ tính phí cơ bản, chưa áp dụng hệ số dịch vụ)
+  let baseShippingFee = 0;
+  items.forEach((item) => {
+    if (isValidItem(item)) {
+      const itemFragile = (item as any)?.is_fragile || false;
+      // Tính phí cơ bản (chưa áp dụng hệ số dịch vụ)
+      const itemFee = calculateBaseShippingFee([item], itemFragile);
+      baseShippingFee += itemFee;
+    }
+  });
+
+  // Tổng phí vận chuyển = (phí sản phẩm × hệ số dịch vụ) + phí khoảng cách
+  const totalFee = Math.round(baseShippingFee * serviceFeeMultiplier + (distanceFee || 0));
+
+  // Tự động lưu totalFee vào form
+  React.useEffect(() => {
+    form.setFieldValue("delivery_fee", totalFee);
+  }, [totalFee, form]);
 
   return (
     <Card>
@@ -191,10 +234,40 @@ export default function StepInvoice({
                     render: (w: number) => `${w || 0} kg`,
                   },
                   {
-                    title: "Kích thước (cm)",
-                    key: "dimensions",
-                    render: (_, r: OrderItem) =>
-                      `${r.height || 0} × ${r.width || 0} × ${r.length || 0}`,
+                    title: "Thể tích (cm³)",
+                    key: "volume",
+                    render: (_, r: OrderItem) => {
+                      const volume = calculateVolume(r);
+                      return volume > 0
+                        ? volume.toLocaleString("vi-VN") + " cm³"
+                        : "-";
+                    },
+                  },
+                  {
+                    title: "Hàng dễ vỡ",
+                    key: "is_fragile",
+                    render: (_, r: OrderItem) => {
+                      const itemFragile = (r as any)?.is_fragile || false;
+                      return (
+                        <Text style={{ color: itemFragile ? "#ff4d4f" : "#52c41a" }}>
+                          {itemFragile ? "Có" : "Không"}
+                        </Text>
+                      );
+                    },
+                  },
+                  {
+                    title: "Phí vận chuyển",
+                    key: "shipping_fee",
+                    render: (_, r: OrderItem) => {
+                      const itemFragile = (r as any)?.is_fragile || false;
+                      // Hiển thị phí cơ bản (chưa áp dụng hệ số dịch vụ)
+                      const itemFee = calculateBaseShippingFee([r], itemFragile);
+                      return (
+                        <Text strong style={{ color: "#1890ff" }}>
+                          {itemFee.toLocaleString("vi-VN")} ₫
+                        </Text>
+                      );
+                    },
                   },
                 ]}
               />
@@ -205,15 +278,6 @@ export default function StepInvoice({
         <Col xs={24}>
           <Card size="small" title="Chi phí">
             <Row gutter={[16, 16]}>
-              <Col xs={24} md={12}>
-                <Form.Item
-                  name="is_fragile"
-                  valuePropName="checked"
-                  initialValue={false}
-                >
-                  <Checkbox>Hàng dễ vỡ (+30% phí)</Checkbox>
-                </Form.Item>
-              </Col>
               <Col xs={24} md={12}>
                 <Form.Item
                   name="service_type"
@@ -232,6 +296,9 @@ export default function StepInvoice({
                     <Select.Option value="EXPRESS">
                       Hỏa tốc (+80%)
                     </Select.Option>
+                    {/* <Select.Option value="PRIORITY">
+                      Ưu tiên (+100%)
+                    </Select.Option> */}
                   </Select>
                 </Form.Item>
               </Col>
@@ -245,7 +312,7 @@ export default function StepInvoice({
                 >
                   <Row gutter={[16, 8]}>
                     <Col span={12}>
-                      <Text>Phí vận chuyển cơ bản:</Text>
+                      <Text>Phí sản phẩm (theo trọng lượng & loại hàng):</Text>
                     </Col>
                     <Col span={12} style={{ textAlign: "right" }}>
                       <Text>{baseShippingFee.toLocaleString("vi-VN")} ₫</Text>
@@ -256,12 +323,24 @@ export default function StepInvoice({
                     <Col span={12} style={{ textAlign: "right" }}>
                       <Text>x {serviceFeeMultiplier}</Text>
                     </Col>
-                    <Col span={12}>
-                      <Text>Phí hàng dễ vỡ:</Text>
-                    </Col>
-                    <Col span={12} style={{ textAlign: "right" }}>
-                      <Text>x {fragileFeeMultiplier}</Text>
-                    </Col>
+                    {/* Đã xóa phần phí hàng dễ vỡ theo yêu cầu */}
+                    {/* Hiển thị phí vận chuyển theo khoảng cách nếu có */}
+                    {distanceFee !== null && (
+                      <Col span={24} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>
+                          Phí vận chuyển theo khoảng cách ({distanceRegion}
+                          {distanceKm !== null && (
+                            <span style={{ color: '#888', fontWeight: 400 }}>
+                              {' '}~{distanceKm.toFixed(2)} km
+                            </span>
+                          )}
+                          )
+                        </span>
+                        <span style={{ fontWeight: 500 }}>
+                          {Math.round(distanceFee).toLocaleString("vi-VN")} ₫
+                        </span>
+                      </Col>
+                    )}
                     <Col span={24}>
                       <Divider style={{ margin: "12px 0" }} />
                     </Col>

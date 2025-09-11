@@ -31,11 +31,20 @@ export interface OrderItem {
 
 export interface OrderForm {
   shipping_address: string;
+  address: string;
+  city: string;
+  receiver_name: string;
+  receiver_phone: string;
+  receiver_email?: string;
+  addressType?: string;
+  latitude?: number;
+  longitude?: number;
   description?: string;
   notes?: string;
   items: OrderItem[];
   is_fragile: boolean;
-  service_type: "SECOND_CLASS" | "STANDARD" | "FIRST_CLASS";
+  service_type: "SECOND_CLASS" | "STANDARD" | "FIRST_CLASS" | "EXPRESS" | "PRIORITY";
+  delivery_fee?: number;
 }
 
 
