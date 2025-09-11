@@ -136,12 +136,16 @@ class AuthServices {
       );
       
       // Xóa token và driver ID trong mọi trường hợp
-      await secureStorage.deleteSecureStorage();
+      // Thay vì xóa toàn bộ storage, chỉ xóa các token
+      await secureStorage.deleteToken();
+      await secureStorage.deleteRefreshToken();
       
       return true;
     } catch (e) {
       // Xóa token và driver ID ngay cả khi API thất bại
-      await secureStorage.deleteSecureStorage();
+      // Thay vì xóa toàn bộ storage, chỉ xóa các token
+      await secureStorage.deleteToken();
+      await secureStorage.deleteRefreshToken();
       return true;
     }
   }

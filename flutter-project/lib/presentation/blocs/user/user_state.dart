@@ -28,14 +28,20 @@ class UserState {
 }
 
 
-class LoadingUserState extends UserState {}
+class LoadingUserState extends UserState {
+  LoadingUserState() : super();
+}
 
-class SuccessUserState extends UserState {}
+class SuccessUserState extends UserState {
+  final User? user;
+  
+  SuccessUserState({this.user}) : super(user: user);
+}
 
 class FailureUserState extends UserState {
   final String error;
 
-  FailureUserState(this.error);
+  FailureUserState(this.error) : super();
 }
 
 

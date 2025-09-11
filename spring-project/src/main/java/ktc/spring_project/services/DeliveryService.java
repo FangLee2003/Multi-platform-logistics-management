@@ -326,6 +326,8 @@ private DeliveryResponseDTO mapToDeliveryResponseDTO(Delivery delivery) {
     }
     
     dto.setScheduleDeliveryTime(delivery.getScheduleDeliveryTime());
+    // Thêm scheduledTime cho backward compatibility
+    dto.setScheduledTime(delivery.getScheduleDeliveryTime());
     dto.setActualDeliveryTime(delivery.getActualDeliveryTime());
     dto.setDeliveryFee(delivery.getDeliveryFee());
     

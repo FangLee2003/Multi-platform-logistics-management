@@ -24,6 +24,8 @@ public class DeliveryResponseDTO {
     private ServiceType serviceType;
     private Timestamp pickupDate;
     private Timestamp scheduleDeliveryTime;
+    // Thêm trường scheduledTime để tương thích ngược
+    private Timestamp scheduledTime;
     private Timestamp actualDeliveryTime;
     private Boolean lateDeliveryRisk;
     private Integer deliveryAttempts;
@@ -95,6 +97,10 @@ public class DeliveryResponseDTO {
 
     public Timestamp getScheduleDeliveryTime() { return scheduleDeliveryTime; }
     public void setScheduleDeliveryTime(Timestamp scheduleDeliveryTime) { this.scheduleDeliveryTime = scheduleDeliveryTime; }
+
+    // Getter/Setter cho scheduledTime (để tương thích ngược)
+    public Timestamp getScheduledTime() { return scheduledTime; }
+    public void setScheduledTime(Timestamp scheduledTime) { this.scheduledTime = scheduledTime; }
 
     public Timestamp getActualDeliveryTime() { return actualDeliveryTime; }
     public void setActualDeliveryTime(Timestamp actualDeliveryTime) { this.actualDeliveryTime = actualDeliveryTime; }

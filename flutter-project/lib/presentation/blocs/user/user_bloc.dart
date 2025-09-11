@@ -14,6 +14,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   UserBloc({required this.userServices}) : super(UserState()){
 
     on<OnGetUserEvent>(_onGetUser );
+    on<OnFetchUserEvent>(_onFetchUser );
     on<OnSelectPictureEvent>(_onSelectPicture);
     on<OnClearPicturePathEvent>(_onClearPicturePath);
     on<OnChangeImageProfileEvent>( _onChangePictureProfile );
@@ -29,9 +30,23 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
 
   Future<void> _onGetUser(OnGetUserEvent event, Emitter<UserState> emit) async {
-
     emit( state.copyWith( user: event.user ));
+  }
 
+  Future<void> _onFetchUser(OnFetchUserEvent event, Emitter<UserState> emit) async {
+    try {
+      emit(LoadingUserState());
+      
+      final user = await userServices.getUserById();
+      
+      // Emit state thành công với thông tin user đã được cập nhật
+      emit(SuccessUserState(user: user));
+      
+      // Emit updated state để cập nhật UI với user data được duy trì
+      emit(state.copyWith(user: user));
+    } catch (e) {
+      emit(FailureUserState(e.toString()));
+    }
   }
 
   Future<void> _onSelectPicture( OnSelectPictureEvent event, Emitter<UserState> emit) async {
@@ -58,10 +73,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith(user: user as User?));
+        // Update state with user data
+        emit( state.copyWith( user: user ));
 
       }else{
         emit( FailureUserState(data.msg) );
@@ -85,12 +100,12 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith( user: user as User? ));
+        // Update state with user data
+        emit( state.copyWith( user: user ));
 
-      } else {
+      }else{
         emit( FailureUserState(data.msg) );
       }
       
@@ -112,10 +127,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith( user: user as User? ));
+        // Update state with user data
+        emit( state.copyWith( user: user ));
 
       }else{
         emit( FailureUserState(data.msg) );
@@ -177,10 +192,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith( user: user as User? ));
+        // Update state with user data
+        emit( state.copyWith( user: user ));
 
       } else {
         emit( FailureUserState(data.msg));
@@ -204,10 +219,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith(user: user as User?) );
+        // Update state with user data
+        emit( state.copyWith(user: user) );
 
       }else{
         emit( FailureUserState(data.msg) );

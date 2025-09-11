@@ -29,6 +29,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _fullNameController = TextEditingController();
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
+    
+    // Gọi sự kiện lấy thông tin user khi màn hình được khởi tạo
+    Future.microtask(() {
+      context.read<UserBloc>().add(OnFetchUserEvent());
+    });
   }
 
   @override
@@ -130,8 +135,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           modalLoading(context);
         } else if (state is SuccessUserState) {
           Navigator.pop(context);
-          modalSuccess(context, 'Profile updated successfully',
-              () => Navigator.pop(context));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Profile updated successfully',
+                style: TextStyle(
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+              backgroundColor: SpatialDesignSystem.successColor,
+              duration: Duration(seconds: 2),
+            ),
+          );
         } else if (state is FailureUserState) {
           Navigator.pop(context);
           errorMessageSnack(context, state.error);
@@ -266,9 +282,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                           // Hiển thị username
                           Text(
-                            state.user?.username != ''
+                            state.user?.username != null
                                 ? '@${state.user?.username}'
-                                : "",
+                                : "@faker",
                             style: SpatialDesignSystem.bodyMedium.copyWith(
                               color: SpatialDesignSystem.primaryColor
                                   .withValues(alpha: 0.8),

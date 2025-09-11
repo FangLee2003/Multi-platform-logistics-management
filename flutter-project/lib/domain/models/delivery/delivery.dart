@@ -54,6 +54,7 @@ class Delivery {
   final String? serviceType;
   final String? pickupDate;
   final String? scheduleDeliveryTime;
+  final String? scheduledTime; // Thêm scheduledTime
   final String? actualDeliveryTime;
   final int? lateDeliveryRisk;
   final int? deliveryAttempts;
@@ -101,6 +102,7 @@ class Delivery {
     this.pickupDate,
     this.scheduleDeliveryTime,
     this.actualDeliveryTime,
+    this.scheduledTime, // Thêm scheduledTime
     this.lateDeliveryRisk,
     this.deliveryAttempts,
     this.deliveryNotes,
@@ -158,6 +160,7 @@ class Delivery {
       serviceType: json['serviceType'],
       pickupDate: json['pickupDate'],
       scheduleDeliveryTime: json['scheduleDeliveryTime'],
+      scheduledTime: json['scheduledTime'], // Thêm đọc scheduledTime từ JSON
       actualDeliveryTime: json['actualDeliveryTime'],
       lateDeliveryRisk: json['lateDeliveryRisk'],
       deliveryAttempts: json['deliveryAttempts'],
@@ -207,6 +210,7 @@ class Delivery {
       'serviceType': serviceType,
       'pickupDate': pickupDate,
       'scheduleDeliveryTime': scheduleDeliveryTime,
+      'scheduledTime': scheduledTime, // Thêm scheduledTime vào toJson
       'actualDeliveryTime': actualDeliveryTime,
       'lateDeliveryRisk': lateDeliveryRisk,
       'deliveryAttempts': deliveryAttempts,

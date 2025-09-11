@@ -145,9 +145,13 @@ class UpcomingDeliveriesTab extends StatelessWidget {
     
     // Sort by scheduled time if available
     upcomingDeliveries.sort((a, b) {
-      if (a.scheduleDeliveryTime == null) return 1;
-      if (b.scheduleDeliveryTime == null) return -1;
-      return a.scheduleDeliveryTime!.compareTo(b.scheduleDeliveryTime!);
+      // Ưu tiên sử dụng scheduledTime, nếu không có thì dùng scheduleDeliveryTime
+      final aTime = a.scheduledTime ?? a.scheduleDeliveryTime;
+      final bTime = b.scheduledTime ?? b.scheduleDeliveryTime;
+      
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+      return aTime.compareTo(bTime);
     });
     
     return Column(
@@ -175,7 +179,7 @@ class UpcomingDeliveriesTab extends StatelessWidget {
                       context,
                       "DEL-${upcomingDeliveries[i].id}",
                       _getDeliveryAddress(upcomingDeliveries[i]),
-                      _formatDeliveryTime(upcomingDeliveries[i].scheduleDeliveryTime),
+                      _formatDeliveryTime(upcomingDeliveries[i].scheduledTime ?? upcomingDeliveries[i].scheduleDeliveryTime),
                       i == 0 ? "Next" : "Pending",
                     ),
                   ],
@@ -194,6 +198,7 @@ class UpcomingDeliveriesTab extends StatelessWidget {
     return 'No address available';
   }
   
+  // Phương thức định dạng thời gian giao hàng
   String _formatDeliveryTime(String? timeString) {
     if (timeString == null) return 'No time';
     
@@ -229,12 +234,12 @@ class UpcomingDeliveriesTab extends StatelessWidget {
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10), // Tăng padding
         child: Row(
           children: [
             Container(
               width: 50,
-              height: 50,
+              height: 70, // Tăng chiều cao để phù hợp với 3 dòng
               decoration: BoxDecoration(
                 color: isNext
                     ? SpatialDesignSystem.primaryColor.withOpacity(0.1)
@@ -252,6 +257,7 @@ class UpcomingDeliveriesTab extends StatelessWidget {
               child: Center(
                 child: Icon(
                   Icons.local_shipping_outlined,
+                  size: 30, // Tăng kích thước icon
                   color: isNext
                       ? SpatialDesignSystem.primaryColor
                       : (isDark
@@ -273,7 +279,7 @@ class UpcomingDeliveriesTab extends StatelessWidget {
                           : SpatialDesignSystem.textPrimaryColor,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6), // Tăng khoảng cách
                   Text(
                     address,
                     style: SpatialDesignSystem.bodySmall.copyWith(
@@ -284,7 +290,7 @@ class UpcomingDeliveriesTab extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6), // Tăng khoảng cách
                   Row(
                     children: [
                       Icon(
@@ -475,12 +481,12 @@ class DeliveryHistoryTab extends StatelessWidget {
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10), // Tăng padding
         child: Row(
           children: [
             Container(
               width: 50,
-              height: 50,
+              height: 70, // Tăng chiều cao để phù hợp với 3 dòng
               decoration: BoxDecoration(
                 color: isDark
                     ? Colors.grey.shade800
@@ -490,10 +496,10 @@ class DeliveryHistoryTab extends StatelessWidget {
               child: Center(
                 child: Icon(
                   Icons.local_shipping_outlined,
+                  size: 26, // Tăng kích thước icon
                   color: isDark
                       ? SpatialDesignSystem.textDarkSecondaryColor
                       : SpatialDesignSystem.textSecondaryColor,
-                  size: 20,
                 ),
               ),
             ),
@@ -511,7 +517,7 @@ class DeliveryHistoryTab extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6), // Tăng khoảng cách
                   Text(
                     destination,
                     style: SpatialDesignSystem.bodySmall.copyWith(
@@ -522,7 +528,7 @@ class DeliveryHistoryTab extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6), // Tăng khoảng cách
                   Row(
                     children: [
                       Icon(

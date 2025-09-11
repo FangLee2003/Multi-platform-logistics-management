@@ -55,7 +55,20 @@ class _AddStreetAddressScreenState extends State<AddStreetAddressScreen> {
         } else if ( state is SuccessUserState ){
 
           Navigator.pop(context);
-          modalSuccess(context, 'Street Address added successfully', () => Navigator.pushReplacement(context, routeFrave(page: ListAddressesScreen())));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Street Address added successfully',
+                style: TextStyle(
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          Navigator.pushReplacement(context, routeFrave(page: ListAddressesScreen()));
 
         } else if ( state is FailureUserState ){
 
