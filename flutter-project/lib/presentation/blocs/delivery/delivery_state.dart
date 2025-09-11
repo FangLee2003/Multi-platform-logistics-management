@@ -35,7 +35,7 @@ class ActiveDeliveriesLoadedState extends DeliveryState {
 
 /// Trạng thái sau khi tải chi tiết giao hàng thành công
 class DeliveryDetailsLoadedState extends DeliveryState {
-  final Delivery delivery;
+  final DeliveryDetailResponse delivery;
 
   DeliveryDetailsLoadedState(this.delivery);
 }

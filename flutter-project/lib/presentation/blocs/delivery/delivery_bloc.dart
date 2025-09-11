@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 
 import '../../../domain/models/delivery/delivery.dart';
+import '../../../domain/models/delivery/delivery_detail_response.dart';
 import '../../../domain/models/delivery/delivery_status_update.dart';
 import '../../../services/delivery_services.dart';
 
@@ -19,7 +20,7 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
       : _deliveryServices = deliveryServices,
         super(DeliveryInitial()) {
     on<LoadDeliveriesEvent>(_onLoadDeliveries);
-    on<LoadActiveDeliveriesEvent>(_onLoadActiveDeliveries);
+    // on<LoadActiveDeliveriesEvent>(_onLoadActiveDeliveries);
     on<LoadDeliveryDetailsEvent>(_onLoadDeliveryDetails);
     on<UpdateDeliveryStatusEvent>(_onUpdateDeliveryStatus);
   }
@@ -45,22 +46,22 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
     }
   }
 
-  Future<void> _onLoadActiveDeliveries(
-      LoadActiveDeliveriesEvent event, Emitter<DeliveryState> emit) async {
-    emit(DeliveryLoading());
-    try {
-      final deliveries = await _deliveryServices.getActiveDeliveries();
-      emit(ActiveDeliveriesLoadedState(deliveries));
-    } catch (e) {
-      emit(DeliveryError('Không thể tải danh sách giao hàng đang hoạt động: ${e.toString()}'));
-    }
-  }
+  // Future<void> _onLoadActiveDeliveries(
+  //     LoadActiveDeliveriesEvent event, Emitter<DeliveryState> emit) async {
+  //   emit(DeliveryLoading());
+  //   try {
+  //     final deliveries = await _deliveryServices.getActiveDeliveries();
+  //     emit(ActiveDeliveriesLoadedState(deliveries));
+  //   } catch (e) {
+  //     emit(DeliveryError('Không thể tải danh sách giao hàng đang hoạt động: ${e.toString()}'));
+  //   }
+  // }
 
   Future<void> _onLoadDeliveryDetails(
       LoadDeliveryDetailsEvent event, Emitter<DeliveryState> emit) async {
     emit(DeliveryLoading());
     try {
-      final delivery = await _deliveryServices.getDeliveryById(event.deliveryId);
+      final delivery = await _deliveryServices.getDeliveryDetail(event.deliveryId);
       if (delivery != null) {
         emit(DeliveryDetailsLoadedState(delivery));
       } else {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'dart:ui';
 
 import '../../design/spatial_ui.dart';
 import '../../components/spatial_stat_card.dart';
@@ -10,8 +9,6 @@ import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
 import '../../components/delivery_charts.dart';
 import '../../../services/googlemaps_services.dart';
 import '../../../services/tracking_services.dart';
-import '../../../services/orders_services.dart';
-import '../../../domain/models/order/order_model.dart';
 
 class DashboardScreenSpatial extends StatefulWidget {
   final bool showBottomNav;

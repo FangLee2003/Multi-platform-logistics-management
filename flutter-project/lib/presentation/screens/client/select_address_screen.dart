@@ -47,7 +47,7 @@ class _ListAddresses extends StatelessWidget {
   
   final List<ListAddress> listAddress;
 
-  const _ListAddresses({super.key, required this.listAddress});
+  const _ListAddresses({required this.listAddress});
 
   @override
   Widget build(BuildContext context) {

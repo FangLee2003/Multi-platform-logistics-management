@@ -13,8 +13,6 @@ import 'package:ktc_logistics_driver/data/repositories/repository_implementation
 import 'package:ktc_logistics_driver/services/mock_data_service.dart';
 import 'package:ktc_logistics_driver/presentation/screens/map/route_map_screen.dart';
 import 'package:ktc_logistics_driver/presentation/blocs/driver/driver_bloc.dart';
-import 'package:ktc_logistics_driver/presentation/blocs/delivery/delivery_bloc.dart';
-import 'package:ktc_logistics_driver/presentation/blocs/orders/orders_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/main_screen.dart';
 import 'package:provider/provider.dart';

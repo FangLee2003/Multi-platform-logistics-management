@@ -1,5 +1,4 @@
 import 'package:bloc/bloc.dart';
-import '../auth_bloc.dart';
 import '../auth_event.dart';
 import '../auth_state.dart';
 import '../user_model.dart';

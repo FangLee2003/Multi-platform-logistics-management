@@ -8,9 +8,9 @@ class MainScreen extends StatefulWidget {
   final int initialIndex;
   
   const MainScreen({
-    Key? key,
+    super.key,
     this.initialIndex = 0,
-  }) : super(key: key);
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();

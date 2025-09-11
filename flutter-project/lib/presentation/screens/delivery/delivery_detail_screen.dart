@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:ktc_logistics_driver/domain/models/delivery/delivery_detail_response.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_button.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_text_field.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_screen.dart';
+import 'package:ktc_logistics_driver/services/delivery_services.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 import 'dart:ui';
+import 'package:intl/intl.dart';
 
 // Tab chứa dữ liệu cấu hình
 class DeliveryTab {
@@ -34,6 +37,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   String _selectedStatus = 'Assigned'; // Trạng thái mặc định
   final _noteController = TextEditingController();
   bool _isUpdatingStatus = false;
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  DeliveryDetailResponse? _deliveryDetail;
 
   // Danh sách các trạng thái có thể có của một chuyến giao hàng
   final List<String> _statusOptions = [
@@ -59,16 +66,87 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       setState(() {});
     });
 
-    // TODO: Lấy dữ liệu chi tiết của chuyến giao hàng từ API
+    // Lấy dữ liệu chi tiết của chuyến giao hàng từ API
     _loadDeliveryDetails();
   }
 
   Future<void> _loadDeliveryDetails() async {
-    // TODO: Implement API call to get delivery details
     setState(() {
-      // Cập nhật trạng thái từ dữ liệu API
-      _selectedStatus = 'In Progress'; // Ví dụ
+      _isLoading = true;
+      _errorMessage = '';
     });
+
+    // Khai báo biến bên ngoài khối try để có thể truy cập từ cả try và catch
+    int? deliveryId;
+    String deliveryIdStr = widget.deliveryId;
+
+    try {
+      // Kiểm tra nếu ID là số lớn (như 85797) thì dùng trực tiếp
+      if (int.tryParse(deliveryIdStr) != null &&
+          int.parse(deliveryIdStr) > 10000) {
+        deliveryId = int.parse(deliveryIdStr);
+        debugPrint('Using numeric ID directly: $deliveryId');
+      }
+      // Nếu không phải số lớn, thử xử lý định dạng "DEL-26009"
+      else if (deliveryIdStr.contains('-')) {
+        // Tách lấy phần số sau dấu gạch ngang
+        final parts = deliveryIdStr.split('-');
+        if (parts.length > 1 && int.tryParse(parts[1]) != null) {
+          deliveryId = int.parse(parts[1]); // Lấy "26009" từ "DEL-26009"
+          debugPrint('Extracted numeric ID from format: $deliveryId');
+        } else {
+          throw FormatException(
+              'Không thể phân tích mã giao hàng: $deliveryIdStr');
+        }
+      } else {
+        // Nếu không có dấu gạch ngang, thử parse trực tiếp
+        deliveryId = int.parse(deliveryIdStr);
+        debugPrint('Parsed ID as number: $deliveryId');
+      }
+
+      debugPrint('Calling delivery service with ID: $deliveryId');
+      final detail = await deliveryServices.getDeliveryDetail(deliveryId);
+
+      if (detail != null) {
+        setState(() {
+          _deliveryDetail = detail;
+          _isLoading = false;
+
+          // Cập nhật trạng thái từ dữ liệu API
+          if (detail.status != null) {
+            _selectedStatus = _mapApiStatusToUiStatus(detail.status!);
+          }
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Không thể tải dữ liệu chi tiết đơn hàng $deliveryId';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Lỗi: $e';
+      });
+    }
+  }
+
+  // Chuyển đổi trạng thái từ API sang trạng thái hiển thị UI
+  String _mapApiStatusToUiStatus(String apiStatus) {
+    switch (apiStatus.toUpperCase()) {
+      case 'ASSIGNED':
+        return 'Assigned';
+      case 'STARTED':
+        return 'Started';
+      case 'IN_PROGRESS':
+        return 'In Progress';
+      case 'COMPLETED':
+        return 'Completed';
+      case 'CANCELLED':
+        return 'Cancelled';
+      default:
+        return apiStatus; // Giữ nguyên nếu không có mapping
+    }
   }
 
   @override
@@ -82,13 +160,114 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Hiển thị loading nếu đang tải dữ liệu
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: isDark
+            ? SpatialDesignSystem.darkBackgroundColor
+            : SpatialDesignSystem.backgroundColor,
+        appBar: AppBar(
+          title: Text(
+            "Delivery #${widget.deliveryId}",
+            style: SpatialDesignSystem.subtitleLarge.copyWith(
+              color: isDark
+                  ? SpatialDesignSystem.textDarkPrimaryColor
+                  : SpatialDesignSystem.textPrimaryColor,
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back,
+              color: isDark
+                  ? SpatialDesignSystem.textDarkPrimaryColor
+                  : SpatialDesignSystem.textPrimaryColor,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                "Đang tải dữ liệu...",
+                style: SpatialDesignSystem.bodyMedium.copyWith(
+                  color: isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
+                ),
+              )
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Hiển thị lỗi nếu có
+    if (_errorMessage.isNotEmpty) {
+      return Scaffold(
+        backgroundColor: isDark
+            ? SpatialDesignSystem.darkBackgroundColor
+            : SpatialDesignSystem.backgroundColor,
+        appBar: AppBar(
+          title: Text(
+            "Delivery #${widget.deliveryId}",
+            style: SpatialDesignSystem.subtitleLarge.copyWith(
+              color: isDark
+                  ? SpatialDesignSystem.textDarkPrimaryColor
+                  : SpatialDesignSystem.textPrimaryColor,
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back,
+              color: isDark
+                  ? SpatialDesignSystem.textDarkPrimaryColor
+                  : SpatialDesignSystem.textPrimaryColor,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage,
+                textAlign: TextAlign.center,
+                style: SpatialDesignSystem.bodyMedium.copyWith(
+                  color: isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SpatialButton(
+                text: "Thử lại",
+                onPressed: _loadDeliveryDetails,
+                isGlass: true,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: isDark
           ? SpatialDesignSystem.darkBackgroundColor
           : SpatialDesignSystem.backgroundColor,
       appBar: AppBar(
         title: Text(
-          "Delivery #${widget.deliveryId}",
+          "Delivery #${_deliveryDetail?.deliveryCode ?? widget.deliveryId}",
           style: SpatialDesignSystem.subtitleLarge.copyWith(
             color: isDark
                 ? SpatialDesignSystem.textDarkPrimaryColor
@@ -202,7 +381,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            "Route #RT-${widget.deliveryId}",
+            "Route #${_deliveryDetail?.routeName ?? 'RT-${widget.deliveryId}'}",
             style: SpatialDesignSystem.bodyMedium.copyWith(
               color: isDark
                   ? SpatialDesignSystem.textDarkSecondaryColor
@@ -321,84 +500,40 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                 _buildInfoRow(
                   Icons.calendar_today,
                   "Date",
-                  "August 31, 2025",
+                  _formatDate(_deliveryDetail?.scheduledTime ??
+                      _deliveryDetail?.createdAt),
                 ),
                 const Divider(),
                 _buildInfoRow(
                   Icons.schedule,
                   "Estimated Time",
-                  "2.5 hours",
+                  _deliveryDetail?.estimatedDuration ?? "Chưa có thông tin",
                 ),
                 const Divider(),
                 _buildInfoRow(
                   Icons.location_on,
                   "Starting Point",
-                  "KTC Warehouse, 123 Industrial Zone, District 9",
+                  _deliveryDetail?.pickupAddress ?? "KTC Warehouse",
+                  allowMultiLine: true,
                 ),
                 const Divider(),
                 _buildInfoRow(
                   Icons.location_city,
                   "Destination Area",
-                  "District 1, Ho Chi Minh City",
+                  _getDestinationArea(),
+                  allowMultiLine: true,
                 ),
                 const Divider(),
                 _buildInfoRow(
                   Icons.route,
                   "Total Distance",
-                  "25.3 km",
+                  _deliveryDetail?.estimatedDistance ?? "Chưa có thông tin",
                 ),
                 const Divider(),
                 _buildInfoRow(
                   Icons.shopping_bag,
                   "Total Orders",
-                  "8 orders",
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Timeline
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Delivery Timeline",
-                  style: SpatialDesignSystem.subtitleMedium.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkPrimaryColor
-                        : SpatialDesignSystem.textPrimaryColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildTimelineTile(
-                  "Assigned to Driver",
-                  "August 31, 2025 | 08:00 AM",
-                  "Delivery route assigned to Nguyen Van Driver",
-                  true,
-                  isFirst: true,
-                ),
-                _buildTimelineTile(
-                  "Started Journey",
-                  "August 31, 2025 | 08:15 AM",
-                  "Driver has started the delivery route",
-                  true,
-                ),
-                _buildTimelineTile(
-                  "In Progress",
-                  "August 31, 2025 | 08:30 AM",
-                  "Currently delivering orders in District 1",
-                  true,
-                ),
-                _buildTimelineTile(
-                  "Completed",
-                  "Estimated August 31, 2025 | 11:00 AM",
-                  "All orders delivered successfully",
-                  false,
-                  isLast: true,
+                  "${_deliveryDetail?.orders.length ?? 0} orders",
                 ),
               ],
             ),
@@ -500,12 +635,63 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
               ],
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // Timeline
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Delivery Timeline",
+                  style: SpatialDesignSystem.subtitleMedium.copyWith(
+                    color: isDark
+                        ? SpatialDesignSystem.textDarkPrimaryColor
+                        : SpatialDesignSystem.textPrimaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Xây dựng timeline với các trạng thái theo thứ tự
+                _buildTimelineTile(
+                  "Assigned to Driver",
+                  _formatDate(_deliveryDetail?.createdAt),
+                  "Delivery route assigned to ${_deliveryDetail?.driver?.fullName ?? 'Driver'}",
+                  _isStatusCompleted("Assigned"),
+                  isFirst: true,
+                ),
+                _buildTimelineTile(
+                  "Started Journey",
+                  _getTimelineDate("Started"),
+                  "Driver has started the delivery route",
+                  _isStatusCompleted("Started"),
+                ),
+                _buildTimelineTile(
+                  "In Progress",
+                  _getTimelineDate("In Progress"),
+                  "Currently delivering orders",
+                  _isStatusCompleted("In Progress"),
+                ),
+                _buildTimelineTile(
+                  "Completed",
+                  _deliveryDetail?.actualDeliveryTime != null
+                      ? _formatDate(_deliveryDetail?.actualDeliveryTime)
+                      : "Estimated ${_formatDate(_deliveryDetail?.scheduledTime, addHours: 2)}",
+                  "All orders delivered successfully",
+                  _isStatusCompleted("Completed"),
+                  isLast: true,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(IconData icon, String label, String value,
+      {bool allowMultiLine = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
@@ -539,6 +725,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                         ? SpatialDesignSystem.textDarkPrimaryColor
                         : SpatialDesignSystem.textPrimaryColor,
                   ),
+                  maxLines: allowMultiLine ? null : 1,
+                  overflow: allowMultiLine
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -594,13 +784,15 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
             ? SpatialDesignSystem.primaryColor
             : isDark
                 ? Colors.white.withValues(alpha: 0.1)
-                : Colors.black.withValues(alpha: 0.1),
+                : const Color.fromARGB(255, 227, 204, 204).withValues(alpha: 0.1),
         thickness: 2,
       ),
       afterLineStyle: LineStyle(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.1)
-            : Colors.black.withValues(alpha: 0.1),
+        color: isCompleted 
+            ? SpatialDesignSystem.primaryColor  // Sử dụng màu xanh cho phần đã hoàn thành
+            : isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.1),
         thickness: 2,
       ),
       endChild: Padding(
@@ -642,54 +834,48 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   }
 
   Widget _buildOrdersTab() {
-    // TODO: Implement orders list from API
-    // Mock data for now
-    final mockOrders = [
-      {
-        'id': '1001',
-        'customer': 'Nguyen Van A',
-        'status': 'Pending',
-        'amount': '150,000 VND'
-      },
-      {
-        'id': '1002',
-        'customer': 'Tran Thi B',
-        'status': 'Delivered',
-        'amount': '275,000 VND'
-      },
-      {
-        'id': '1003',
-        'customer': 'Le Van C',
-        'status': 'In Transit',
-        'amount': '320,000 VND'
-      },
-      {
-        'id': '1004',
-        'customer': 'Pham Thi D',
-        'status': 'Pending',
-        'amount': '180,000 VND'
-      },
-      {
-        'id': '1005',
-        'customer': 'Hoang Van E',
-        'status': 'Pending',
-        'amount': '430,000 VND'
-      },
-    ];
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Nếu không có dữ liệu từ API, hiển thị thông báo
+    if (_deliveryDetail == null || _deliveryDetail!.orders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.shopping_bag_outlined,
+              size: 64,
+              color: isDark
+                  ? SpatialDesignSystem.textDarkSecondaryColor
+                  : SpatialDesignSystem.textSecondaryColor,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Không có đơn hàng nào",
+              style: SpatialDesignSystem.subtitleMedium.copyWith(
+                color: isDark
+                    ? SpatialDesignSystem.textDarkSecondaryColor
+                    : SpatialDesignSystem.textSecondaryColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Sử dụng dữ liệu từ API để hiển thị danh sách đơn hàng
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: mockOrders.length,
+      itemCount: _deliveryDetail!.orders.length,
       itemBuilder: (context, index) {
-        final order = mockOrders[index];
+        final order = _deliveryDetail!.orders[index];
         return GestureDetector(
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => OrderDetailScreen(orderId: order['id']!),
+                builder: (context) =>
+                    OrderDetailScreen(orderId: order.id.toString()),
               ),
             );
           },
@@ -704,7 +890,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Order #${order['id']}",
+                        "Order #${order.orderCode ?? order.id}",
                         style: SpatialDesignSystem.subtitleSmall.copyWith(
                           color: SpatialDesignSystem.primaryColor,
                           fontWeight: FontWeight.w600,
@@ -714,14 +900,15 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _getOrderStatusColor(order['status']!)
+                          color: _getOrderStatusColor(order.status ?? 'Pending')
                               .withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          order['status']!,
+                          order.status ?? 'Pending',
                           style: SpatialDesignSystem.captionText.copyWith(
-                            color: _getOrderStatusColor(order['status']!),
+                            color:
+                                _getOrderStatusColor(order.status ?? 'Pending'),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -747,7 +934,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                         ],
                       ),
                       Text(
-                        order['customer']!,
+                        order.recipientName ?? 'Không có thông tin',
                         style: SpatialDesignSystem.bodyMedium.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -773,7 +960,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                         ],
                       ),
                       Text(
-                        order['amount']!,
+                        _formatCurrency(order.totalAmount),
                         style: SpatialDesignSystem.bodyMedium.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -789,14 +976,97 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     );
   }
 
-  Color _getOrderStatusColor(String status) {
+  // Helper methods
+
+  // Format date from API string to readable format
+  String _formatDate(String? dateString, {int addHours = 0}) {
+    if (dateString == null || dateString.isEmpty) {
+      return "Chưa có thông tin";
+    }
+
+    try {
+      final date = DateTime.parse(dateString).add(Duration(hours: addHours));
+      final formatter = DateFormat('dd/MM/yyyy | HH:mm');
+      return formatter.format(date);
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  // Get the destination area from the first order address
+  String _getDestinationArea() {
+    if (_deliveryDetail == null || _deliveryDetail!.orders.isEmpty) {
+      return "Chưa có thông tin";
+    }
+
+    // Lấy địa chỉ từ đơn hàng đầu tiên
+    String? address = _deliveryDetail!.orders.first.deliveryAddress;
+    if (address == null || address.isEmpty) {
+      return "Chưa có thông tin địa chỉ";
+    }
+
+    // Hiển thị đầy đủ địa chỉ không cắt bớt
+    return address;
+  }
+
+  // Check if a status should be shown as completed based on current status
+  bool _isStatusCompleted(String status) {
+    // Danh sách các trạng thái theo thứ tự tiến triển
+    const statusOrder = ['Assigned', 'Started', 'In Progress', 'Completed'];
+    final currentIndex = statusOrder.indexOf(_selectedStatus);
+    final statusIndex = statusOrder.indexOf(status);
+
+    // Nếu trạng thái hiện tại đã đạt hoặc vượt qua status đang xét
+    if (currentIndex >= statusIndex && currentIndex >= 0 && statusIndex >= 0) {
+      return true;
+    }
+    
+    // Trường hợp đặc biệt: Nếu đã hoàn thành (Completed), tất cả các trạng thái đều hoàn thành
+    if (_selectedStatus == 'Completed') {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Get date for timeline item
+  String _getTimelineDate(String status) {
     switch (status) {
-      case 'Delivered':
+      case 'Started':
+        return "Estimated ${_formatDate(_deliveryDetail?.scheduledTime, addHours: -1)}";
+      case 'In Progress':
+        return "Estimated ${_formatDate(_deliveryDetail?.scheduledTime)}";
+      default:
+        return "Chưa có thông tin";
+    }
+  }
+
+  // Format currency from number to string
+  String _formatCurrency(double? amount) {
+    if (amount == null) {
+      return "0 VND";
+    }
+
+    // Format với dấu phân cách hàng nghìn
+    final formatter = NumberFormat("#,###", "vi_VN");
+    return "${formatter.format(amount)} VND";
+  }
+
+  // Get color for order status
+  Color _getOrderStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'DELIVERED':
+      case 'COMPLETED':
         return Colors.green;
-      case 'In Transit':
+      case 'IN_TRANSIT':
+      case 'IN TRANSIT':
+      case 'IN PROGRESS':
         return SpatialDesignSystem.primaryColor;
-      case 'Pending':
+      case 'PENDING':
+      case 'ASSIGNED':
         return Colors.orange;
+      case 'CANCELLED':
+        return Colors.red;
       default:
         return Colors.grey;
     }
@@ -845,18 +1115,19 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         ),
       );
 
-      // TODO: Navigate to map screen
-      // Mock data for now
+      // Thực hiện gọi API để lấy dữ liệu route nếu cần
+      // TODO: Get route data from API
       await Future.delayed(const Duration(seconds: 2));
+
       if (mounted) {
-        // Giả lập dữ liệu đơn hàng để truyền vào map screen
-        // Trong thực tế, dữ liệu này sẽ được lấy từ API
+        // Truyền dữ liệu thực tế (pickup/destination coords) vào map screen
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const Scaffold(
+            builder: (context) => Scaffold(
               body: Center(
-                child: Text("Map view would show here"),
+                child: Text("Map view would show here with pickup at: "
+                    "Pickup: ${_deliveryDetail?.pickupLatitude ?? 0}, ${_deliveryDetail?.pickupLongitude ?? 0}"),
               ),
             ),
           ),

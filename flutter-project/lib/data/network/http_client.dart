@@ -52,7 +52,7 @@ class HttpClient {
     var url = '$baseUrl$endpoint';
     
     if (queryParams != null && queryParams.isNotEmpty) {
-      url += '?' + queryParams.entries.map((e) => '${e.key}=${e.value}').join('&');
+      url += '?${queryParams.entries.map((e) => '${e.key}=${e.value}').join('&')}';
     }
 
     final headers = requiresAuth ? await _getAuthHeaders() : {'Content-Type': 'application/json'};
