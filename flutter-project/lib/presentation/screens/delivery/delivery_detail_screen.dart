@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery_detail_response.dart';
+import 'package:ktc_logistics_driver/domain/models/delivery/delivery_status_update.dart';
+import 'package:ktc_logistics_driver/domain/models/order/order_status_update.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_button.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_text_field.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_screen.dart';
 import 'package:ktc_logistics_driver/services/delivery_services.dart';
+import 'package:ktc_logistics_driver/services/orders_services.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
@@ -598,31 +601,17 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                             _isUpdatingStatus = true;
                           });
 
-                          // TODO: Implement API call to update status
+                          // TODO: API endpoint for updateDeliveryStatus doesn't exist
+                          // Using a mock update instead of real API call
                           Future.delayed(const Duration(seconds: 1)).then((_) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(
-                                      'Status updated to $_selectedStatus'),
-                                  backgroundColor:
-                                      SpatialDesignSystem.successColor,
+                                  content: Text('Mock status update to $_selectedStatus'),
+                                  backgroundColor: SpatialDesignSystem.successColor,
                                 ),
                               );
-
-                              setState(() {
-                                _isUpdatingStatus = false;
-                              });
-                            }
-                          }).catchError((e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to update status: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-
+                              
                               setState(() {
                                 _isUpdatingStatus = false;
                               });
@@ -630,6 +619,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                           });
                         },
                   isGlass: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  height: 40,
                   width: double.infinity,
                 ),
               ],
@@ -784,12 +775,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
             ? SpatialDesignSystem.primaryColor
             : isDark
                 ? Colors.white.withValues(alpha: 0.1)
-                : const Color.fromARGB(255, 227, 204, 204).withValues(alpha: 0.1),
+                : Colors.black.withValues(alpha: 0.1),
         thickness: 2,
       ),
       afterLineStyle: LineStyle(
-        color: isCompleted 
-            ? SpatialDesignSystem.primaryColor  // Sử dụng màu xanh cho phần đã hoàn thành
+        color: isCompleted
+            ? SpatialDesignSystem
+                .primaryColor // Sử dụng màu xanh cho phần đã hoàn thành
             : isDark
                 ? Colors.white.withValues(alpha: 0.1)
                 : Colors.black.withValues(alpha: 0.1),
@@ -967,6 +959,44 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  
+                  // Add order status update section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: SpatialButton(
+                          text: "View Details",
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    OrderDetailScreen(orderId: order.id.toString()),
+                              ),
+                            );
+                          },
+                          isGlass: true,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          height: 40,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SpatialButton(
+                          text: "Update Status",
+                          onPressed: () {
+                            _showOrderStatusUpdateDialog(order);
+                          },
+                          isGlass: true,
+                          backgroundColor: SpatialDesignSystem.primaryColor,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          height: 40,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1020,7 +1050,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     if (currentIndex >= statusIndex && currentIndex >= 0 && statusIndex >= 0) {
       return true;
     }
-    
+
     // Trường hợp đặc biệt: Nếu đã hoàn thành (Completed), tất cả các trạng thái đều hoàn thành
     if (_selectedStatus == 'Completed') {
       return true;
@@ -1071,6 +1101,247 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         return Colors.grey;
     }
   }
+
+  // Show dialog to update order status
+  void _showOrderStatusUpdateDialog(dynamic order) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    String selectedStatus = order.status ?? 'PENDING';
+    final TextEditingController notesController = TextEditingController();
+    bool isUpdating = false;
+
+    // List of available order statuses
+    final List<String> orderStatusOptions = [
+      'PENDING',
+      'ASSIGNED',
+      'IN_PROGRESS',
+      'DELIVERED',
+      'CANCELLED'
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: isDark
+                  ? SpatialDesignSystem.darkBackgroundColor
+                  : SpatialDesignSystem.backgroundColor,
+              title: Text(
+                "Update Order Status",
+                style: SpatialDesignSystem.subtitleMedium.copyWith(
+                  color: isDark
+                      ? SpatialDesignSystem.textDarkPrimaryColor
+                      : SpatialDesignSystem.textPrimaryColor,
+                ),
+              ),
+              content: Container(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Order #${order.orderCode ?? order.id}",
+                      style: SpatialDesignSystem.bodyMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: SpatialDesignSystem.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedStatus,
+                      decoration: InputDecoration(
+                        labelText: 'Status',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        filled: true,
+                        fillColor: isDark
+                            ? Colors.black.withValues(alpha: 0.2)
+                            : Colors.white.withValues(alpha: 0.8),
+                      ),
+                      items: orderStatusOptions.map((status) {
+                        return DropdownMenuItem<String>(
+                          value: status,
+                          child: Text(status),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        setState(() {
+                          selectedStatus = newValue!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SpatialTextField(
+                      controller: notesController,
+                      label: "Notes",
+                      hint: "Add notes about status change",
+                      maxLines: 3,
+                      isGlass: true,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(color: SpatialDesignSystem.textSecondaryColor),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SpatialDesignSystem.primaryColor,
+                  ),
+                  onPressed: isUpdating
+                      ? null
+                      : () async {
+                          setState(() {
+                            isUpdating = true;
+                          });
+
+                          // Get the status ID based on the selected status
+                          final int statusId = _getStatusIdFromString(selectedStatus);
+                          
+                          // Create the update model
+                          final statusUpdate = OrderStatusUpdate(
+                            statusId: statusId,
+                            notes: notesController.text,
+                          );
+
+                          // Call API service to update order status
+                          final success = await ordersServices.updateOrderStatus(
+                            orderId: order.id,
+                            statusUpdate: statusUpdate,
+                          );
+
+                          // Pop the dialog regardless of result
+                          Navigator.pop(context);
+
+                          if (success) {
+                            // Show success message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Order status updated to $selectedStatus'),
+                                backgroundColor: SpatialDesignSystem.successColor,
+                              ),
+                            );
+                            
+                            // Refresh delivery details to show updated status
+                            _loadDeliveryDetails();
+                          } else {
+                            // Show error message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to update order status'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                  child: Text(
+                    isUpdating ? "Updating..." : "Update",
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Convert status string to status ID for API
+  int _getStatusIdFromString(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING':
+        return 1;
+      case 'ASSIGNED':
+        return 2;
+      case 'IN_PROGRESS':
+        return 3;
+      case 'DELIVERED':
+        return 4;
+      case 'CANCELLED':
+        return 5;
+      default:
+        return 1; // Default to pending
+    }
+  }
+  
+  /*
+  // Update delivery status via API - COMMENTED OUT BECAUSE API ENDPOINT DOESN'T EXIST
+  Future<void> _updateDeliveryStatus() async {
+    if (_deliveryDetail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Delivery information is missing'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isUpdatingStatus = false;
+      });
+      return;
+    }
+    
+    try {
+      // Convert UI status to API format
+      String apiStatus = _selectedStatus.toUpperCase().replaceAll(' ', '_');
+      
+      // Create status update model
+      final statusUpdate = DeliveryStatusUpdate(
+        status: apiStatus,
+        notes: _noteController.text,
+        timestamp: DateTime.now().toIso8601String(),
+      );
+      
+      // Call API
+      final updatedDelivery = await deliveryServices.updateDeliveryStatus(
+        _deliveryDetail!.id,
+        statusUpdate,
+      );
+      
+      if (updatedDelivery != null) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Status updated to $_selectedStatus'),
+            backgroundColor: SpatialDesignSystem.successColor,
+          ),
+        );
+        
+        // Refresh delivery details
+        _loadDeliveryDetails();
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update delivery status'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating status: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      // Reset loading state
+      setState(() {
+        _isUpdatingStatus = false;
+      });
+    }
+  }
+  */
 
   Widget _buildBottomBar() {
     return SafeArea(
