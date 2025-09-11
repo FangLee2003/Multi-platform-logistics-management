@@ -9,6 +9,8 @@ import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_screen.dart';
 import 'package:ktc_logistics_driver/services/delivery_services.dart';
 import 'package:ktc_logistics_driver/services/orders_services.dart';
+import 'package:ktc_logistics_driver/services/googlemaps_services.dart';
+import 'package:ktc_logistics_driver/presentation/helpers/url_launcher_frave.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
@@ -979,7 +981,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                           },
                           isGlass: true,
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          height: 40,
+                          height: 50,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -992,7 +994,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                           isGlass: true,
                           backgroundColor: SpatialDesignSystem.primaryColor,
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          height: 40,
+                          height: 50,
                         ),
                       ),
                     ],
@@ -1351,13 +1353,20 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           children: [
             Expanded(
               child: SpatialButton(
-                text: "Start Navigation",
-                iconData: Icons.navigation,
+                text: "Open Google Maps Navigation",
+                iconData: Icons.directions,
                 onPressed: () {
-                  // TODO: Implement navigation logic
                   _navigateToRouteMap();
                 },
-                isGlass: true,
+                isGradient: true,
+                gradient: LinearGradient(
+                  colors: [
+                    SpatialDesignSystem.primaryColor,
+                    SpatialDesignSystem.accentColor,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
             ),
           ],
@@ -1386,26 +1395,117 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         ),
       );
 
-      // Thực hiện gọi API để lấy dữ liệu route nếu cần
-      // TODO: Get route data from API
-      await Future.delayed(const Duration(seconds: 2));
+      // Check if we have the delivery detail data
+      if (_deliveryDetail == null) {
+        throw Exception('Delivery details not available');
+      }
 
-      if (mounted) {
-        // Truyền dữ liệu thực tế (pickup/destination coords) vào map screen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Scaffold(
-              body: Center(
-                child: Text("Map view would show here with pickup at: "
-                    "Pickup: ${_deliveryDetail?.pickupLatitude ?? 0}, ${_deliveryDetail?.pickupLongitude ?? 0}"),
-              ),
-            ),
-          ),
+      // Check if there are any orders
+      if (_deliveryDetail!.orders.isEmpty) {
+        throw Exception('No delivery orders found');
+      }
+
+      // Try to use the GoogleMapsService first for a better experience
+      try {
+        final googleMapsService = GoogleMapsService();
+        
+        // Create location map for pickup
+        final pickupAddress = _deliveryDetail!.pickupAddress ?? '';
+        final pickupLocation = {
+          'latitude': 0.0, // Will use current location if coordinates not available
+          'longitude': 0.0,
+          'address': pickupAddress
+        };
+        
+        // Create location map for delivery (last order)
+        final lastOrderAddress = _deliveryDetail!.orders.last.deliveryAddress ?? '';
+        final deliveryLocation = {
+          'latitude': 0.0,
+          'longitude': 0.0,
+          'address': lastOrderAddress
+        };
+        
+        // Create transit points from other orders (if any)
+        List<Map<String, dynamic>> transitPoints = [];
+        if (_deliveryDetail!.orders.length > 1) {
+          for (var i = 0; i < _deliveryDetail!.orders.length - 1; i++) {
+            final order = _deliveryDetail!.orders[i];
+            if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) {
+              transitPoints.add({
+                'latitude': 0.0,
+                'longitude': 0.0,
+                'address': order.deliveryAddress!
+              });
+            }
+          }
+        }
+        
+        // Open Google Maps with route
+        final success = await googleMapsService.openGoogleMapsWithRoute(
+          context: context,
+          pickupLocation: pickupLocation,
+          deliveryLocation: deliveryLocation,
+          transitPoints: transitPoints,
         );
+        
+        if (success) return;
+      } catch (e) {
+        debugPrint('Error using GoogleMapsService: $e');
+        // Fall back to simple URL launcher if GoogleMapsService fails
+      }
+
+      // Fallback: Use the simpler URL launcher method
+      // Get the pickup address (warehouse location)
+      String origin = _deliveryDetail!.pickupAddress ?? "Current Location";
+      
+      // Get all delivery addresses from orders
+      List<String> deliveryAddresses = [];
+      for (var order in _deliveryDetail!.orders) {
+        if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) {
+          deliveryAddresses.add(order.deliveryAddress!);
+        }
+      }
+      
+      if (deliveryAddresses.isEmpty) {
+        throw Exception('No valid delivery addresses found');
+      }
+      
+      // If we have multiple delivery addresses, use the first as waypoint and the last as destination
+      if (deliveryAddresses.length > 1) {
+        final destination = deliveryAddresses.last;
+        final waypoints = deliveryAddresses.sublist(0, deliveryAddresses.length - 1);
+        
+        // Use our enhanced method to open Google Maps with waypoints
+        final success = await urlLauncherFrave.openMapWithWaypoints(
+          origin: origin,
+          destination: destination,
+          waypoints: waypoints,
+        );
+        
+        if (!success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to open Google Maps. Please make sure it is installed.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        // For a single delivery address, just navigate directly to it
+        final success = await urlLauncherFrave.openMap(deliveryAddresses.first);
+        
+        if (!success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to open Google Maps. Please make sure it is installed.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
+        debugPrint("Error opening navigation: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error opening navigation: $e'),

@@ -24,7 +24,10 @@ class UrlLauncherFrave {
     final url = 'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
     
     try {
-      bool isLaunched = await launchUrl(Uri.parse(url));
+      bool isLaunched = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication
+      );
       return isLaunched;
     } catch (e) {
       debugPrint('Error opening map: $e');
@@ -85,7 +88,10 @@ class UrlLauncherFrave {
   Future<bool> makePhoneCall(String url) async {
     try {
       if (await canLaunchUrl(Uri.parse(url))) {
-        return await launchUrl(Uri.parse(url));
+        return await launchUrl(
+          Uri.parse(url),
+          mode: LaunchMode.externalApplication
+        );
       } else {
         debugPrint('Could not launch $url');
         return false;
@@ -98,5 +104,3 @@ class UrlLauncherFrave {
 }
 
 final urlLauncherFrave = UrlLauncherFrave();
-
-

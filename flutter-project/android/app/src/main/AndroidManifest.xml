@@ -15,6 +15,19 @@
           <action android:name="android.intent.action.DIAL" />
           <data android:scheme="tel" />
         </intent>
+        <!-- For opening maps applications -->
+        <intent>
+          <action android:name="android.intent.action.VIEW" />
+          <data android:scheme="geo" />
+        </intent>
+        <intent>
+          <action android:name="android.intent.action.VIEW" />
+          <data android:scheme="google.navigation" />
+        </intent>
+        <intent>
+          <action android:name="android.intent.action.VIEW" />
+          <data android:scheme="https" android:host="www.google.com" android:pathPrefix="/maps" />
+        </intent>
     </queries>
     
     <!-- Permissions options for the `location` group -->
@@ -32,7 +45,7 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     
    <application
-        android:label="Fraved Food"
+        android:label="KTC Logistics Driver"
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher">
