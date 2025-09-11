@@ -23,6 +23,9 @@ class DeliveriesLoadedState extends DeliveryState {
   DeliveriesLoadedState(this.deliveries);
 }
 
+/// Trạng thái khi không có giao hàng nào
+class DeliveriesEmptyState extends DeliveryState {}
+
 /// Trạng thái sau khi tải danh sách giao hàng đang hoạt động thành công
 class ActiveDeliveriesLoadedState extends DeliveryState {
   final List<Delivery> deliveries;

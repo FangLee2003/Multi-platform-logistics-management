@@ -33,7 +33,13 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
         sortBy: event.sortBy,
         sortDirection: event.sortDirection,
       );
-      emit(DeliveriesLoadedState(deliveries));
+      
+      if (deliveries.isEmpty) {
+        // Send a special state for empty deliveries to distinguish from errors
+        emit(DeliveriesEmptyState());
+      } else {
+        emit(DeliveriesLoadedState(deliveries));
+      }
     } catch (e) {
       emit(DeliveryError('Không thể tải danh sách giao hàng: ${e.toString()}'));
     }

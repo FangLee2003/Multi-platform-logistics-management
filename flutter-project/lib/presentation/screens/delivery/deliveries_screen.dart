@@ -98,6 +98,26 @@ class UpcomingDeliveriesTab extends StatelessWidget {
                 _buildNextDeliveriesCard(context, state.deliveries),
               ],
             );
+          } else if (state is DeliveriesEmptyState) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.inbox_outlined, size: 80, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No deliveries found',
+                    style: SpatialDesignSystem.subtitleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'There are no deliveries assigned to you yet',
+                    style: SpatialDesignSystem.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
           } else if (state is DeliveryError) {
             return Center(child: Text(state.message));
           } else {
@@ -167,9 +187,9 @@ class UpcomingDeliveriesTab extends StatelessWidget {
   }
   
   String _getDeliveryAddress(Delivery delivery) {
-    // Trích xuất địa chỉ từ order nếu có
-    if (delivery.order != null && delivery.order!.containsKey('shippingAddress')) {
-      return delivery.order!['shippingAddress'] ?? 'No address';
+    // Sử dụng deliveryAddress field từ API response mới
+    if (delivery.deliveryAddress != null && delivery.deliveryAddress!.isNotEmpty) {
+      return delivery.deliveryAddress!;
     }
     return 'No address available';
   }
@@ -361,7 +381,9 @@ class DeliveryHistoryTab extends StatelessWidget {
     
     // Filter completed deliveries
     final completedDeliveries = deliveries.where((delivery) => 
-      delivery.status == 'Completed' || delivery.status == 'Failed' || delivery.status == 'Cancelled'
+      delivery.statusDisplay == 'Completed' || 
+      delivery.statusDisplay == 'Failed' || 
+      delivery.statusDisplay == 'Cancelled'
     ).toList();
     
     // Sort by actual delivery time if available
@@ -396,8 +418,8 @@ class DeliveryHistoryTab extends StatelessWidget {
                       "DEL-${completedDeliveries[i].id}",
                       _getDeliveryAddress(completedDeliveries[i]),
                       _formatDeliveryTimeWithDay(completedDeliveries[i].actualDeliveryTime),
-                      completedDeliveries[i].status == 'Failed' ? "Failed" : "Done",
-                      completedDeliveries[i].status == 'Failed' 
+                      completedDeliveries[i].statusDisplay == 'Failed' ? "Failed" : "Done",
+                      completedDeliveries[i].statusDisplay == 'Failed' 
                         ? SpatialDesignSystem.errorColor 
                         : SpatialDesignSystem.successColor,
                     ),
@@ -555,9 +577,9 @@ class DeliveryHistoryTab extends StatelessWidget {
   }
   
   String _getDeliveryAddress(Delivery delivery) {
-    // Trích xuất địa chỉ từ order nếu có
-    if (delivery.order != null && delivery.order!.containsKey('shippingAddress')) {
-      return delivery.order!['shippingAddress'] ?? 'No address';
+    // Sử dụng deliveryAddress field từ API response mới
+    if (delivery.deliveryAddress != null && delivery.deliveryAddress!.isNotEmpty) {
+      return delivery.deliveryAddress!;
     }
     return 'No address available';
   }

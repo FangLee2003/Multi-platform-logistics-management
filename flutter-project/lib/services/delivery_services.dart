@@ -50,38 +50,68 @@ class DeliveryServices {
     String? sortBy,
     String? sortDirection,
   }) async {
-    final driverId = await _getDriverId();
-    if (driverId == null) {
-      debugPrint('Driver ID not found - cannot get deliveries');
-      return [];
-    }
-    
-    final token = await secureStorage.readToken();
-    if (token == null) {
-      debugPrint('Token not found - cannot get deliveries');
-      return [];
-    }
-    
-    // Build query string for filters and sorting
-    final queryParams = <String, String>{};
-    if (status != null) queryParams['status'] = status;
-    if (sortBy != null) queryParams['sortBy'] = sortBy;
-    if (sortDirection != null) queryParams['sortDirection'] = sortDirection;
-    
-    final queryString = queryParams.isNotEmpty 
-        ? '?' + queryParams.entries.map((e) => '${e.key}=${e.value}').join('&')
-        : '';
-    
     try {
-      // Fix URL duplication - remove extra /api since apiBaseUrl already includes it
+      final driverId = await _getDriverId();
+      if (driverId == null) {
+        debugPrint('Driver ID not found - cannot get deliveries');
+        return [];
+      }
+      
+      final token = await secureStorage.readToken();
+      if (token == null) {
+        debugPrint('Token not found - cannot get deliveries');
+        return [];
+      }
+      
+      // Build query string for filters and sorting
+      final queryParams = <String, String>{};
+      if (status != null) queryParams['status'] = status;
+      if (sortBy != null) queryParams['sortBy'] = sortBy;
+      if (sortDirection != null) queryParams['sortDirection'] = sortDirection;
+      
+      final queryString = queryParams.isNotEmpty 
+          ? '?' + queryParams.entries.map((e) => '${e.key}=${e.value}').join('&')
+          : '';
+      
+      // Make sure to use consistent URL pattern
+      final url = '${_env.apiBaseUrl}/driver/$driverId/deliveries$queryString';
+      debugPrint('Fetching deliveries from: $url');
+      
       final resp = await http.get(
-        Uri.parse('${_env.apiBaseUrl}/driver/$driverId/deliveries$queryString'),
+        Uri.parse(url),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
 
+      debugPrint('Response status: ${resp.statusCode}');
       if (resp.statusCode == 200) {
-        final List<dynamic> data = json.decode(resp.body);
-        return data.map((delivery) => Delivery.fromJson(delivery)).toList();
+        final responseBody = resp.body;
+        debugPrint('Response body length: ${responseBody.length} characters');
+        if (responseBody.isNotEmpty) {
+          try {
+            final List<dynamic> data = json.decode(responseBody);
+            debugPrint('Parsed JSON data with ${data.length} items');
+            
+            final deliveries = <Delivery>[];
+            for (var i = 0; i < data.length; i++) {
+              try {
+                final delivery = Delivery.fromJson(data[i]);
+                deliveries.add(delivery);
+              } catch (e) {
+                debugPrint('Error parsing delivery at index $i: $e');
+                debugPrint('Problematic data: ${data[i]}');
+              }
+            }
+            
+            debugPrint('Successfully parsed ${deliveries.length} out of ${data.length} deliveries');
+            return deliveries;
+          } catch (e) {
+            debugPrint('Error decoding JSON response: $e');
+            return [];
+          }
+        } else {
+          debugPrint('Empty response body');
+          return [];
+        }
       } else {
         debugPrint('Error getting driver deliveries: ${resp.statusCode} - ${resp.body}');
         return [];
