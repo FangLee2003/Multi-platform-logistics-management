@@ -112,10 +112,16 @@ class UpcomingDeliveriesTab extends StatelessWidget {
   Widget _buildNextDeliveriesCard(BuildContext context, List<Delivery> deliveries) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // Filter upcoming deliveries
+    // Filter upcoming deliveries - kiểm tra theo statusDisplay thay vì status
     final upcomingDeliveries = deliveries.where((delivery) => 
-      delivery.status != 'Completed' && delivery.status != 'Failed' && delivery.status != 'Cancelled'
+      delivery.statusDisplay != 'Completed' && 
+      delivery.statusDisplay != 'Failed' && 
+      delivery.statusDisplay != 'Cancelled'
     ).toList();
+    
+    // Debug để kiểm tra dữ liệu
+    debugPrint('Total deliveries: ${deliveries.length}');
+    debugPrint('Upcoming deliveries: ${upcomingDeliveries.length}');
     
     // Sort by scheduled time if available
     upcomingDeliveries.sort((a, b) {

@@ -2,17 +2,17 @@
 // Models cho xác thực và đăng nhập
 
 class LoginRequest {
-  final String username;
+  final String email;
   final String password;
 
   LoginRequest({
-    required this.username,
+    required this.email,
     required this.password,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      'username': username,
+      'email': email,
       'password': password,
     };
   }
@@ -43,19 +43,25 @@ class LoginResponse {
     // Extract user info if it exists in the response
     final userInfo = json['user'] as Map<String, dynamic>?;
     
-    // Get userId either directly or from nested user object
-    final userId = json['userId'] ?? userInfo?['id'] ?? 0;
+    // Debugging user info
+    print('User info from login: $userInfo');
+    
+    // Get id from API response - lấy từ 'id' trong đối tượng user
+    final id = userInfo?['id'] ?? json['userId'] ?? 0;
+    
+    // Debug ID extraction
+    print('Extracted id from API response: $id');
     
     return LoginResponse(
       accessToken: json['accessToken'] ?? json['token'] ?? '',
       tokenType: json['tokenType'] ?? 'Bearer',
       expiresIn: json['expiresIn'] ?? 0,
       refreshToken: json['refreshToken'] ?? '',
-      userId: userId,
-      driverId: json['driverId'] ?? userId, // Use userId as driverId if not explicitly provided
+      userId: id,          // Sử dụng id làm userId
+      driverId: id,        // Sử dụng cùng id làm driverId
       username: json['username'] ?? userInfo?['username'] ?? '',
       roles: json['roles'] != null ? List<String>.from(json['roles']) : 
-             userInfo?['role'] != null ? [userInfo?['role']] : [],
+             userInfo?['role'] != null ? [userInfo?['role'] as String] : [],
     );
   }
 

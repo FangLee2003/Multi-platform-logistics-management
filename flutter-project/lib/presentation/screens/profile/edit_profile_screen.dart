@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/auth/auth_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/helpers/helpers.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_button.dart';
@@ -16,8 +17,7 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  late TextEditingController _nameController;
-  late TextEditingController _lastNameController;
+  late TextEditingController _fullNameController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
 
@@ -26,19 +26,97 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _lastNameController = TextEditingController();
+    _fullNameController = TextEditingController();
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _lastNameController.dispose();
+    _fullNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  // Phương thức hiển thị dialog xác nhận đăng xuất
+  void _showLogoutConfirmation(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        child: AlertDialog(
+          backgroundColor: isDark
+              ? SpatialDesignSystem.darkSurfaceColor.withValues(alpha: 0.9)
+              : SpatialDesignSystem.surfaceColor.withValues(alpha: 0.9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.05),
+              width: 1,
+            ),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.logout,
+                color: SpatialDesignSystem.errorColor.withValues(alpha: 0.9),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Confirm Logout',
+                style: SpatialDesignSystem.subtitleLarge.copyWith(
+                  color: isDark
+                      ? SpatialDesignSystem.textDarkPrimaryColor
+                      : SpatialDesignSystem.textPrimaryColor,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to log out?',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: isDark
+                  ? SpatialDesignSystem.textDarkSecondaryColor
+                  : SpatialDesignSystem.textSecondaryColor,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: SpatialDesignSystem.textSecondaryColor),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    SpatialDesignSystem.errorColor.withValues(alpha: 0.85),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                // Dispatch LogOut event to AuthBloc
+                context.read<AuthBloc>().add(LogOutEvent());
+                // Sau khi đăng xuất, điều hướng người dùng về màn hình đăng nhập
+                Navigator.pushNamedAndRemoveUntil(
+                    context, '/login', (route) => false);
+              },
+              child:
+                  const Text('Logout', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -78,20 +156,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
           automaticallyImplyLeading: false, // Remove back button
+          actions: [
+            // Logout button in top-right corner
+            TextButton.icon(
+              onPressed: () {
+                _showLogoutConfirmation(context);
+              },
+              icon: Icon(
+                Icons.logout,
+                size: 18,
+                color: SpatialDesignSystem.errorColor,
+              ),
+              label: Text(
+                'Logout',
+                style: SpatialDesignSystem.bodyMedium.copyWith(
+                  color: SpatialDesignSystem.errorColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+            ),
+          ],
         ),
         body: SafeArea(
           child: BlocBuilder<UserBloc, UserState>(
             builder: (context, state) {
               // Nếu có user data, cập nhật vào các controllers
               if (state.user != null && _emailController.text.isEmpty) {
-                // Split name into first and last name
-                final nameParts = state.user!.name.split(' ');
-                final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-                final lastName =
-                    nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
-
-                _nameController.text = firstName;
-                _lastNameController.text = lastName;
+                // Set full name
+                _fullNameController.text = state.user!.name;
                 _phoneController.text = state.user!.phone;
                 _emailController.text = state.user!.email;
               }
@@ -168,22 +263,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
+
+                          // Hiển thị username
                           Text(
-                            state.user?.name ?? "Update Your Profile",
-                            style: SpatialDesignSystem.subtitleLarge.copyWith(
-                              color: isDark
-                                  ? SpatialDesignSystem.textDarkPrimaryColor
-                                  : SpatialDesignSystem.textPrimaryColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            state.user?.email ?? "",
+                            state.user?.username != ''
+                                ? '@${state.user?.username}'
+                                : "",
                             style: SpatialDesignSystem.bodyMedium.copyWith(
-                              color: isDark
-                                  ? SpatialDesignSystem.textDarkSecondaryColor
-                                  : SpatialDesignSystem.textSecondaryColor,
+                              color: SpatialDesignSystem.primaryColor
+                                  .withValues(alpha: 0.8),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
@@ -219,35 +308,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // First Name field
+                          // Full Name field
                           SpatialTextField(
-                            label: 'First Name',
-                            hint: 'Enter your first name',
-                            controller: _nameController,
-                            prefix: Icon(
-                              Icons.person_outline,
-                              color: SpatialDesignSystem.primaryColor,
-                              size: 20,
-                            ),
-                            validator: (value) => value!.isEmpty
-                                ? 'First name is required'
-                                : null,
-                            isGlass: true,
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Last Name field
-                          SpatialTextField(
-                            label: 'Last Name',
-                            hint: 'Enter your last name',
-                            controller: _lastNameController,
+                            label: 'Full Name',
+                            hint: 'Enter your full name',
+                            controller: _fullNameController,
                             prefix: Icon(
                               Icons.person_outline,
                               color: SpatialDesignSystem.primaryColor,
                               size: 20,
                             ),
                             validator: (value) =>
-                                value!.isEmpty ? 'Last name is required' : null,
+                                value!.isEmpty ? 'Full name is required' : null,
                             isGlass: true,
                           ),
                           const SizedBox(height: 20),
@@ -293,12 +365,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       onPressed: () {
                         if (_keyForm.currentState!.validate() &&
                             userBloc.state.user != null) {
-                          userBloc.add(OnEditUserEvent(_nameController.text,
-                              _lastNameController.text, _phoneController.text));
+                          // Extract first name and last name if needed
+                          final nameParts = _fullNameController.text.split(' ');
+                          final firstName =
+                              nameParts.isNotEmpty ? nameParts.first : '';
+                          final lastName = nameParts.length > 1
+                              ? nameParts.sublist(1).join(' ')
+                              : '';
+
+                          userBloc.add(OnEditUserEvent(
+                              firstName, lastName, _phoneController.text));
                         }
                       },
                       iconData: Icons.save,
-                      isGradient: true,
+                      backgroundColor: SpatialDesignSystem.primaryColor
+                          .withValues(alpha: 0.85),
                     ),
 
                     const SizedBox(height: 20),

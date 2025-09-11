@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import '../data/env/environment.dart';
 import '../data/local_secure/secure_storage.dart';
 import '../domain/models/auth/auth_response.dart';
@@ -11,13 +12,34 @@ class UserServices {
   /// Get current user by ID from secure token
   Future<User> getUserById() async {
     final token = await secureStorage.readToken();
+    final userId = await secureStorage.readUserId(); // Đọc userId từ secure storage
+    
+    if (userId == null || userId.isEmpty) {
+      throw Exception("User ID not found in secure storage");
+    }
+    
+    debugPrint('Fetching user details with ID: $userId');
     
     final response = await http.get(
-      Uri.parse('${_env.endpointApi}/get-user-by-id'),
-      headers: {'Accept': 'application/json', 'xx-token': token!}
+      Uri.parse('${_env.endpointApi}/auth/users/$userId'),
+      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}
     );
-
-    return AuthResponse.fromJson(jsonDecode(response.body)).user;
+    
+    final data = jsonDecode(response.body);
+    debugPrint('User API response: ${response.statusCode}');
+    
+    // Chuyển đổi từ API response mới sang model User
+    return User(
+      uid: data['id'].toString(),
+      name: data['fullName'] ?? '',
+      email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
+      image: '', // API không trả về image
+      role: data['role'] != null ? data['role']['roleName'] ?? '' : '',
+      isActive: data['status'] != null ? data['status']['name'] != 'Inactive' : true,
+      permissions: [], // API không trả về permissions
+      username: data['username'] ?? '', // Thêm username
+    );
   }
 
   /// Edit user profile information

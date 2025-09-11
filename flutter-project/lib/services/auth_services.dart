@@ -36,12 +36,15 @@ class AuthServices {
       await secureStorage.persistentToken(loginResponse.accessToken);
       await secureStorage.persistentRefreshToken(loginResponse.refreshToken);
       
-      // Lưu userId như driverId vì driver cũng là user với role Driver
+      // Lưu ID người dùng - với driver, đây cũng chính là driverId
       if (loginResponse.userId > 0) {
+        print('Storing id from API response: ${loginResponse.userId}');
+        // Lưu cùng một ID vào cả userId và driverId
+        await secureStorage.persistentUserId(loginResponse.userId.toString());
         await secureStorage.persistentDriverId(loginResponse.userId.toString());
-        debugPrint('Stored driverId: ${loginResponse.userId}');
+        debugPrint('Stored id as both userId and driverId: ${loginResponse.userId}');
       } else {
-        debugPrint('Warning: Not storing driverId because userId is ${loginResponse.userId}');
+        debugPrint('Warning: Not storing id because id from API is ${loginResponse.userId}');
       }
       
       return loginResponse;

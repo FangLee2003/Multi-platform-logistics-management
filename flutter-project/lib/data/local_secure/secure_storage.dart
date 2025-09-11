@@ -30,6 +30,19 @@ class SecureStorageFrave {
     await secureStorage.delete(key: 'refreshToken');
   }
   
+  // User ID storage
+  Future<void> persistentUserId(String userId) async {
+    await secureStorage.write(key: 'userId', value: userId);
+  }
+
+  Future<String?> readUserId() async {
+    return await secureStorage.read(key: 'userId');
+  }
+
+  Future<void> deleteUserId() async {
+    await secureStorage.delete(key: 'userId');
+  }
+  
   // Role storage
   Future<void> persistentRoleId(String role) async {
     await secureStorage.write(key: 'role', value: role);

@@ -19,14 +19,18 @@ class DeliveryServices {
 
   /// Get driver ID from secure storage
   Future<int?> _getDriverId() async {
+    // Đọc driverId từ secure storage
     final driverId = await secureStorage.readDriverId();
     if (driverId == null || driverId == "0" || driverId.isEmpty) {
-      // Debug log to trace the issue
-      debugPrint('Warning: driverId is null, empty, or zero. Returning null.');
+      // Debug log
+      debugPrint('Warning: driverId not found in secure storage');
       return null;
     }
+    
     try {
-      return int.parse(driverId);
+      final id = int.parse(driverId);
+      debugPrint('Using driverId from storage: $id');
+      return id;
     } catch (e) {
       debugPrint('Error parsing driverId: $e. Value was: $driverId');
       return null;

@@ -61,6 +61,7 @@ class Delivery {
   final int? driverId;
   final int? routeId;
   final String? status;
+  final String statusDisplay;
   final Map<String, dynamic>? order;
   final Map<String, dynamic>? vehicle;
   final Map<String, dynamic>? driver;
@@ -83,6 +84,7 @@ class Delivery {
     this.driverId,
     this.routeId,
     this.status,
+    required this.statusDisplay,
     this.order,
     this.vehicle,
     this.driver,
@@ -94,8 +96,8 @@ class Delivery {
       id: json['id'],
       orderId: json['orderId'],
       deliveryFee: json['deliveryFee'].toDouble(),
-      transportMode: json['transportMode'],
-      serviceType: json['serviceType'],
+      transportMode: json['transportMode'] ?? '',
+      serviceType: json['serviceType'] ?? '',
       pickupDate: json['pickupDate'],
       scheduleDeliveryTime: json['scheduleDeliveryTime'],
       actualDeliveryTime: json['actualDeliveryTime'],
@@ -106,7 +108,8 @@ class Delivery {
       vehicleId: json['vehicleId'],
       driverId: json['driverId'],
       routeId: json['routeId'],
-      status: json['status'] != null ? json['status']['name'] : null,
+      status: json['deliveryStatus'],
+      statusDisplay: json['statusDisplay'] ?? 'Unknown',
       order: json['order'],
       vehicle: json['vehicle'],
       driver: json['driver'],
@@ -132,6 +135,7 @@ class Delivery {
       'driverId': driverId,
       'routeId': routeId,
       'status': status,
+      'statusDisplay': statusDisplay,
       'order': order,
       'vehicle': vehicle,
       'driver': driver,
