@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ktc_logistics_driver/domain/models/order/order_status_update.dart';
+import 'package:ktc_logistics_driver/services/orders_services.dart';
 
 import '../../design/spatial_ui.dart';
 import '../../components/spatial_button.dart';
@@ -30,6 +32,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late List<OrderTab> _tabs;
+  
+  // For order status
+  bool _isOrderAccepted = false;
+  bool _isUpdatingStatus = false;
+  String _selectedStatus = 'PENDING';
+  
+  // For status update
+  final TextEditingController _notesController = TextEditingController();
 
   @override
   void initState() {
@@ -50,6 +60,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -157,6 +168,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     );
   }
 
+  // The shared buildStatusCard method
   Widget _buildStatusCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -201,19 +213,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color:
-                      SpatialDesignSystem.warningColor.withValues(alpha: 0.1),
+                  color: _getStatusColor(_selectedStatus).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color:
-                        SpatialDesignSystem.warningColor.withValues(alpha: 0.3),
+                    color: _getStatusColor(_selectedStatus).withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
                 child: Text(
-                  "In Transit",
+                  _selectedStatus.replaceAll('_', ' '),
                   style: SpatialDesignSystem.captionText.copyWith(
-                    color: SpatialDesignSystem.warningColor,
+                    color: _getStatusColor(_selectedStatus),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -252,6 +262,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          _isUpdatingStatus
+              ? Center(child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(SpatialDesignSystem.primaryColor),
+                ))
+              : SpatialButton(
+                  text: "Update Status",
+                  onPressed: _showOrderStatusUpdateDialog,
+                  iconData: Icons.update,
+                  isGradient: true,
+                  gradient: LinearGradient(
+                    colors: [
+                      SpatialDesignSystem.primaryColor,
+                      SpatialDesignSystem.accentColor,
+                    ],
+                  ),
+                ),
         ],
       ),
     );
@@ -629,9 +656,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     );
   }
 
-  // Flag to track if order is accepted
-  bool _isOrderAccepted = false;
-
   Widget _buildBottomBar() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -930,5 +954,173 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
     // Launch the phone dialer with the number
     urlLauncherFrave.makePhoneCall('tel:$phoneNumber');
+  }
+
+  // Show dialog to update order status
+  void _showOrderStatusUpdateDialog() {
+    // Use the existing controller from the state
+    _notesController.clear();
+    
+    // List of status options - using the same options as in the OrderStatusId class
+    final List<String> statusOptions = [
+      "PENDING",
+      "PROCESSING",
+      "IN_TRANSIT", 
+      "DELIVERED",
+      "CANCELLED",
+      "RETURNED"
+    ];
+    
+    // Load current order status if available
+    // Use the _selectedStatus that's already in the state
+    debugPrint('Current order status: $_selectedStatus');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Update Order Status"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Select new status:"),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _selectedStatus,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
+              items: statusOptions.map((String status) {
+                return DropdownMenuItem<String>(
+                  value: status,
+                  child: Text(status.replaceAll('_', ' ')),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  _selectedStatus = newValue;
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            const Text("Add notes (optional):"),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notesController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: "Enter notes about status change",
+                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Close dialog
+              Navigator.pop(context);
+              
+              // Create status update object
+              final OrderStatusUpdate statusUpdate = OrderStatusUpdate(
+                statusId: OrderStatusId.fromStatusName(_selectedStatus),
+                notes: _notesController.text.trim().isNotEmpty 
+                    ? _notesController.text.trim() 
+                    : null,
+              );
+              
+              // Call update function
+              _updateOrderStatus(statusUpdate);
+            },
+            child: const Text("Update"),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // Update order status via API
+  Future<void> _updateOrderStatus(OrderStatusUpdate statusUpdate) async {
+    try {
+      // Show loading indicator
+      setState(() {
+        _isUpdatingStatus = true;
+      });
+      
+      // Call API service using OrdersServices instead of DeliveryServices
+      final success = await ordersServices.updateOrderStatus(
+        driverId: null, // Will use the one from secure storage
+        orderId: int.parse(widget.orderId),
+        statusUpdate: statusUpdate,
+      );
+      
+      // Hide loading indicator
+      setState(() {
+        _isUpdatingStatus = false;
+      });
+      
+      // Show success or error message
+      if (success) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Order status updated successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Update local state to reflect the change
+        setState(() {
+          _selectedStatus = statusUpdate.statusId == OrderStatusId.DELIVERED ? "DELIVERED" : _selectedStatus;
+        });
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to update order status"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading indicator
+      setState(() {
+        _isUpdatingStatus = false;
+      });
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+  // Get color for status
+  Color _getStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING':
+        return SpatialDesignSystem.warningColor; // Orange/Yellow
+      case 'PROCESSING':
+        return SpatialDesignSystem.primaryColor; // Use primary color instead of info
+      case 'IN_TRANSIT':
+        return SpatialDesignSystem.warningColor; // Orange/Yellow
+      case 'DELIVERED':
+        return SpatialDesignSystem.successColor; // Green
+      case 'CANCELLED':
+        return SpatialDesignSystem.errorColor; // Red
+      case 'RETURNED':
+        return SpatialDesignSystem.errorColor; // Red
+      default:
+        return SpatialDesignSystem.warningColor; // Default to orange/yellow
+    }
   }
 }

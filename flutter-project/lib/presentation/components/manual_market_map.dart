@@ -83,9 +83,9 @@ class ManualMarketMap extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
             child: const TextCustom(text: 'Confirm Address', color: Colors.white, fontSize: 17,),
             onPressed: (){
-              if( myLocationBloc.state.addressName != '' ){
-                Navigator.pushReplacement(context, routeFrave(page: AddStreetAddressScreen()));
-              }
+              // if( myLocationBloc.state.addressName != '' ){
+              //   Navigator.pushReplacement(context, routeFrave(page: AddStreetAddressScreen()));
+              // }
             },
           )
         )

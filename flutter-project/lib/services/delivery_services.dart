@@ -6,9 +6,6 @@ import 'package:ktc_logistics_driver/data/local_secure/secure_storage.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery_detail_response.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery_status_update.dart';
-import 'package:ktc_logistics_driver/domain/models/order/order.dart';
-import 'package:ktc_logistics_driver/domain/models/delivery/get_all_delivery_response.dart'
-    as old_model;
 
 /// DeliveryServices - Handles all API operations related to deliveries
 class DeliveryServices {
@@ -175,50 +172,6 @@ class DeliveryServices {
       }
     } catch (e) {
       debugPrint('Error getting delivery detail: $e');
-      return null;
-    }
-  }
-
-  /// Get order details for a specific delivery
-  ///
-  /// [deliveryId] ID of the delivery to get order for
-  /// Returns order or null if failed
-  Future<Order?> getOrderForDelivery(int deliveryId) async {
-    final driverId = await _getDriverId();
-    if (driverId == null) {
-      debugPrint('Driver ID not found - cannot get order details');
-      return null;
-    }
-
-    final token = await secureStorage.readToken();
-    if (token == null) {
-      debugPrint('Token not found - cannot get order details');
-      return null;
-    }
-
-    try {
-      final url =
-          '${_env.endpointBase}api/driver/$driverId/deliveries/$deliveryId/order';
-      debugPrint('Requesting order details from: $url');
-
-      final resp = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-      );
-
-      if (resp.statusCode == 200) {
-        final data = json.decode(resp.body);
-        return Order.fromJson(data);
-      } else {
-        debugPrint(
-            'Error getting order for delivery: ${resp.statusCode} - ${resp.body}');
-        return null;
-      }
-    } catch (e) {
-      debugPrint('Error getting order for delivery: $e');
       return null;
     }
   }
