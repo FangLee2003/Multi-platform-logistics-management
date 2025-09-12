@@ -78,5 +78,13 @@ void main() async {
     print('❌ Location Service initialization failed: $e');
   }
   
+  // Khôi phục tracking service nếu có
+  try {
+    print('🚚 Checking for active driver tracking...');
+    await locationService.restoreDeliveryTrackingIfNeeded();
+  } catch (e) {
+    print('⚠️ Could not restore driver tracking: $e');
+  }
+  
   runApp(const App());
 }

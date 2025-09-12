@@ -6,6 +6,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geocoding/geocoding.dart';
 import '../data/env/environment.dart';
 import '../data/local_secure/secure_storage.dart';
 import '../data/network/http_client.dart';
@@ -34,6 +36,13 @@ class LocationService {
   StreamSubscription<Position>? _positionStreamSubscription;
   Timer? _locationUpdateTimer;
   bool _isTracking = false;
+  
+  // Key cho SharedPreferences để lưu thông tin tracking
+  final String _lastTrackingTimeKey = 'last_tracking_time';
+  final String _activeDeliveryIdKey = 'active_delivery_id';
+  final String _activeDriverIdKey = 'active_driver_id';
+  final String _activeVehicleIdKey = 'active_vehicle_id';
+  final String _activeStatusIdKey = 'active_status_id';
 
   // Getters
   String get baseUrl => _env.apiBaseUrl;
@@ -426,6 +435,100 @@ class LocationService {
           'Hourly update sent: ${position.latitude}, ${position.longitude}');
     } catch (e) {
       debugPrint('Error getting hourly location: $e');
+    }
+  }
+
+  /// Starts tracking for a specific delivery
+  /// This method incorporates functionality from the previous driver_tracking_service
+  Future<void> startDeliveryTracking({
+    required int driverId,
+    required int deliveryId,
+    required int vehicleId,
+    required int statusId,
+  }) async {
+    // Lưu thông tin tracking vào SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_activeDriverIdKey, driverId);
+    await prefs.setInt(_activeDeliveryIdKey, deliveryId);
+    await prefs.setInt(_activeVehicleIdKey, vehicleId);
+    await prefs.setInt(_activeStatusIdKey, statusId);
+    await prefs.setString(_lastTrackingTimeKey, DateTime.now().toIso8601String());
+    
+    if (_isTracking) {
+      stopBackgroundLocationService();
+    }
+    
+    // Get current position
+    final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    
+    // Start general tracking
+    await startTracking(
+      latitude: position.latitude, 
+      longitude: position.longitude,
+      speed: position.speed,
+      heading: position.heading,
+      vehicleStatus: 'ACTIVE',
+      updateInterval: const Duration(minutes: 30) // 30 minute interval as requested
+    );
+    
+    // Send tracking data specifically for this delivery
+    await updateDeliveryTracking(
+      deliveryId, 
+      DriverLocation(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        speed: position.speed,
+        heading: position.heading,
+        timestamp: DateTime.now().toIso8601String(),
+        vehicleStatus: 'ACTIVE'
+      ),
+      statusId: statusId
+    );
+    
+    debugPrint('🚀 Started driver location tracking for Delivery #$deliveryId');
+  }
+  
+  /// Restore tracking from SharedPreferences after app restart
+  Future<void> restoreDeliveryTrackingIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastTrackingTime = prefs.getString(_lastTrackingTimeKey);
+    final deliveryId = prefs.getInt(_activeDeliveryIdKey);
+    final driverId = prefs.getInt(_activeDriverIdKey);
+    final vehicleId = prefs.getInt(_activeVehicleIdKey);
+    final statusId = prefs.getInt(_activeStatusIdKey);
+    
+    // Nếu có thông tin tracking đã lưu
+    if (lastTrackingTime != null && deliveryId != null && 
+        driverId != null && vehicleId != null && statusId != null) {
+      
+      // Khôi phục tracking
+      startDeliveryTracking(
+        driverId: driverId,
+        deliveryId: deliveryId, 
+        vehicleId: vehicleId,
+        statusId: statusId
+      );
+      
+      debugPrint('♻️ Restored driver location tracking for Delivery #$deliveryId');
+    }
+  }
+  
+  /// Lấy địa chỉ từ vị trí (từ location_service)
+  Future<Placemark?> getAddressFromPosition(Position position) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        return placemarks.first;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting address from position: $e');
+      return null;
     }
   }
 }

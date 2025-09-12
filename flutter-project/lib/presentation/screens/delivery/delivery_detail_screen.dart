@@ -10,6 +10,7 @@ import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_scr
 import 'package:ktc_logistics_driver/services/delivery_services.dart';
 import 'package:ktc_logistics_driver/services/orders_services.dart';
 import 'package:ktc_logistics_driver/services/googlemaps_services.dart';
+import 'package:ktc_logistics_driver/services/tracking_services.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
@@ -181,6 +182,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   void dispose() {
     _tabController.dispose();
     _noteController.dispose();
+    // Don't stop tracking service - it should continue in the background
     super.dispose();
   }
 
@@ -446,6 +448,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
               ),
             ],
           ),
+          
+          // Add tracking control button
+          const SizedBox(height: 16),
+          _buildTrackingControlButton(),
         ],
       ),
     );
@@ -500,6 +506,64 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       default:
         return "Unknown status";
     }
+  }
+  
+  Widget _buildTrackingControlButton() {
+    final isCurrentlyTracking = locationService.isTracking;
+    
+    return SpatialButton(
+      text: isCurrentlyTracking ? "Stop Location Tracking" : "Start Location Tracking",
+      iconData: isCurrentlyTracking ? Icons.location_off : Icons.location_on,
+      onPressed: () {
+        if (isCurrentlyTracking) {
+          // Stop tracking
+          locationService.stopBackgroundLocationService();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Background location tracking stopped'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        } else {
+          // Start tracking
+          if (_deliveryDetail != null) {
+            final driverId = _deliveryDetail?.driver?.id ?? 20696;
+            final deliveryId = _deliveryDetail?.id ?? int.parse(widget.deliveryId);
+            final vehicleId = _deliveryDetail?.vehicle?.id ?? 1;
+            final statusId = _getStatusIdFromString(_selectedStatus);
+            
+            locationService.startDeliveryTracking(
+              driverId: driverId,
+              deliveryId: deliveryId,
+              vehicleId: vehicleId,
+              statusId: statusId,
+            );
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Background location tracking started'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cannot start tracking - delivery details not available'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+        // Force UI to update
+        setState(() {});
+      },
+      isGlass: true,
+      backgroundColor: isCurrentlyTracking ? Colors.red.withOpacity(0.2) : Colors.green.withOpacity(0.2),
+      textColor: isCurrentlyTracking ? Colors.red : Colors.green,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      height: 40,
+      width: double.infinity,
+    );
   }
 
   Widget _buildOverviewTab() {
@@ -569,112 +633,101 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
           const SizedBox(height: 16),
 
-          // // Status Update
-          // GlassCard(
-          //   padding: const EdgeInsets.all(16),
-          //   child: Column(
-          //     crossAxisAlignment: CrossAxisAlignment.start,
-          //     children: [
-          //       Text(
-          //         "Update Status",
-          //         style: SpatialDesignSystem.subtitleMedium.copyWith(
-          //           color: isDark
-          //               ? SpatialDesignSystem.textDarkPrimaryColor
-          //               : SpatialDesignSystem.textPrimaryColor,
-          //         ),
-          //       ),
-          //       const SizedBox(height: 16),
-          //       DropdownButtonFormField<String>(
-          //         value: _selectedStatus,
-          //         decoration: InputDecoration(
-          //           labelText: 'Status',
-          //           border: OutlineInputBorder(
-          //             borderRadius: BorderRadius.circular(10),
-          //           ),
-          //           filled: true,
-          //           fillColor: isDark
-          //               ? Colors.black.withValues(alpha: 0.2)
-          //               : Colors.white.withValues(alpha: 0.8),
-          //         ),
-          //         items: _statusOptions.map((status) {
-          //           return DropdownMenuItem<String>(
-          //             value: status,
-          //             child: Text(status),
-          //           );
-          //         }).toList(),
-          //         onChanged: (newValue) {
-          //           if (newValue != null) {
-          //             setState(() {
-          //               _selectedStatus = newValue;
-          //             });
-          //           }
-          //         },
-          //       ),
-          //       const SizedBox(height: 16),
-          //       SpatialTextField(
-          //         controller: _noteController,
-          //         label: "Notes",
-          //         hint: "Add notes about status change",
-          //         maxLines: 3,
-          //         isGlass: true,
-          //       ),
-          //       const SizedBox(height: 16),
-          //       SpatialButton(
-          //         text: "Update Status",
-          //         onPressed: _isUpdatingStatus
-          //             ? () {} // Empty function instead of null
-          //             : () {
-          //                 // Ensure selected status is valid before proceeding
-          //                 if (_selectedStatus.isEmpty ||
-          //                     !_statusOptions.contains(_selectedStatus)) {
-          //                   // If status is invalid, reset to a valid one
-          //                   setState(() {
-          //                     _selectedStatus = _statusOptions.first;
-          //                   });
-                            
-          //                   ScaffoldMessenger.of(context).showSnackBar(
-          //                     const SnackBar(
-          //                       content: Text('Invalid status selected, reset to default'),
-          //                       backgroundColor: Colors.red,
-          //                     ),
-          //                   );
-          //                   return;
-          //                 }
+          // Status Update - Uncommented and updated
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Update Status",
+                  style: SpatialDesignSystem.subtitleMedium.copyWith(
+                    color: isDark
+                        ? SpatialDesignSystem.textDarkPrimaryColor
+                        : SpatialDesignSystem.textPrimaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedStatus,
+                  decoration: InputDecoration(
+                    labelText: 'Status',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? Colors.black.withValues(alpha: 0.2)
+                        : Colors.white.withValues(alpha: 0.8),
+                  ),
+                  items: _statusOptions.map((status) {
+                    return DropdownMenuItem<String>(
+                      value: status,
+                      child: Text(status),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedStatus = newValue;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                SpatialTextField(
+                  controller: _noteController,
+                  label: "Notes",
+                  hint: "Add notes about status change",
+                  maxLines: 3,
+                  isGlass: true,
+                ),
+                const SizedBox(height: 16),
+                SpatialButton(
+                  text: "Update Status",
+                  onPressed: () => _updateDeliveryStatus(_selectedStatus),
+                  isGlass: true,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  height: 40,
+                  width: double.infinity,
+                ),
+              ],
+            ),
+          ),
 
-          //                 setState(() {
-          //                   _isUpdatingStatus = true;
-          //                 });
+          const SizedBox(height: 16),
+          
+          // Location Tracking Control
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Location Tracking",
+                  style: SpatialDesignSystem.subtitleMedium.copyWith(
+                    color: isDark
+                        ? SpatialDesignSystem.textDarkPrimaryColor
+                        : SpatialDesignSystem.textPrimaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "Background location tracking sends your position to the server every 30 minutes to help operations track delivery progress.",
+                  style: SpatialDesignSystem.bodySmall.copyWith(
+                    color: isDark
+                        ? SpatialDesignSystem.textDarkSecondaryColor
+                        : SpatialDesignSystem.textSecondaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildTrackingControlButton(),
+              ],
+            ),
+          ),
 
-          //                 // TODO: API endpoint for updateDeliveryStatus doesn't exist
-          //                 // Using a mock update instead of real API call
-          //                 Future.delayed(const Duration(seconds: 1)).then((_) {
-          //                   if (mounted) {
-          //                     ScaffoldMessenger.of(context).showSnackBar(
-          //                       SnackBar(
-          //                         content: Text(
-          //                             'Mock status update to $_selectedStatus'),
-          //                         backgroundColor:
-          //                             SpatialDesignSystem.successColor,
-          //                       ),
-          //                     );
-
-          //                     setState(() {
-          //                       _isUpdatingStatus = false;
-          //                     });
-          //                   }
-          //                 });
-          //               },
-          //         isGlass: true,
-          //         padding:
-          //             const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          //         height: 40,
-          //         width: double.infinity,
-          //       ),
-          //     ],
-          //   ),
-          // ),
-
-          // const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
           // Timeline
           GlassCard(
@@ -1353,9 +1406,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     }
   }
 
-  /*
-  // Update delivery status via API - COMMENTED OUT BECAUSE API ENDPOINT DOESN'T EXIST
-  Future<void> _updateDeliveryStatus() async {
+  // Update delivery status via API
+  Future<void> _updateDeliveryStatus(String newStatus) async {
     if (_deliveryDetail == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1363,65 +1415,38 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           backgroundColor: Colors.red,
         ),
       );
-      setState(() {
-        _isUpdatingStatus = false;
-      });
       return;
     }
     
     try {
-      // Validate selected status before using it
-      if (!_statusOptions.contains(_selectedStatus)) {
-        setState(() {
-          _selectedStatus = _statusOptions.first; // Reset to a valid status
-          _isUpdatingStatus = false;
-        });
+      // If delivery is completed or cancelled, stop tracking
+      if (newStatus == 'Completed' || newStatus == 'Cancelled') {
+        locationService.stopBackgroundLocationService();
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid status selected. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Background location tracking stopped'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
       
-      // Convert UI status to API format
-      String apiStatus = _selectedStatus.toUpperCase().replaceAll(' ', '_');
+      // Update UI
+      setState(() {
+        _selectedStatus = newStatus;
+      });
       
-      // Create status update model
-      final statusUpdate = DeliveryStatusUpdate(
-        status: apiStatus,
-        notes: _noteController.text,
-        timestamp: DateTime.now().toIso8601String(),
+      // TODO: Implement API call to update status when endpoint is available
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Status updated to $newStatus'),
+          backgroundColor: SpatialDesignSystem.successColor,
+        ),
       );
       
-      // Call API
-      final updatedDelivery = await deliveryServices.updateDeliveryStatus(
-        _deliveryDetail!.id,
-        statusUpdate,
-      );
-      
-      if (updatedDelivery != null) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Status updated to $_selectedStatus'),
-            backgroundColor: SpatialDesignSystem.successColor,
-          ),
-        );
-        
-        // Refresh delivery details
-        _loadDeliveryDetails();
-      } else {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update delivery status'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     } catch (e) {
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1430,16 +1455,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      // Reset loading state
-      setState(() {
-        _isUpdatingStatus = false;
-      });
     }
   }
-  */
 
   Widget _buildBottomBar() {
+    final locationService = LocationService();
+    final isCurrentlyTracking = locationService.isTracking;
+    
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1447,8 +1469,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           children: [
             Expanded(
               child: SpatialButton(
-                text: "Start Navigation",
-                iconData: Icons.directions,
+                text: isCurrentlyTracking ? "Navigate (Tracking)" : "Start Navigation",
+                iconData: isCurrentlyTracking ? Icons.location_on : Icons.directions,
                 onPressed: () {
                   _navigateToRouteMap();
                 },
@@ -1527,6 +1549,34 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           };
           // Debug address information
           print("Using store address for search: ${store.address}");
+        }
+      }
+
+      // Start tracking service
+      final driverId = _deliveryDetail?.driver?.id ?? 20696; // Default driver ID if not available
+      final deliveryId = _deliveryDetail?.id ?? int.parse(widget.deliveryId);
+      final vehicleId = _deliveryDetail?.vehicle?.id ?? 1; // Default vehicle ID if not available
+      final statusId = _getStatusIdFromString(_selectedStatus);
+      
+      // Start background tracking service
+      final locationService = LocationService();
+      if (!locationService.isTracking) {
+        await locationService.startDeliveryTracking(
+          driverId: driverId,
+          deliveryId: deliveryId,
+          vehicleId: vehicleId,
+          statusId: statusId,
+        );
+        
+        // Show a message that tracking has started
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Background location tracking started'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
         }
       }
 
