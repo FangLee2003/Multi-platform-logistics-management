@@ -20,6 +20,7 @@ class DeliveryDetailResponse {
   final DriverDetailDTO? driver;
   final VehicleDetailDTO? vehicle;
   final List<OrderDetailDTO> orders;
+  final StoreDetailDTO? store;
   final String? createdAt;
   final String? updatedAt;
 
@@ -42,6 +43,7 @@ class DeliveryDetailResponse {
     this.driver,
     this.vehicle,
     required this.orders,
+    this.store,
     this.createdAt,
     this.updatedAt,
   });
@@ -78,6 +80,7 @@ class DeliveryDetailResponse {
       driver: json['driver'] != null ? DriverDetailDTO.fromJson(json['driver']) : null,
       vehicle: json['vehicle'] != null ? VehicleDetailDTO.fromJson(json['vehicle']) : null,
       orders: parseOrders(json['orders'] as List?),
+      store: json['store'] != null ? StoreDetailDTO.fromJson(json['store']) : null,
       createdAt: json['createdAt'],
       updatedAt: json['updatedAt'],
     );
@@ -170,6 +173,7 @@ class OrderDetailDTO {
   final String? recipientPhone;
   final double? totalAmount;
   final String? createdAt;
+  final StoreDetailDTO? store;
 
   OrderDetailDTO({
     required this.id,
@@ -181,6 +185,7 @@ class OrderDetailDTO {
     this.recipientPhone,
     this.totalAmount,
     this.createdAt,
+    this.store,
   });
 
   factory OrderDetailDTO.fromJson(Map<String, dynamic> json) {
@@ -204,6 +209,44 @@ class OrderDetailDTO {
       recipientPhone: json['recipientPhone'],
       totalAmount: parseTotalAmount(),
       createdAt: json['createdAt'],
+      store: json['store'] != null ? StoreDetailDTO.fromJson(json['store']) : null,
+    );
+  }
+}
+
+class StoreDetailDTO {
+  final int id;
+  final String? storeName;
+  final String? address;
+  final double? latitude;
+  final double? longitude;
+  final String? phone;
+  final String? email;
+  final bool? isActive;
+
+  StoreDetailDTO({
+    required this.id,
+    this.storeName,
+    this.address,
+    this.latitude,
+    this.longitude,
+    this.phone,
+    this.email,
+    this.isActive,
+  });
+
+  factory StoreDetailDTO.fromJson(Map<String, dynamic> json) {
+    return StoreDetailDTO(
+      id: json['id'] ?? 0,
+      storeName: json['storeName'],
+      address: json['address'],
+      latitude: json['latitude'] != null ? 
+          (json['latitude'] is double ? json['latitude'] : double.tryParse(json['latitude'].toString())) : null,
+      longitude: json['longitude'] != null ? 
+          (json['longitude'] is double ? json['longitude'] : double.tryParse(json['longitude'].toString())) : null,
+      phone: json['phone'],
+      email: json['email'],
+      isActive: json['isActive'],
     );
   }
 }

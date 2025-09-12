@@ -431,8 +431,15 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
             storeDto.setAddress(order.getStore().getAddress());
             storeDto.setPhone(order.getStore().getPhone());
             storeDto.setEmail(order.getStore().getEmail());
-            storeDto.setLatitude(order.getStore().getLatitude());
-            storeDto.setLongitude(order.getStore().getLongitude());
+            
+            // Convert BigDecimal to Double for latitude and longitude
+            if (order.getStore().getLatitude() != null) {
+                storeDto.setLatitude(order.getStore().getLatitude().doubleValue());
+            }
+            if (order.getStore().getLongitude() != null) {
+                storeDto.setLongitude(order.getStore().getLongitude().doubleValue());
+            }
+            
             storeDto.setNotes(order.getStore().getNotes());
             storeDto.setIsActive(order.getStore().getIsActive());
             storeDto.setCreatedAt(order.getStore().getCreatedAt());

@@ -10,7 +10,6 @@ import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_scr
 import 'package:ktc_logistics_driver/services/delivery_services.dart';
 import 'package:ktc_logistics_driver/services/orders_services.dart';
 import 'package:ktc_logistics_driver/services/googlemaps_services.dart';
-import 'package:ktc_logistics_driver/presentation/helpers/url_launcher_frave.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
@@ -570,112 +569,112 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
           const SizedBox(height: 16),
 
-          // Status Update
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Update Status",
-                  style: SpatialDesignSystem.subtitleMedium.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkPrimaryColor
-                        : SpatialDesignSystem.textPrimaryColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedStatus,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? Colors.black.withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.8),
-                  ),
-                  items: _statusOptions.map((status) {
-                    return DropdownMenuItem<String>(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _selectedStatus = newValue;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                SpatialTextField(
-                  controller: _noteController,
-                  label: "Notes",
-                  hint: "Add notes about status change",
-                  maxLines: 3,
-                  isGlass: true,
-                ),
-                const SizedBox(height: 16),
-                SpatialButton(
-                  text: "Update Status",
-                  onPressed: _isUpdatingStatus
-                      ? () {} // Empty function instead of null
-                      : () {
-                          // Ensure selected status is valid before proceeding
-                          if (_selectedStatus.isEmpty ||
-                              !_statusOptions.contains(_selectedStatus)) {
-                            // If status is invalid, reset to a valid one
-                            setState(() {
-                              _selectedStatus = _statusOptions.first;
-                            });
+          // // Status Update
+          // GlassCard(
+          //   padding: const EdgeInsets.all(16),
+          //   child: Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       Text(
+          //         "Update Status",
+          //         style: SpatialDesignSystem.subtitleMedium.copyWith(
+          //           color: isDark
+          //               ? SpatialDesignSystem.textDarkPrimaryColor
+          //               : SpatialDesignSystem.textPrimaryColor,
+          //         ),
+          //       ),
+          //       const SizedBox(height: 16),
+          //       DropdownButtonFormField<String>(
+          //         value: _selectedStatus,
+          //         decoration: InputDecoration(
+          //           labelText: 'Status',
+          //           border: OutlineInputBorder(
+          //             borderRadius: BorderRadius.circular(10),
+          //           ),
+          //           filled: true,
+          //           fillColor: isDark
+          //               ? Colors.black.withValues(alpha: 0.2)
+          //               : Colors.white.withValues(alpha: 0.8),
+          //         ),
+          //         items: _statusOptions.map((status) {
+          //           return DropdownMenuItem<String>(
+          //             value: status,
+          //             child: Text(status),
+          //           );
+          //         }).toList(),
+          //         onChanged: (newValue) {
+          //           if (newValue != null) {
+          //             setState(() {
+          //               _selectedStatus = newValue;
+          //             });
+          //           }
+          //         },
+          //       ),
+          //       const SizedBox(height: 16),
+          //       SpatialTextField(
+          //         controller: _noteController,
+          //         label: "Notes",
+          //         hint: "Add notes about status change",
+          //         maxLines: 3,
+          //         isGlass: true,
+          //       ),
+          //       const SizedBox(height: 16),
+          //       SpatialButton(
+          //         text: "Update Status",
+          //         onPressed: _isUpdatingStatus
+          //             ? () {} // Empty function instead of null
+          //             : () {
+          //                 // Ensure selected status is valid before proceeding
+          //                 if (_selectedStatus.isEmpty ||
+          //                     !_statusOptions.contains(_selectedStatus)) {
+          //                   // If status is invalid, reset to a valid one
+          //                   setState(() {
+          //                     _selectedStatus = _statusOptions.first;
+          //                   });
                             
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Invalid status selected, reset to default'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
+          //                   ScaffoldMessenger.of(context).showSnackBar(
+          //                     const SnackBar(
+          //                       content: Text('Invalid status selected, reset to default'),
+          //                       backgroundColor: Colors.red,
+          //                     ),
+          //                   );
+          //                   return;
+          //                 }
 
-                          setState(() {
-                            _isUpdatingStatus = true;
-                          });
+          //                 setState(() {
+          //                   _isUpdatingStatus = true;
+          //                 });
 
-                          // TODO: API endpoint for updateDeliveryStatus doesn't exist
-                          // Using a mock update instead of real API call
-                          Future.delayed(const Duration(seconds: 1)).then((_) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Mock status update to $_selectedStatus'),
-                                  backgroundColor:
-                                      SpatialDesignSystem.successColor,
-                                ),
-                              );
+          //                 // TODO: API endpoint for updateDeliveryStatus doesn't exist
+          //                 // Using a mock update instead of real API call
+          //                 Future.delayed(const Duration(seconds: 1)).then((_) {
+          //                   if (mounted) {
+          //                     ScaffoldMessenger.of(context).showSnackBar(
+          //                       SnackBar(
+          //                         content: Text(
+          //                             'Mock status update to $_selectedStatus'),
+          //                         backgroundColor:
+          //                             SpatialDesignSystem.successColor,
+          //                       ),
+          //                     );
 
-                              setState(() {
-                                _isUpdatingStatus = false;
-                              });
-                            }
-                          });
-                        },
-                  isGlass: true,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  height: 40,
-                  width: double.infinity,
-                ),
-              ],
-            ),
-          ),
+          //                     setState(() {
+          //                       _isUpdatingStatus = false;
+          //                     });
+          //                   }
+          //                 });
+          //               },
+          //         isGlass: true,
+          //         padding:
+          //             const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          //         height: 40,
+          //         width: double.infinity,
+          //       ),
+          //     ],
+          //   ),
+          // ),
 
-          const SizedBox(height: 16),
+          // const SizedBox(height: 16),
 
           // Timeline
           GlassCard(
@@ -1073,13 +1072,18 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     }
   }
 
-  // Get the destination area from the first order address
+  // Get the destination area from the store address
   String _getDestinationArea() {
     if (_deliveryDetail == null || _deliveryDetail!.orders.isEmpty) {
       return "Chưa có thông tin";
     }
 
-    // Lấy địa chỉ từ đơn hàng đầu tiên
+    // Ưu tiên sử dụng địa chỉ của store
+    if (_deliveryDetail!.store != null && _deliveryDetail!.store!.address != null) {
+      return _deliveryDetail!.store!.address!;
+    }
+
+    // Nếu không có thông tin store, sử dụng địa chỉ từ đơn hàng đầu tiên
     String? address = _deliveryDetail!.orders.first.deliveryAddress;
     if (address == null || address.isEmpty) {
       return "Chưa có thông tin địa chỉ";
@@ -1489,110 +1493,59 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         throw Exception('No delivery orders found');
       }
 
-      // Try to use the GoogleMapsService first for a better experience
-      try {
-        final googleMapsService = GoogleMapsService();
+      final googleMapsService = GoogleMapsService();
 
-        // Create location map for pickup
-        final pickupAddress = _deliveryDetail!.pickupAddress ?? '';
-        final pickupLocation = {
-          'latitude':
-              0.0, // Will use current location if coordinates not available
-          'longitude': 0.0,
-          'address': pickupAddress
-        };
+      // Get current position for navigation (ensures we start from actual current location)
+      final currentPositionData = await googleMapsService.getCurrentPositionData();
+      
+      // Default destination coordinates if not available from API
+      Map<String, dynamic> storeLocation = {
+        'latitude': 10.7756,
+        'longitude': 106.7019,
+        'address': 'Destination Address'
+      };
 
-        // Create location map for delivery (last order)
-        final lastOrderAddress =
-            _deliveryDetail!.orders.last.deliveryAddress ?? '';
-        final deliveryLocation = {
-          'latitude': 0.0,
-          'longitude': 0.0,
-          'address': lastOrderAddress
-        };
-
-        // Create transit points from other orders (if any)
-        List<Map<String, dynamic>> transitPoints = [];
-        if (_deliveryDetail!.orders.length > 1) {
-          for (var i = 0; i < _deliveryDetail!.orders.length - 1; i++) {
-            final order = _deliveryDetail!.orders[i];
-            if (order.deliveryAddress != null &&
-                order.deliveryAddress!.isNotEmpty) {
-              transitPoints.add({
-                'latitude': 0.0,
-                'longitude': 0.0,
-                'address': order.deliveryAddress!
-              });
-            }
-          }
+      // Get real coordinates from the first order in delivery detail
+      if (_deliveryDetail!.orders.isNotEmpty && _deliveryDetail!.orders.first.store != null) {
+        final store = _deliveryDetail!.orders.first.store!;
+        
+        if (store.latitude != null && store.longitude != null) {
+          // Ưu tiên sử dụng tọa độ của store nếu có
+          storeLocation = {
+            'latitude': store.latitude!,
+            'longitude': store.longitude!,
+            'address': store.address ?? 'Store Address'
+          };
+          // Debug address information
+          print("Using store coordinates: ${store.latitude}, ${store.longitude}");
+        } else if (store.address != null && store.address!.isNotEmpty) {
+          // Nếu không có tọa độ, sử dụng địa chỉ cho Google Maps tìm kiếm
+          storeLocation = {
+            'latitude': 0.0, // Google Maps sẽ tìm kiếm dựa trên địa chỉ
+            'longitude': 0.0,
+            'address': store.address!
+          };
+          // Debug address information
+          print("Using store address for search: ${store.address}");
         }
+      }
 
-        // Open Google Maps with route
-        final success = await googleMapsService.openGoogleMapsWithRoute(
-          context: context,
-          pickupLocation: pickupLocation,
-          deliveryLocation: deliveryLocation,
-          transitPoints: transitPoints,
+      // Open Google Maps with direct route from current location to destination
+      final result = await googleMapsService.openGoogleMapsWithRoute(
+        context: context,
+        pickupLocation: currentPositionData, // Use actual current position from device
+        transitPoints: [], // No transit points
+        deliveryLocation: storeLocation,
+      );
+
+      if (!result && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Failed to open Google Maps. Please make sure it is installed.'),
+            backgroundColor: Colors.red,
+          ),
         );
-
-        if (success) return;
-      } catch (e) {
-        debugPrint('Error using GoogleMapsService: $e');
-        // Fall back to simple URL launcher if GoogleMapsService fails
-      }
-
-      // Fallback: Use the simpler URL launcher method
-      // Get the pickup address (warehouse location)
-      String origin = _deliveryDetail!.pickupAddress ?? "Current Location";
-
-      // Get all delivery addresses from orders
-      List<String> deliveryAddresses = [];
-      for (var order in _deliveryDetail!.orders) {
-        if (order.deliveryAddress != null &&
-            order.deliveryAddress!.isNotEmpty) {
-          deliveryAddresses.add(order.deliveryAddress!);
-        }
-      }
-
-      if (deliveryAddresses.isEmpty) {
-        throw Exception('No valid delivery addresses found');
-      }
-
-      // If we have multiple delivery addresses, use the first as waypoint and the last as destination
-      if (deliveryAddresses.length > 1) {
-        final destination = deliveryAddresses.last;
-        final waypoints =
-            deliveryAddresses.sublist(0, deliveryAddresses.length - 1);
-
-        // Use our enhanced method to open Google Maps with waypoints
-        final success = await urlLauncherFrave.openMapWithWaypoints(
-          origin: origin,
-          destination: destination,
-          waypoints: waypoints,
-        );
-
-        if (!success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Failed to open Google Maps. Please make sure it is installed.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } else {
-        // For a single delivery address, just navigate directly to it
-        final success = await urlLauncherFrave.openMap(deliveryAddresses.first);
-
-        if (!success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Failed to open Google Maps. Please make sure it is installed.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
       }
     } catch (e) {
       if (mounted) {
