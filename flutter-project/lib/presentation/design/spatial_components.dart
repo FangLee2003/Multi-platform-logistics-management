@@ -310,26 +310,24 @@ class SpatialComponents {
           Container(
             color: Colors.black.withValues(alpha: 0.3),
             child: Center(
-              child: glassContainer(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(SpatialTheme.primaryBlue),
-                    ),
-                    if (loadingText != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        loadingText,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: SpatialTheme.textSecondary,
-                        ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(SpatialTheme.primaryBlue),
+                  ),
+                  if (loadingText != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      loadingText,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ),
