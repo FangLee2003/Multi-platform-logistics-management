@@ -11,6 +11,16 @@ export interface OrderSummary {
   orderStatus: string;
 }
 
+export interface PaginatedOrderSummaryResponse {
+  data: OrderSummary[];
+  pageNumber: number;
+  pageSize: number;
+  totalRecords: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 const api = axios.create({
   baseURL: "/api",
 });
@@ -48,6 +58,17 @@ export const orderApi = {
   getOrdersByUser: async (userId: number): Promise<OrderSummary[]> => {
     const { data } = await axios.get<OrderSummary[]>(
       `http://localhost:8080/api/orders/user/${userId}/summary`
+    );
+    return data;
+  },
+
+  getOrdersByUserPaginated: async (
+    userId: number,
+    page: number = 1,
+    size: number = 10
+  ): Promise<PaginatedOrderSummaryResponse> => {
+    const { data } = await axios.get<PaginatedOrderSummaryResponse>(
+      `http://localhost:8080/api/orders/user/${userId}/summary/paginated?page=${page}&size=${size}`
     );
     return data;
   },

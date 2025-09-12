@@ -1,7 +1,11 @@
-import { Row, Col, Form, Input, Button } from "antd";
+import { Row, Col, Form, Input, Button, Select, InputNumber } from "antd";
+import { Card } from "antd";
+import { CloseCircleOutlined } from "@ant-design/icons";
 import { Store } from "@/types/Store";
-import { useState } from "react";
-import AddressFormModal, { AddressData } from "./AddressFormModal";
+import { useState, useEffect } from "react";
+
+import { addressService, Province, District, Ward } from "@/services/addressService";
+import { getCoordinatesFromAddress } from "@/server/geocode.api";
 
 const { TextArea } = Input;
 
@@ -11,46 +15,328 @@ interface Props {
 
 export default function StepStoreInfo({ store }: Props) {
   const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
-  const [addressValue, setAddressValue] = useState<string>("");
   const form = Form.useFormInstance();
 
-  const handleAddressSelect = (addressData: AddressData) => {
-    setAddressValue(addressData.fullAddress || "");
-    form.setFieldsValue({ shipping_address: addressData.fullAddress });
-    setIsAddressModalVisible(false);
+  // States cho địa chỉ
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
+  // Khởi tạo state từ form nếu có dữ liệu, nếu không thì để rỗng
+  const [addressValue, setAddressValue] = useState<string>(() => form.getFieldValue("shipping_address") || "");
+  const [selectedProvince, setSelectedProvince] = useState<string>(() => form.getFieldValue("provinceCode") || "");
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(() => form.getFieldValue("districtCode") || "");
+  const [selectedWard, setSelectedWard] = useState<string>(() => form.getFieldValue("wardCode") || "");
+  const [streetAddress, setStreetAddress] = useState<string>(() => form.getFieldValue("streetAddress") || "");
+  // TODO: Uncomment khi cần dùng geocoding
+  const [coordinates, setCoordinates] = useState<{ latitude: number | null; longitude: number | null }>(() => ({
+    latitude: form.getFieldValue("latitude") ?? null,
+    longitude: form.getFieldValue("longitude") ?? null
+  })); // State cho tọa độ
+  const [isGeocodingLoading, setIsGeocodingLoading] = useState(false); // State cho loading geocoding
+
+  // Khi component mount, nếu form đã có dữ liệu thì khôi phục lại các state địa chỉ
+  useEffect(() => {
+    const shipping_address = form.getFieldValue("shipping_address") || "";
+    if (shipping_address && !addressValue) setAddressValue(shipping_address);
+    const provinceCode = form.getFieldValue("provinceCode") || "";
+    if (provinceCode && !selectedProvince) setSelectedProvince(provinceCode);
+    const districtCode = form.getFieldValue("districtCode") || "";
+    if (districtCode && !selectedDistrict) setSelectedDistrict(districtCode);
+    const wardCode = form.getFieldValue("wardCode") || "";
+    if (wardCode && !selectedWard) setSelectedWard(wardCode);
+    const street = form.getFieldValue("streetAddress") || "";
+    if (street && !streetAddress) setStreetAddress(street);
+    const lat = form.getFieldValue("latitude");
+    const lng = form.getFieldValue("longitude");
+    if ((lat || lng) && (!coordinates.latitude || !coordinates.longitude)) {
+      setCoordinates({ latitude: lat ?? null, longitude: lng ?? null });
+    }
+  }, []);
+
+  // Hàm getCoordinatesFromAddress đã được tách ra thành API riêng ở server/geocode.api.ts
+  // Sử dụng: import { getCoordinatesFromAddress } from "@/server/geocode.api";
+
+  // Load danh sách tỉnh/thành phố khi component mount
+  useEffect(() => {
+    const loadProvinces = async () => {
+      try {
+        const provincesData = await addressService.getProvinces();
+        setProvinces(provincesData);
+      } catch (error) {
+        console.error("Error loading provinces:", error);
+      }
+    };
+    loadProvinces();
+  }, []);
+
+  // Load danh sách quận/huyện khi chọn tỉnh
+  const handleProvinceChange = async (value: string) => {
+    setSelectedProvince(value);
+    setSelectedDistrict("");
+    setSelectedWard("");
+    setDistricts([]);
+    setWards([]);
+    
+    // Cập nhật địa chỉ ngay khi chọn tỉnh
+    await updateAddressDisplay(value, "", "", streetAddress);
+    
+    try {
+      const districtsData = await addressService.getDistricts(value);
+      setDistricts(districtsData);
+    } catch (error) {
+      console.error("Error loading districts:", error);
+    }
   };
+
+  // Load danh sách xã/phường khi chọn quận
+  const handleDistrictChange = async (value: string) => {
+    setSelectedDistrict(value);
+    setSelectedWard("");
+    setWards([]);
+    
+    // Cập nhật địa chỉ khi chọn huyện
+    await updateAddressDisplay(selectedProvince, value, "", streetAddress);
+    
+    try {
+      const wardsData = await addressService.getWards(value);
+      setWards(wardsData);
+    } catch (error) {
+      console.error("Error loading wards:", error);
+    }
+  };
+
+  // Xử lý khi chọn xã/phường
+  const handleWardChange = async (value: string) => {
+    setSelectedWard(value);
+    await updateAddressDisplay(selectedProvince, selectedDistrict, value, streetAddress);
+  };
+
+  // Xử lý khi nhập số nhà/đường
+  const handleStreetAddressChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setStreetAddress(value);
+    await updateAddressDisplay(selectedProvince, selectedDistrict, selectedWard, value);
+  };
+
+  // Cập nhật hiển thị địa chỉ đầy đủ
+  const updateAddressDisplay = async (provinceCode: string, districtCode: string, wardCode: string, street: string) => {
+    console.log('updateAddressDisplay called with:', { provinceCode, districtCode, wardCode, street });
+    
+    const provinceName = provinces.find(p => p.code === provinceCode)?.name || "";
+    const districtName = districts.find(d => d.code === districtCode)?.name || "";
+    const wardName = wards.find(w => w.code === wardCode)?.name || "";
+    
+    console.log('Found names:', { provinceName, districtName, wardName });
+    
+    // Địa chỉ lưu backend chỉ gồm số nhà, xã/phường, quận/huyện
+    let addressParts = [];
+    if (street.trim()) {
+      addressParts.push(street.trim());
+    }
+    if (wardName) {
+      addressParts.push(wardName);
+    }
+    if (districtName) {
+      addressParts.push(districtName);
+    }
+    const addressForBackend = addressParts.join(", ");
+
+    // Địa chỉ hiển thị cho user vẫn gồm cả tỉnh/thành phố
+    let displayParts = [...addressParts];
+    if (provinceName) {
+      displayParts.push(provinceName);
+    }
+    const displayAddress = displayParts.join(", ");
+
+    setAddressValue(displayAddress);
+
+    // Chỉ lấy tọa độ khi có đủ thông tin: ít nhất phải có tỉnh và quận
+    if (provinceName && districtName && displayAddress.trim()) {
+      // Luôn nối tỉnh/thành phố và 'Việt Nam' vào địa chỉ để tăng độ chính xác
+      let geocodeAddress = displayAddress;
+      if (!displayAddress.toLowerCase().includes(provinceName.toLowerCase())) {
+        geocodeAddress += `, ${provinceName}`;
+      }
+      if (!displayAddress.toLowerCase().includes('việt nam')) {
+        geocodeAddress += ', Việt Nam';
+      }
+      console.log('Getting coordinates for:', geocodeAddress);
+      try {
+        const coords = await getCoordinatesFromAddress(geocodeAddress);
+        setCoordinates(coords);
+        console.log('Coordinates received:', coords);
+        // Cập nhật form với cả địa chỉ và tọa độ
+        const formValues = {
+          shipping_address: displayAddress, // Hiển thị cho user
+          city: provinceName, // Lưu tỉnh/thành phố riêng biệt cho backend
+          address: addressForBackend, // Lưu địa chỉ chỉ gồm 3 trường
+          latitude: coords.latitude, // Thêm latitude
+          longitude: coords.longitude, // Thêm longitude
+        };
+        form.setFieldsValue(formValues);
+        console.log('Form values set with coordinates:', formValues);
+        // Kiểm tra lại form values sau khi set
+        setTimeout(() => {
+          const currentFormValues = form.getFieldsValue();
+          console.log('Current form values after set:', currentFormValues);
+        }, 100);
+      } catch (error) {
+        console.error('Error in geocoding process:', error);
+        setCoordinates({ latitude: null, longitude: null });
+      }
+    } else {
+      // Reset tọa độ nếu không có đủ thông tin
+      console.log('Not enough address info for geocoding:', { provinceName, districtName, displayAddress });
+      setCoordinates({ latitude: null, longitude: null });
+      if (addressForBackend && provinceName) {
+        form.setFieldsValue({
+          shipping_address: displayAddress,
+          city: provinceName,
+          address: addressForBackend,
+          latitude: null,
+          longitude: null,
+        });
+      }
+    }
+  };
+
+  // Hàm xóa toàn bộ địa chỉ và reset form
+  const handleClearAddress = () => {
+    setSelectedProvince("");
+    setSelectedDistrict("");
+    setSelectedWard("");
+    setStreetAddress("");
+    setAddressValue("");
+    setCoordinates({ latitude: null, longitude: null }); // Reset tọa độ
+    setIsGeocodingLoading(false); // Reset loading state
+    setDistricts([]);
+    setWards([]);
+    
+    form.setFieldsValue({
+      shipping_address: "",
+      city: "",
+      address: "",
+      latitude: null,
+      longitude: null,
+    });
+  };
+
+  // Lấy tên tỉnh/thành phố từ mã
+  const getProvinceName = (provinceCode: string) => {
+    return provinces.find((p) => p.code === provinceCode)?.name || "";
+  };
+
+
+  // Hàm submit tạo địa chỉ mới (ví dụ khi nhấn nút Lưu)
+  // TODO: Uncomment khi cần dùng coordinates
+  const handleCreateAddress = async () => {
+    const city = getProvinceName(selectedProvince);
+    const address = addressValue;
+    
+    const payload = {
+      city,
+      address,
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      // ... các trường khác như contactName, contactPhone, ...
+    };
+    
+    console.log('Address payload with coordinates:', payload);
+    // Gửi payload này tới API backend
+    // await fetch('/api/address', { method: 'POST', body: JSON.stringify(payload) })
+  };
+
+
+  // Hàm debug để kiểm tra form values hiện tại
+  // TODO: Uncomment khi cần debug
+  const handleDebugFormValues = () => {
+    const currentValues = form.getFieldsValue();
+    console.log('=== DEBUG FORM VALUES ===');
+    console.log('Current form values:', currentValues);
+    console.log('Current coordinates state:', coordinates);
+    console.log('Current addressValue state:', addressValue);
+    console.log('Form field names:', form.getFieldsError());
+    console.log('========================');
+  };
+
+  // Hàm test geocoding manual
+  const handleTestGeocoding = async () => {
+    if (!addressValue.trim()) {
+      console.log('No address to geocode');
+      return;
+    }
+    
+    console.log('=== MANUAL GEOCODING TEST ===');
+    console.log('Testing geocoding for:', addressValue);
+    
+    const coords = await getCoordinatesFromAddress(addressValue);
+    console.log('Manual geocoding result:', coords);
+    
+    setCoordinates(coords);
+    form.setFieldsValue({
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    });
+    
+    console.log('Manual coordinates set to form');
+    console.log('=============================');
+  };
+
+  // Hàm test với coordinates giả để kiểm tra backend
+  const handleTestWithFakeCoords = () => {
+    console.log('=== TESTING WITH FAKE COORDINATES ===');
+    const fakeCoords = {
+      latitude: 16.047079, // Đà Nẵng latitude
+      longitude: 108.206230 // Đà Nẵng longitude
+    };
+    
+    setCoordinates(fakeCoords);
+    form.setFieldsValue({
+      latitude: fakeCoords.latitude,
+      longitude: fakeCoords.longitude,
+    });
+    
+    console.log('Fake coordinates set:', fakeCoords);
+    
+    // Check form values sau khi set
+    setTimeout(() => {
+      const currentValues = form.getFieldsValue();
+      console.log('Form values after setting fake coords:', currentValues);
+    }, 100);
+  };
+
 
   return (
     <>
-      <Row gutter={[16, 16]}>
-        {/* Cột trái: Địa chỉ cửa hàng và giao hàng */}
-        <Col xs={24} md={12}>
+      {/* Hidden fields for backend */}
+      <Form.Item name="city" style={{ display: 'none' }}>
+        <Input />
+      </Form.Item>
+      <Form.Item name="address" style={{ display: 'none' }}>
+        <Input />
+      </Form.Item>
+      <Form.Item name="latitude" style={{ display: 'none' }}>
+        <InputNumber style={{ width: '100%' }} />
+      </Form.Item>
+      <Form.Item name="longitude" style={{ display: 'none' }}>
+        <InputNumber style={{ width: '100%' }} />
+      </Form.Item>
+      
+      <Row gutter={[24, 16]}>
+        {/* Phần thông tin cửa hàng - Full width */}
+        <Col xs={24}>
           <Form.Item label="Địa chỉ cửa hàng">
             <Input
               value={store?.address || "Đang tải..."}
               disabled
               placeholder="Địa chỉ cửa hàng"
-            />
-          </Form.Item>
-          <Form.Item
-            name="shipping_address"
-            label="Địa chỉ giao hàng"
-            rules={[
-              { required: true, message: "Vui lòng nhập địa chỉ giao hàng!" },
-            ]}
-          >
-            <Input
-              placeholder="Nhấp để chọn địa chỉ giao hàng"
-              value={addressValue}
-              onClick={() => setIsAddressModalVisible(true)}
-              readOnly
-              style={{ cursor: "pointer" }}
+              style={{ backgroundColor: '#f5f5f5' }}
             />
           </Form.Item>
         </Col>
 
-        {/* Cột phải: Thông tin người nhận */}
-        <Col xs={24} md={12}>
+        {/* Phần thông tin người nhận - 2 cột */}
+        <Col xs={24} lg={12}>
           <Form.Item
             name="receiver_name"
             label="Tên người nhận"
@@ -60,6 +346,8 @@ export default function StepStoreInfo({ store }: Props) {
           >
             <Input placeholder="Nhập tên người nhận" />
           </Form.Item>
+        </Col>
+        <Col xs={24} lg={12}>
           <Form.Item
             name="receiver_phone"
             label="Số điện thoại"
@@ -73,6 +361,8 @@ export default function StepStoreInfo({ store }: Props) {
           >
             <Input placeholder="Nhập số điện thoại" />
           </Form.Item>
+        </Col>
+        <Col xs={24} lg={12}>
           <Form.Item
             name="receiver_email"
             label="Email người nhận"
@@ -81,28 +371,206 @@ export default function StepStoreInfo({ store }: Props) {
             <Input placeholder="Nhập email (không bắt buộc)" />
           </Form.Item>
         </Col>
+        <Col xs={24} lg={12}>
+          <Form.Item
+            name="addressType"
+            label="Loại địa chỉ giao hàng"
+            initialValue="DELIVERY"
+            rules={[{ required: true, message: "Vui lòng chọn loại địa chỉ!" }]}
+          >
+            <Select placeholder="Chọn loại địa chỉ">
+              <Select.Option value="HOME">Nhà riêng</Select.Option>
+              <Select.Option value="STORE">Cửa hàng</Select.Option>
+              <Select.Option value="OFFICE">Văn phòng</Select.Option>
+            </Select>
+          </Form.Item>
+        </Col>
 
-        {/* Phần mô tả và ghi chú full width */}
+        {/* Phần địa chỉ giao hàng - Full width */}
         <Col xs={24}>
+          <Form.Item
+            label="Địa chỉ giao hàng"
+            required
+          >
+            <Input
+              placeholder="Địa chỉ sẽ hiển thị sau khi chọn tỉnh/huyện/xã"
+              value={addressValue}
+              readOnly
+              style={{ 
+                marginBottom: 16, 
+                borderRadius: 6,
+                backgroundColor: addressValue ? '#f5f5f5' : '#fff',
+                cursor: 'default'
+              }}
+              suffix={
+                addressValue ? (
+                  <CloseCircleOutlined 
+                    onClick={handleClearAddress}
+                    style={{ cursor: 'pointer', color: '#999' }}
+                  />
+                ) : null
+              }
+            />
+            {/* Hiển thị tọa độ nếu có */}
+            {isGeocodingLoading && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#1890ff', 
+                marginBottom: 12,
+                padding: '4px 8px',
+                background: '#f0f8ff',
+                borderRadius: 4,
+                border: '1px solid #91d5ff'
+              }}>
+                🔄 Đang lấy tọa độ...
+              </div>
+            )}
+            {!isGeocodingLoading && coordinates.latitude && coordinates.longitude && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#52c41a', 
+                marginBottom: 12,
+                padding: '4px 8px',
+                background: '#f6ffed',
+                borderRadius: 4,
+                border: '1px solid #b7eb8f'
+              }}>
+                📍 Tọa độ: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
+              </div>
+            )}
+            {!isGeocodingLoading && addressValue && !coordinates.latitude && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#ff4d4f', 
+                marginBottom: 12,
+                padding: '4px 8px',
+                background: '#fff2f0',
+                borderRadius: 4,
+                border: '1px solid #ffccc7'
+              }}>
+                ⚠️ Không tìm thấy tọa độ cho địa chỉ này
+                <Button 
+                  size="small" 
+                  type="link" 
+                  onClick={handleTestGeocoding}
+                  style={{ padding: '0 4px', height: 'auto', fontSize: '11px' }}
+                >
+                  Thử lại
+                </Button>
+              </div>
+            )}
+
+            {/*
+            {process.env.NODE_ENV === 'development' && (
+              <div style={{ marginBottom: 12, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <Button size="small" onClick={handleDebugFormValues}>
+                  Debug Form Values
+                </Button>
+                <Button size="small" onClick={handleTestGeocoding} disabled={!addressValue}>
+                  Test Geocoding
+                </Button>
+                <Button size="small" onClick={handleTestWithFakeCoords} type="primary">
+                  Test với Fake Coords
+                </Button>
+              </div>
+            )}
+            */}
+            <Row gutter={[12, 12]}>
+              <Col xs={24} sm={12} md={6}>
+                <Select 
+                  placeholder="Tỉnh/Thành phố" 
+                  style={{ width: '100%' }}
+                  value={selectedProvince || undefined}
+                  onChange={handleProvinceChange}
+                  showSearch
+                  filterOption={(input, option) =>
+                    option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+                  }
+                >
+                  {provinces.map((province) => (
+                    <Select.Option key={province.code} value={province.code} label={province.name}>
+                      {province.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Select 
+                  placeholder="Huyện/Quận" 
+                  style={{ width: '100%' }}
+                  value={selectedDistrict || undefined}
+                  onChange={handleDistrictChange}
+                  disabled={!selectedProvince}
+                  showSearch
+                  filterOption={(input, option) =>
+                    option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+                  }
+                >
+                  {districts.map((district) => (
+                    <Select.Option key={district.code} value={district.code} label={district.name}>
+                      {district.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Select 
+                  placeholder="Xã/Phường" 
+                  style={{ width: '100%' }}
+                  value={selectedWard || undefined}
+                  onChange={handleWardChange}
+                  disabled={!selectedDistrict}
+                  showSearch
+                  filterOption={(input, option) =>
+                    option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+                  }
+                >
+                  {wards.map((ward) => (
+                    <Select.Option key={ward.code} value={ward.code} label={ward.name}>
+                      {ward.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Input 
+                  placeholder="Đường/Thôn/Xóm/Số nhà" 
+                  style={{ width: '100%' }}
+                  value={streetAddress}
+                  onChange={handleStreetAddressChange}
+                />
+              </Col>
+            </Row>
+          </Form.Item>
+        </Col>
+
+        {/* Phần mô tả và ghi chú - 2 cột trên desktop */}
+        <Col xs={24} lg={12}>
           <Form.Item name="description" label="Mô tả đơn hàng">
             <Input.TextArea
-              rows={3}
+              rows={4}
               placeholder="Mô tả chi tiết (không bắt buộc)"
             />
           </Form.Item>
         </Col>
-        <Col xs={24}>
+        <Col xs={24} lg={12}>
           <Form.Item name="notes" label="Ghi chú">
-            <Input.TextArea rows={3} placeholder="Ghi chú bổ sung (nếu có)" />
+            <Input.TextArea 
+              rows={4} 
+              placeholder="Ghi chú bổ sung (nếu có)" 
+            />
           </Form.Item>
         </Col>
       </Row>
 
-      <AddressFormModal
+      {/* <AddressFormModal
         visible={isAddressModalVisible}
         onCancel={() => setIsAddressModalVisible(false)}
         onOk={handleAddressSelect}
-      />
+        contactName={form.getFieldValue("receiver_name") || ""}
+        contactPhone={form.getFieldValue("receiver_phone") || ""}
+        contactEmail={form.getFieldValue("receiver_email") || ""}
+      /> */}
     </>
   );
 }

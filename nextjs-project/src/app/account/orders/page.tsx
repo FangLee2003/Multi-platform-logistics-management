@@ -13,8 +13,12 @@ import {
   Tooltip,
   Modal,
   Timeline,
+  message,
 } from "antd";
-import { orderApi } from "@/services/orderService";
+import {
+  orderApi,
+  type PaginatedOrderSummaryResponse,
+} from "@/services/orderService";
 import { OrderFilters } from "./components/OrderFilters";
 import type { Dayjs } from "dayjs";
 import {
@@ -49,10 +53,11 @@ interface Order {
 const getStatusId = (status: string): number => {
   const statusMap: { [key: string]: number } = {
     PENDING: 1,
-    RECEIVED: 2,
-    IN_PROGRESS: 3,
-    COMPLETED: 4,
-    CANCELLED: 5,
+    PROCESSING: 2,
+    SHIPPED: 3,
+    DELIVERED: 4,
+    COMPLETED: 5,
+    CANCELLED: 6,
   };
   return statusMap[status] || 1;
 };
@@ -60,8 +65,9 @@ const getStatusId = (status: string): number => {
 const getStatusColor = (status: string): string => {
   const colorMap: { [key: string]: string } = {
     PENDING: "default",
-    RECEIVED: "processing",
-    IN_PROGRESS: "warning",
+    PROCESSING: "processing",
+    SHIPPED: "warning",
+    DELIVERED: "success",
     COMPLETED: "success",
     CANCELLED: "error",
   };
@@ -70,6 +76,7 @@ const getStatusColor = (status: string): string => {
 
 export default function OrdersPage() {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -80,56 +87,81 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<number[]>([]);
   const [isTrackingModalVisible, setIsTrackingModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
+
+  const fetchOrders = async (page: number = 1, size: number = 10) => {
+    setLoading(true);
+    try {
+      // Get user from localStorage
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        console.error("User not found in localStorage");
+        return;
+      }
+      const user = JSON.parse(userStr);
+      const response = await orderApi.getOrdersByUserPaginated(
+        user.id,
+        page,
+        size
+      );
+
+      const formattedOrders: Order[] = response.data.map((order, index) => ({
+        id: `ORD${user.id}${String(order.orderId).padStart(5, "0")}-${index}`,
+        created_at: order.createdAt || new Date().toISOString(),
+        store_name: `Store ${order.storeId || "Unknown"}`,
+        shipping_address: order.deliveryAddress || "No address provided",
+        total_items: order.totalItems || 0,
+        cod_amount: 0, // Not available in the API
+        shipping_fee: order.deliveryFee || 0,
+        status: {
+          id: getStatusId(order.orderStatus || "PENDING"),
+          name: order.orderStatus || "PENDING",
+          color: getStatusColor(order.orderStatus || "PENDING"),
+        },
+        tracking_updates: [
+          {
+            time: order.createdAt || new Date().toISOString(),
+            status: order.orderStatus || "PENDING",
+            description: `Order ${(
+              order.orderStatus || "PENDING"
+            ).toLowerCase()}`,
+          },
+        ],
+      }));
+
+      setOrders(formattedOrders);
+      setTotalRecords(response.totalRecords);
+      setCurrentPage(response.pageNumber);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        // Get user from localStorage
-        const userStr = localStorage.getItem("user");
-        if (!userStr) {
-          console.error("User not found in localStorage");
-          return;
-        }
-        const user = JSON.parse(userStr);
-        const ordersData = await orderApi.getOrdersByUser(user.id);
-        const formattedOrders: Order[] = ordersData.map((order, index) => ({
-          id: `ORD${user.id}${String(order.orderId).padStart(5, "0")}-${index}`,
-          created_at: order.createdAt || new Date().toISOString(),
-          store_name: `Store ${order.storeId || "Unknown"}`,
-          shipping_address: order.deliveryAddress || "No address provided",
-          total_items: order.totalItems || 0,
-          cod_amount: 0, // Not available in the API
-          shipping_fee: order.deliveryFee || 0,
-          status: {
-            id: getStatusId(order.orderStatus || "PENDING"),
-            name: order.orderStatus || "PENDING",
-            color: getStatusColor(order.orderStatus || "PENDING"),
-          },
-          tracking_updates: [
-            {
-              time: order.createdAt || new Date().toISOString(),
-              status: order.orderStatus || "PENDING",
-              description: `Order ${(
-                order.orderStatus || "PENDING"
-              ).toLowerCase()}`,
-            },
-          ],
-        }));
-        setOrders(formattedOrders);
-      } catch (error) {
-        console.error("Failed to fetch orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, []);
+    fetchOrders(currentPage, pageSize);
+  }, [currentPage, pageSize]);
 
   const showTrackingModal = (order: Order) => {
     setSelectedOrder(order);
     setIsTrackingModalVisible(true);
+  };
+
+  const handleCopyOrderId = (orderId: string) => {
+    // Lấy mã đơn hàng không bao gồm index
+    const orderCode = orderId.split("-")[0];
+    navigator.clipboard
+      .writeText(orderCode)
+      .then(() => {
+        messageApi.success(`Đã sao chép mã đơn hàng: ${orderCode}`);
+      })
+      .catch(() => {
+        messageApi.error("Không thể sao chép mã đơn hàng");
+      });
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -145,7 +177,15 @@ export default function OrdersPage() {
       render: (text: string) => {
         // Chỉ hiển thị phần mã đơn hàng không bao gồm index
         const orderCode = text.split("-")[0];
-        return <a>{orderCode}</a>;
+        return (
+          <a
+            onClick={() => handleCopyOrderId(text)}
+            style={{ cursor: "pointer" }}
+            title="Click để sao chép mã đơn hàng"
+          >
+            {orderCode}
+          </a>
+        );
       },
     },
     {
@@ -217,87 +257,98 @@ export default function OrdersPage() {
   ];
 
   return (
-    <Card className="orders-page" style={{ margin: "24px" }}>
-      <div className="orders-header" style={{ marginBottom: "24px" }}>
-        <Row
-          justify="space-between"
-          align="middle"
-          style={{ marginBottom: 24 }}
-        >
-          <Col>
-            <Title level={2}>Quản lý đơn hàng</Title>
-          </Col>
-          <Col>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => router.push("/account/orders/new")}
-            >
-              Tạo đơn hàng
-            </Button>
-          </Col>
-        </Row>
+    <>
+      {contextHolder}
+      <Card className="orders-page" style={{ margin: "24px" }}>
+        <div className="orders-header" style={{ marginBottom: "24px" }}>
+          <Row
+            justify="space-between"
+            align="middle"
+            style={{ marginBottom: 24 }}
+          >
+            <Col>
+              <Title level={2}>Quản lý đơn hàng</Title>
+            </Col>
+            <Col>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => router.push("/account/orders/new")}
+              >
+                Tạo đơn hàng
+              </Button>
+            </Col>
+          </Row>
 
-        <OrderFilters
-          searchText={searchText}
-          dateRange={dateRange}
-          statusFilter={statusFilter}
-          onSearchChange={setSearchText}
-          onDateRangeChange={(dates) => setDateRange(dates)}
-          onStatusFilterChange={setStatusFilter}
+          <OrderFilters
+            searchText={searchText}
+            dateRange={dateRange}
+            statusFilter={statusFilter}
+            onSearchChange={setSearchText}
+            onDateRangeChange={(dates) => setDateRange(dates)}
+            onStatusFilterChange={setStatusFilter}
+          />
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={orders}
+          loading={loading}
+          rowKey="id"
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: totalRecords,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} của ${total} đơn hàng`,
+            position: ["bottomCenter"],
+            onChange: (page, size) => {
+              setCurrentPage(page);
+              setPageSize(size || 10);
+            },
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50"],
+          }}
         />
-      </div>
 
-      <Table
-        columns={columns}
-        dataSource={orders}
-        loading={loading}
-        rowKey="id"
-        pagination={{
-          total: orders.length,
-          pageSize: 10,
-          showTotal: (total) => `${total} đơn hàng`,
-          position: ["bottomCenter"],
-        }}
-      />
-
-      {/* Tracking Modal */}
-      <Modal
-        title={
-          <Space>
-            <HistoryOutlined />
-            <span>Lịch sử vận chuyển</span>
-          </Space>
-        }
-        open={isTrackingModalVisible}
-        onCancel={() => setIsTrackingModalVisible(false)}
-        footer={null}
-        width={600}
-      >
-        {selectedOrder && (
-          <>
-            <p>
-              <strong>Mã đơn hàng:</strong> {selectedOrder.id}
-            </p>
-            <Timeline
-              items={selectedOrder.tracking_updates.map((update) => ({
-                color: "blue",
-                children: (
-                  <>
-                    <p style={{ margin: 0 }}>
-                      <strong>{update.status}</strong>
-                    </p>
-                    <p style={{ margin: 0 }}>{update.description}</p>
-                    <p style={{ margin: 0, color: "#8c8c8c" }}>
-                      {new Date(update.time).toLocaleString("vi-VN")}
-                    </p>
-                  </>
-                ),
-              }))}
-            />
-          </>
-        )}
-      </Modal>
-    </Card>
+        {/* Tracking Modal */}
+        <Modal
+          title={
+            <Space>
+              <HistoryOutlined />
+              <span>Lịch sử vận chuyển</span>
+            </Space>
+          }
+          open={isTrackingModalVisible}
+          onCancel={() => setIsTrackingModalVisible(false)}
+          footer={null}
+          width={600}
+        >
+          {selectedOrder && (
+            <>
+              <p>
+                <strong>Mã đơn hàng:</strong> {selectedOrder.id}
+              </p>
+              <Timeline
+                items={selectedOrder.tracking_updates.map((update) => ({
+                  color: "blue",
+                  children: (
+                    <>
+                      <p style={{ margin: 0 }}>
+                        <strong>{update.status}</strong>
+                      </p>
+                      <p style={{ margin: 0 }}>{update.description}</p>
+                      <p style={{ margin: 0, color: "#8c8c8c" }}>
+                        {new Date(update.time).toLocaleString("vi-VN")}
+                      </p>
+                    </>
+                  ),
+                }))}
+              />
+            </>
+          )}
+        </Modal>
+      </Card>
+    </>
   );
 }

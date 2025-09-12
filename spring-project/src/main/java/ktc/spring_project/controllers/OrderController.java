@@ -3,6 +3,7 @@ package ktc.spring_project.controllers;
 import ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO;
 import ktc.spring_project.dtos.order.DeliveryOrderResponseDTO;
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
+import ktc.spring_project.dtos.order.PaginatedOrderSummaryResponseDto;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Vehicle;
@@ -313,6 +314,33 @@ public ResponseEntity<Order> putOrder(
     }
 
     /**
+     * Lấy thông tin tóm tắt của đơn hàng theo store ID với phân trang (10 items/page)
+     */
+    @GetMapping("/store/{storeId}/summary/paginated")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> getOrderSummariesByStorePaginated(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Page<OrderSummaryDTO> orderSummariesPage = orderService.getOrderSummariesByStoreIdPaginated(storeId, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = PaginatedOrderSummaryResponseDto.builder()
+                    .data(orderSummariesPage.getContent())
+                    .pageNumber(page)
+                    .pageSize(size)
+                    .totalRecords(orderSummariesPage.getTotalElements())
+                    .totalPages(orderSummariesPage.getTotalPages())
+                    .hasNext(orderSummariesPage.hasNext())
+                    .hasPrevious(orderSummariesPage.hasPrevious())
+                    .build();
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * Lấy thông tin tóm tắt của tất cả đơn hàng theo user ID
      * User ID sẽ được dùng để tìm các store mà user đó tạo
      * Sau đó lấy tất cả order của các store đó
@@ -325,6 +353,33 @@ public ResponseEntity<Order> putOrder(
                 return ResponseEntity.noContent().build();
             }
             return ResponseEntity.ok(orderSummaries);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Lấy thông tin tóm tắt của đơn hàng theo user ID với phân trang (10 items/page)
+     */
+    @GetMapping("/user/{userId}/summary/paginated")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> getOrderSummariesByUserPaginated(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Page<OrderSummaryDTO> orderSummariesPage = orderService.getOrderSummariesByUserIdPaginated(userId, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = PaginatedOrderSummaryResponseDto.builder()
+                    .data(orderSummariesPage.getContent())
+                    .pageNumber(page)
+                    .pageSize(size)
+                    .totalRecords(orderSummariesPage.getTotalElements())
+                    .totalPages(orderSummariesPage.getTotalPages())
+                    .hasNext(orderSummariesPage.hasNext())
+                    .hasPrevious(orderSummariesPage.hasPrevious())
+                    .build();
+            
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

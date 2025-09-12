@@ -14,11 +14,12 @@ interface OrderFiltersProps {
 }
 
 const orderStatuses = [
-  { id: 1, name: "Chờ xử lý", color: "default" },
-  { id: 2, name: "Đã tiếp nhận", color: "processing" },
-  { id: 3, name: "Đang giao hàng", color: "warning" },
-  { id: 4, name: "Đã giao hàng", color: "success" },
-  { id: 5, name: "Đã huỷ", color: "error" },
+  { id: 1, name: "Pending", color: "default" },
+  { id: 2, name: "Processing", color: "processing" },
+  { id: 3, name: "Shipped", color: "warning" },
+  { id: 4, name: "Delivered", color: "success" },
+  { id: 5, name: "Completed", color: "success" },
+  { id: 6, name: "Cancelled", color: "error" },
 ];
 
 export const OrderFilters = ({
