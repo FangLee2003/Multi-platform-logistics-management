@@ -7,6 +7,7 @@ import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_login_scr
 import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_forgot_password_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_check_email_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:ktc_logistics_driver/presentation/screens/environment/environment_selection_screen.dart';
 import 'package:ktc_logistics_driver/domain/usecases/usecases.dart';
 import 'package:ktc_logistics_driver/data/repositories/repository_implementations.dart'
     as mock_repo;
@@ -30,6 +31,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const OnboardingScreen());
       case '/onboarding':
         return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+      case '/environment':
+        return MaterialPageRoute(builder: (_) => const EnvironmentSelectionScreen());
       case '/login':
         return MaterialPageRoute(builder: (_) => const SpatialLoginScreen());
       case '/forgot-password':

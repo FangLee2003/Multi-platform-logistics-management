@@ -197,13 +197,14 @@ class DeliveryTypePieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1.3,
-      child: PieChart(
-        PieChartData(
-          sectionsSpace: 2,
-          centerSpaceRadius: 40,
-          sections: [
+    return Center(
+      child: AspectRatio(
+        aspectRatio: 1.0,
+        child: PieChart(
+          PieChartData(
+            sectionsSpace: 2,
+            centerSpaceRadius: 40,
+            sections: [
             PieChartSectionData(
               color: SpatialDesignSystem.primaryColor,
               value: 40,
@@ -253,6 +254,7 @@ class DeliveryTypePieChart extends StatelessWidget {
               titlePositionPercentageOffset: 0.55,
             ),
           ],
+        ),
         ),
       ),
     );

@@ -275,15 +275,15 @@ class _SpatialRegisterScreenState extends State<SpatialRegisterScreen> {
               children: [
                 Expanded(
                   child: SpatialComponents.spatialTextField(
-                    label: 'Tên',
-                    hint: 'Nhập tên của bạn',
+                    label: 'First Name',
+                    hint: 'Enter your first name',
                     controller: _nameController,
                     prefixIcon: FontAwesomeIcons.user,
                     enabled: !isLoading,
                     useDarkMode: true,
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Vui lòng nhập tên';
+                        return 'Please enter your first name';
                       }
                       return null;
                     },
@@ -292,15 +292,15 @@ class _SpatialRegisterScreenState extends State<SpatialRegisterScreen> {
                 const SizedBox(width: SpatialTheme.spaceMD),
                 Expanded(
                   child: SpatialComponents.spatialTextField(
-                    label: 'Họ',
-                    hint: 'Nhập họ của bạn',
+                    label: 'Last Name',
+                    hint: 'Enter your last name',
                     controller: _lastnameController,
                     prefixIcon: FontAwesomeIcons.user,
                     enabled: !isLoading,
                     useDarkMode: true,
                     validator: (value) {
                       if (value?.isEmpty ?? true) {
-                        return 'Vui lòng nhập họ';
+                        return 'Please enter your last name';
                       }
                       return null;
                     },
@@ -380,10 +380,10 @@ class _SpatialRegisterScreenState extends State<SpatialRegisterScreen> {
               ),
               validator: (value) {
                 if (value?.isEmpty ?? true) {
-                  return 'Vui lòng nhập mật khẩu';
+                  return 'Please enter your password';
                 }
                 if (value!.length < 6) {
-                  return 'Mật khẩu phải có ít nhất 6 ký tự';
+                  return 'Password must be at least 6 characters';
                 }
                 return null;
               },

@@ -12,8 +12,9 @@ import '../data/env/environment.dart';
 import '../data/local_secure/secure_storage.dart';
 import '../data/network/http_client.dart';
 import '../domain/models/tracking/driver_location.dart';
+import '../presentation/helpers/performance_monitor.dart';
 
-/// LocationService - Handles all driver location tracking functionality
+/// LocationService - Optimized for performance and battery efficiency
 /// Manages background tracking, location updates, and server communication
 class LocationService {
   // Singleton pattern
@@ -23,6 +24,7 @@ class LocationService {
   // Private constructor
   LocationService._internal() {
     _httpClient = HttpClient(baseUrl: baseUrl, secureStorage: secureStorage);
+    _initializeOptimizations();
   }
 
   // Dependencies
@@ -32,10 +34,22 @@ class LocationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // Tracking state
+  // Tracking state - optimized
   StreamSubscription<Position>? _positionStreamSubscription;
   Timer? _locationUpdateTimer;
+  Timer? _batchUploadTimer;
   bool _isTracking = false;
+  
+  // Performance optimizations
+  final List<DriverLocation> _locationBuffer = [];
+  Position? _lastKnownPosition;
+  DateTime? _lastUploadTime;
+  
+  // Configuration
+  static const int _maxBufferSize = 50;
+  static const Duration _batchUploadInterval = Duration(minutes: 2);
+  static const double _minimumDistanceFilter = 10.0; // meters
+  static const Duration _minimumTimeFilter = Duration(seconds: 30);
   
   // Key cho SharedPreferences để lưu thông tin tracking
   final String _lastTrackingTimeKey = 'last_tracking_time';
@@ -47,6 +61,84 @@ class LocationService {
   // Getters
   String get baseUrl => _env.apiBaseUrl;
   bool get isTracking => _isTracking;
+
+  /// Initialize performance optimizations
+  void _initializeOptimizations() {
+    // Start batch upload timer
+    _batchUploadTimer = Timer.periodic(_batchUploadInterval, (_) {
+      _uploadLocationBatch();
+    });
+  }
+
+  /// Upload buffered locations in batch for efficiency
+  Future<void> _uploadLocationBatch() async {
+    if (_locationBuffer.isEmpty) return;
+    
+    performanceMonitor.startTimer('location_batch_upload');
+    
+    try {
+      final locations = List<DriverLocation>.from(_locationBuffer);
+      _locationBuffer.clear();
+      
+      final token = await secureStorage.readToken();
+      final driverId = await secureStorage.readDriverId();
+      
+      if (token == null || driverId == null) return;
+      
+      final requestBody = {
+        'driverId': driverId,
+        'locations': locations.map((loc) => {
+          'latitude': loc.latitude,
+          'longitude': loc.longitude,
+          'timestamp': loc.timestamp,
+          'speed': loc.speed,
+          'heading': loc.heading,
+          'vehicleStatus': loc.vehicleStatus,
+        }).toList(),
+      };
+      
+      await _httpClient.post<bool>(
+        '/tracking/locations/batch',
+        body: requestBody,
+        timeout: const Duration(seconds: 10),
+      );
+      
+      _lastUploadTime = DateTime.now();
+      performanceMonitor.stopTimer('location_batch_upload');
+      
+    } catch (e) {
+      performanceMonitor.stopTimer('location_batch_upload');
+      debugPrint('Batch upload failed: $e');
+    }
+  }
+
+  /// Check if location should be filtered (too close/frequent)
+  bool _shouldFilterLocation(Position position) {
+    if (_lastKnownPosition == null) return false;
+    
+    final distance = Geolocator.distanceBetween(
+      _lastKnownPosition!.latitude,
+      _lastKnownPosition!.longitude,
+      position.latitude,
+      position.longitude,
+    );
+    
+    final timeDiff = DateTime.now().difference(
+      DateTime.fromMillisecondsSinceEpoch(_lastKnownPosition!.timestamp.millisecondsSinceEpoch)
+    );
+    
+    return distance < _minimumDistanceFilter && timeDiff < _minimumTimeFilter;
+  }
+
+  /// Add location to buffer for batch processing
+  void _bufferLocation(DriverLocation location) {
+    _locationBuffer.add(location);
+    
+    // Force upload if buffer is full
+    if (_locationBuffer.length >= _maxBufferSize) {
+      _uploadLocationBatch();
+    }
+  }
 
   /// Initialize the location service
   Future<void> initialize() async {

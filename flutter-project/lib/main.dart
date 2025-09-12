@@ -31,25 +31,48 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Tải token từ file bí mật
+  // Initialize core services in parallel for better performance
+  await _initializeApp();
+  
+  runApp(const App());
+}
+
+/// Initialize app services in parallel for better startup performance
+Future<void> _initializeApp() async {
+  final futures = <Future>[
+    _initializeMapbox(),
+    _initializeFirebase(),
+    setupDependencyInjection(),
+  ];
+  
+  // Wait for all core services
+  await Future.wait(futures, eagerError: false);
+  
+  // Initialize location service after dependency injection
+  await _initializeLocationService();
+}
+
+/// Initialize Mapbox with proper error handling
+Future<void> _initializeMapbox() async {
   try {
     final accessToken = await Secrets.getMapboxAccessToken();
     
     if (accessToken.isEmpty) {
       print('❌ Mapbox access token not found in secrets file!');
-    } else {
-      MapboxOptions.setAccessToken(accessToken);
-      print('🗺️ Mapbox initialized with private token: ${accessToken.substring(0, 12)}...');
-      
-      // Đảm bảo MapboxDirectionsService cũng sử dụng token này
-      mapbox.MapboxDirectionsService.setAccessToken(accessToken);
+      return;
     }
+    
+    MapboxOptions.setAccessToken(accessToken);
+    mapbox.MapboxDirectionsService.setAccessToken(accessToken);
+    print('🗺️ Mapbox initialized successfully');
   } catch (e) {
     print('❌ Failed to initialize Mapbox: $e');
   }
-  
+}
+
+/// Initialize Firebase with proper error handling
+Future<void> _initializeFirebase() async {
   try {
-    // Initialize Firebase
     print('🔥 Initializing Firebase...');
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     
@@ -60,31 +83,21 @@ void main() async {
     pushNotificationService.initNotification();
     
     print('✅ Firebase initialization completed');
-    
   } catch (e) {
     print('❌ Firebase initialization failed: $e');
-    // Continue without Firebase for now - you might want to handle this differently
   }
-  
-  // Setup dependency injection
-  await setupDependencyInjection();
-  
-  // Initialize the LocationService for background location tracking
+}
+
+/// Initialize location service with proper error handling
+Future<void> _initializeLocationService() async {
   try {
     print('📍 Initializing Location Service...');
     await LocationService().initialize();
+    
+    // Restore tracking service if needed
+    await locationService.restoreDeliveryTrackingIfNeeded();
     print('✅ Location Service initialized');
   } catch (e) {
     print('❌ Location Service initialization failed: $e');
   }
-  
-  // Khôi phục tracking service nếu có
-  try {
-    print('🚚 Checking for active driver tracking...');
-    await locationService.restoreDeliveryTrackingIfNeeded();
-  } catch (e) {
-    print('⚠️ Could not restore driver tracking: $e');
-  }
-  
-  runApp(const App());
 }

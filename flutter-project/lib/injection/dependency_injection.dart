@@ -28,62 +28,99 @@ final GetIt getIt = GetIt.instance;
 
 // Thiết lập dependency injection
 Future<void> setupDependencyInjection() async {
-  // Reset any existing registrations
-  await getIt.reset();
-
   print('🔧 Setting up Dependency Injection...');
 
-  // Environment
-  getIt.registerLazySingleton<Environment>(
-    () => Environment.getInstance(),
-  );
+  // Environment - singleton pattern
+  if (!getIt.isRegistered<Environment>()) {
+    getIt.registerLazySingleton<Environment>(
+      () => Environment.getInstance(),
+    );
+  }
 
-  // External Dependencies
-  getIt.registerLazySingleton<FlutterSecureStorage>(
-    () => const FlutterSecureStorage(),
-  );
+  // External Dependencies - optimize for reuse
+  if (!getIt.isRegistered<FlutterSecureStorage>()) {
+    getIt.registerLazySingleton<FlutterSecureStorage>(
+      () => const FlutterSecureStorage(
+        aOptions: AndroidOptions(
+          encryptedSharedPreferences: true,
+        ),
+        iOptions: IOSOptions(
+          accessibility: KeychainAccessibility.first_unlock_this_device,
+        ),
+      ),
+    );
+  }
   
-  getIt.registerLazySingleton<http.Client>(
-    () => http.Client(),
-  );
+  if (!getIt.isRegistered<http.Client>()) {
+    getIt.registerLazySingleton<http.Client>(
+      () => http.Client(),
+      dispose: (client) => client.close(), // Proper disposal
+    );
+  }
 
-  // Core Services (theo mẫu project tham khảo)
-  getIt.registerLazySingleton<PushNotificationService>(
-    () => PushNotificationService(),
-  );
-
-  getIt.registerLazySingleton<SocketService>(
-    () => SocketService(),
-  );
-
-  getIt.registerLazySingleton<MapBoxServices>(
-    () => MapBoxServices(),
-  );
-
-  // Domain Services (sử dụng Firebase trực tiếp theo mẫu project tham khảo)
-  getIt.registerLazySingleton<AuthServices>(
-    () => AuthServices(),
-  );
-
-  // Thay đổi cách đăng ký UserServices để tránh vòng lặp vô hạn
-  getIt.registerLazySingleton<UserServices>(
-    () => UserServices(),
-  );
+  // Core Services - lazy singletons for better memory management
+  _registerServices();
   
-  // Đăng ký các services mới
-  getIt.registerLazySingleton<DeliveryServices>(
-    () => DeliveryServices(),
-  );
+  // Blocs - factory pattern for proper lifecycle
+  _registerBlocs();
+
+  print('✅ Dependency Injection setup completed');
+}
+
+/// Register services with proper disposal
+void _registerServices() {
+  if (!getIt.isRegistered<PushNotificationService>()) {
+    getIt.registerLazySingleton<PushNotificationService>(
+      () => PushNotificationService(),
+    );
+  }
+
+  if (!getIt.isRegistered<SocketService>()) {
+    getIt.registerLazySingleton<SocketService>(
+      () => SocketService(),
+      dispose: (service) => service.disconnect(),
+    );
+  }
+
+  if (!getIt.isRegistered<MapBoxServices>()) {
+    getIt.registerLazySingleton<MapBoxServices>(
+      () => MapBoxServices(),
+    );
+  }
+
+  if (!getIt.isRegistered<AuthServices>()) {
+    getIt.registerLazySingleton<AuthServices>(
+      () => AuthServices(),
+    );
+  }
+
+  if (!getIt.isRegistered<UserServices>()) {
+    getIt.registerLazySingleton<UserServices>(
+      () => UserServices(),
+    );
+  }
   
-  getIt.registerLazySingleton<DriverServices>(
-    () => DriverServices(),
-  );
+  if (!getIt.isRegistered<DeliveryServices>()) {
+    getIt.registerLazySingleton<DeliveryServices>(
+      () => DeliveryServices(),
+    );
+  }
   
-  getIt.registerLazySingleton<OrdersServices>(
-    () => OrdersServices(),
-  );
+  if (!getIt.isRegistered<DriverServices>()) {
+    getIt.registerLazySingleton<DriverServices>(
+      () => DriverServices(),
+    );
+  }
   
-  // Đăng ký các Blocs
+  if (!getIt.isRegistered<OrdersServices>()) {
+    getIt.registerLazySingleton<OrdersServices>(
+      () => OrdersServices(),
+    );
+  }
+}
+
+/// Register BLoCs as factories for proper lifecycle management
+void _registerBlocs() {
   getIt.registerFactory<DriverBloc>(
     () => DriverBloc(driverServices: getIt<DriverServices>()),
   );
@@ -95,8 +132,6 @@ Future<void> setupDependencyInjection() async {
   getIt.registerFactory<OrdersBloc>(
     () => OrdersBloc(ordersServices: getIt<OrdersServices>()),
   );
-
-  print('✅ Dependency Injection setup completed');
 }
 
 // Service Getters

@@ -590,8 +590,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           if (orderDate != null) {
             final estimatedDelivery = orderDate.add(const Duration(hours: 24));
             deliveryTime =
-                DateFormat('MMM dd, yyyy | hh:mm a').format(estimatedDelivery) +
-                    " (Estimated)";
+                "${DateFormat('MMM dd, yyyy | hh:mm a').format(estimatedDelivery)} (Estimated)";
             debugPrint(
                 'Using orderDate to calculate delivery time: $deliveryTime');
           }

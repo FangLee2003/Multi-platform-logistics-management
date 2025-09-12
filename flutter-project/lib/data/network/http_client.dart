@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../local_secure/secure_storage.dart';
 
@@ -19,40 +20,108 @@ class ApiException implements Exception {
   }
 }
 
-/// HTTP client with authentication and error handling
+/// Cache entry for HTTP responses
+class CacheEntry {
+  final dynamic data;
+  final DateTime expiresAt;
+
+  CacheEntry({required this.data, required this.expiresAt});
+
+  bool get isExpired => DateTime.now().isAfter(expiresAt);
+}
+
+/// HTTP client with authentication, caching, and error handling
 class HttpClient {
   final String baseUrl;
   final SecureStorageFrave secureStorage;
   final http.Client _client;
+  
+  // Cache for GET requests (simple in-memory cache)
+  final Map<String, CacheEntry> _cache = {};
+  static const Duration _defaultCacheDuration = Duration(minutes: 5);
+  static const Duration _defaultTimeout = Duration(seconds: 30);
 
   HttpClient({
     required this.baseUrl,
     required this.secureStorage,
   }) : _client = http.Client();
 
-  /// Get authorization headers with token
+  /// Dispose resources
+  void dispose() {
+    _client.close();
+    _cache.clear();
+  }
+
+  /// Get authorization headers with token (cached)
+  String? _cachedToken;
+  DateTime? _tokenCacheTime;
+  static const Duration _tokenCacheDuration = Duration(minutes: 10);
+
   Future<Map<String, String>> _getAuthHeaders() async {
+    // Use cached token if available and not expired
+    if (_cachedToken != null && 
+        _tokenCacheTime != null && 
+        DateTime.now().difference(_tokenCacheTime!) < _tokenCacheDuration) {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_cachedToken',
+      };
+    }
+
     final token = await secureStorage.readToken();
     if (token == null) {
       throw ApiException('No authentication token available');
     }
+    
+    // Cache the token
+    _cachedToken = token;
+    _tokenCacheTime = DateTime.now();
+    
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
     };
   }
 
-  /// Generic GET request
+  /// Check cache for GET requests
+  T? _getFromCache<T>(String cacheKey) {
+    final entry = _cache[cacheKey];
+    if (entry != null && !entry.isExpired) {
+      return entry.data as T?;
+    }
+    return null;
+  }
+
+  /// Store in cache
+  void _setCache<T>(String cacheKey, T data, {Duration? duration}) {
+    _cache[cacheKey] = CacheEntry(
+      data: data,
+      expiresAt: DateTime.now().add(duration ?? _defaultCacheDuration),
+    );
+  }
+
+  /// Generic GET request with caching
   Future<T> get<T>(
     String endpoint, {
     Map<String, String>? queryParams,
     T Function(Map<String, dynamic> json)? fromJson,
     bool requiresAuth = true,
+    bool useCache = true,
+    Duration? cacheDuration,
+    Duration? timeout,
   }) async {
     var url = '$baseUrl$endpoint';
     
     if (queryParams != null && queryParams.isNotEmpty) {
       url += '?${queryParams.entries.map((e) => '${e.key}=${e.value}').join('&')}';
+    }
+
+    // Check cache first for GET requests
+    if (useCache) {
+      final cached = _getFromCache<T>(url);
+      if (cached != null) {
+        return cached;
+      }
     }
 
     final headers = requiresAuth ? await _getAuthHeaders() : {'Content-Type': 'application/json'};
@@ -61,9 +130,18 @@ class HttpClient {
       final response = await _client.get(
         Uri.parse(url),
         headers: headers,
-      );
+      ).timeout(timeout ?? _defaultTimeout);
       
-      return _handleResponse<T>(response, fromJson: fromJson);
+      final result = _handleResponse<T>(response, fromJson: fromJson);
+      
+      // Cache successful GET responses
+      if (useCache && response.statusCode >= 200 && response.statusCode < 300) {
+        _setCache(url, result, duration: cacheDuration);
+      }
+      
+      return result;
+    } on TimeoutException {
+      throw ApiException('Request timeout');
     } on SocketException {
       throw ApiException('No internet connection');
     } catch (e) {
@@ -77,6 +155,7 @@ class HttpClient {
     dynamic body,
     T Function(Map<String, dynamic> json)? fromJson,
     bool requiresAuth = true,
+    Duration? timeout,
   }) async {
     final url = '$baseUrl$endpoint';
     final headers = requiresAuth ? await _getAuthHeaders() : {'Content-Type': 'application/json'};
@@ -86,9 +165,11 @@ class HttpClient {
         Uri.parse(url),
         headers: headers,
         body: body != null ? jsonEncode(body) : null,
-      );
+      ).timeout(timeout ?? _defaultTimeout);
       
       return _handleResponse<T>(response, fromJson: fromJson);
+    } on TimeoutException {
+      throw ApiException('Request timeout');
     } on SocketException {
       throw ApiException('No internet connection');
     } catch (e) {

@@ -15,7 +15,7 @@ import 'package:timeline_tile/timeline_tile.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
 
-// Tab chứa dữ liệu cấu hình
+// Tab containing configuration data
 class DeliveryTab {
   final String text;
   final Widget Function() contentBuilder;
@@ -39,15 +39,15 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late List<DeliveryTab> _tabs;
-  String _selectedStatus = 'Assigned'; // Trạng thái mặc định
+  String _selectedStatus = 'Assigned'; // Default status
   final _noteController = TextEditingController();
-  bool _isUpdatingStatus = false;
+  final bool _isUpdatingStatus = false;
   bool _isLoading = true;
   String _errorMessage = '';
 
   DeliveryDetailResponse? _deliveryDetail;
 
-  // Danh sách các trạng thái có thể có của một chuyến giao hàng
+  // List of possible statuses for a delivery
   final List<String> _statusOptions = [
     'Assigned',
     'Started',
@@ -60,7 +60,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   void initState() {
     super.initState();
 
-    // Khởi tạo danh sách tab một lần duy nhất
+    // Initialize tab list once
     _tabs = [
       DeliveryTab(text: "Overview", contentBuilder: _buildOverviewTab),
       DeliveryTab(text: "Orders", contentBuilder: _buildOrdersTab),
@@ -76,7 +76,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       _selectedStatus = _statusOptions.first;
     }
 
-    // Lấy dữ liệu chi tiết của chuyến giao hàng từ API
+    // Get detailed data of the delivery from API
     _loadDeliveryDetails();
   }
 
@@ -86,30 +86,30 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       _errorMessage = '';
     });
 
-    // Khai báo biến bên ngoài khối try để có thể truy cập từ cả try và catch
+    // Declare variable outside try block to access from both try and catch
     int? deliveryId;
     String deliveryIdStr = widget.deliveryId;
 
     try {
-      // Kiểm tra nếu ID là số lớn (như 85797) thì dùng trực tiếp
+      // Check if ID is a large number (like 85797) then use directly
       if (int.tryParse(deliveryIdStr) != null &&
           int.parse(deliveryIdStr) > 10000) {
         deliveryId = int.parse(deliveryIdStr);
         debugPrint('Using numeric ID directly: $deliveryId');
       }
-      // Nếu không phải số lớn, thử xử lý định dạng "DEL-26009"
+      // If not a large number, try to handle "DEL-26009" format
       else if (deliveryIdStr.contains('-')) {
-        // Tách lấy phần số sau dấu gạch ngang
+        // Extract the number after the dash
         final parts = deliveryIdStr.split('-');
         if (parts.length > 1 && int.tryParse(parts[1]) != null) {
-          deliveryId = int.parse(parts[1]); // Lấy "26009" từ "DEL-26009"
+          deliveryId = int.parse(parts[1]); // Get "26009" from "DEL-26009"
           debugPrint('Extracted numeric ID from format: $deliveryId');
         } else {
           throw FormatException(
-              'Không thể phân tích mã giao hàng: $deliveryIdStr');
+              'Cannot parse delivery code: $deliveryIdStr');
         }
       } else {
-        // Nếu không có dấu gạch ngang, thử parse trực tiếp
+        // If no dash, try to parse directly
         deliveryId = int.parse(deliveryIdStr);
         debugPrint('Parsed ID as number: $deliveryId');
       }
@@ -122,7 +122,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           _deliveryDetail = detail;
           _isLoading = false;
 
-          // Cập nhật trạng thái từ dữ liệu API
+          // Update status from API data
           if (detail.status != null) {
             _selectedStatus = _mapApiStatusToUiStatus(detail.status!);
             // Ensure the selected status is in the options list
@@ -134,18 +134,18 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Không thể tải dữ liệu chi tiết đơn hàng $deliveryId';
+          _errorMessage = 'Unable to load order details for delivery $deliveryId';
         });
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Lỗi: $e';
+        _errorMessage = 'Error: $e';
       });
     }
   }
 
-  // Chuyển đổi trạng thái từ API sang trạng thái hiển thị UI
+  // Convert status from API to UI display status
   String _mapApiStatusToUiStatus(String apiStatus) {
     String mappedStatus;
     
@@ -166,7 +166,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         mappedStatus = 'Cancelled';
         break;
       default:
-        mappedStatus = apiStatus; // Giữ nguyên nếu không có mapping
+        mappedStatus = apiStatus; // Keep original if no mapping
         break;
     }
     
@@ -190,7 +190,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Hiển thị loading nếu đang tải dữ liệu
+    // Display loading if data is being loaded
     if (_isLoading) {
       return Scaffold(
         backgroundColor: isDark
@@ -224,7 +224,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
               const CircularProgressIndicator(),
               const SizedBox(height: 16),
               Text(
-                "Đang tải dữ liệu...",
+                "Loading data...",
                 style: SpatialDesignSystem.bodyMedium.copyWith(
                   color: isDark
                       ? SpatialDesignSystem.textDarkSecondaryColor
@@ -237,7 +237,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       );
     }
 
-    // Hiển thị lỗi nếu có
+    // Display error if any
     if (_errorMessage.isNotEmpty) {
       return Scaffold(
         backgroundColor: isDark
@@ -281,7 +281,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
               ),
               const SizedBox(height: 16),
               SpatialButton(
-                text: "Thử lại",
+                text: "Retry",
                 onPressed: _loadDeliveryDetails,
                 isGlass: true,
               ),
@@ -599,7 +599,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                 _buildInfoRow(
                   Icons.schedule,
                   "Estimated Time",
-                  _deliveryDetail?.estimatedDuration ?? "Chưa có thông tin",
+                  _deliveryDetail?.estimatedDuration ?? "Not available",
                 ),
                 const Divider(),
                 _buildInfoRow(
@@ -619,7 +619,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                 _buildInfoRow(
                   Icons.route,
                   "Total Distance",
-                  _deliveryDetail?.estimatedDistance ?? "Chưa có thông tin",
+                  _deliveryDetail?.estimatedDistance ?? "Not available",
                 ),
                 const Divider(),
                 _buildInfoRow(
@@ -744,7 +744,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Xây dựng timeline với các trạng thái theo thứ tự
+                // Build timeline with statuses in order
                 _buildTimelineTile(
                   "Assigned to Driver",
                   _formatDate(_deliveryDetail?.createdAt),
@@ -881,7 +881,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       afterLineStyle: LineStyle(
         color: isCompleted
             ? SpatialDesignSystem
-                .primaryColor // Sử dụng màu xanh cho phần đã hoàn thành
+                .primaryColor // Use blue color for completed part
             : isDark
                 ? Colors.white.withValues(alpha: 0.1)
                 : Colors.black.withValues(alpha: 0.1),
@@ -928,7 +928,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   Widget _buildOrdersTab() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Nếu không có dữ liệu từ API, hiển thị thông báo
+    // If no data from API, display message
     if (_deliveryDetail == null || _deliveryDetail!.orders.isEmpty) {
       return Center(
         child: Column(
@@ -943,7 +943,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              "Không có đơn hàng nào",
+              "No orders available",
               style: SpatialDesignSystem.subtitleMedium.copyWith(
                 color: isDark
                     ? SpatialDesignSystem.textDarkSecondaryColor
@@ -955,7 +955,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       );
     }
 
-    // Sử dụng dữ liệu từ API để hiển thị danh sách đơn hàng
+    // Use data from API to display order list
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _deliveryDetail!.orders.length,
@@ -1026,7 +1026,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                         ],
                       ),
                       Text(
-                        order.recipientName ?? 'Không có thông tin',
+                        order.recipientName ?? 'Not available',
                         style: SpatialDesignSystem.bodyMedium.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -1087,11 +1087,12 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                       Expanded(
                         child: SpatialButton(
                           text: "Update Status",
+                          textColor: SpatialDesignSystem.textPrimaryColor,
                           onPressed: () {
                             _showOrderStatusUpdateDialog(order);
                           },
-                          isGlass: true,
-                          backgroundColor: SpatialDesignSystem.primaryColor,
+                          backgroundColor: SpatialDesignSystem.surfaceColor
+                              .withOpacity(0.9),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 8),
                           height: 50,
@@ -1113,7 +1114,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   // Format date from API string to readable format
   String _formatDate(String? dateString, {int addHours = 0}) {
     if (dateString == null || dateString.isEmpty) {
-      return "Chưa có thông tin";
+      return "Not available";
     }
 
     try {
@@ -1128,37 +1129,37 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   // Get the destination area from the store address
   String _getDestinationArea() {
     if (_deliveryDetail == null || _deliveryDetail!.orders.isEmpty) {
-      return "Chưa có thông tin";
+      return "Not available";
     }
 
-    // Ưu tiên sử dụng địa chỉ của store
+    // Prioritize using store address
     if (_deliveryDetail!.store != null && _deliveryDetail!.store!.address != null) {
       return _deliveryDetail!.store!.address!;
     }
 
-    // Nếu không có thông tin store, sử dụng địa chỉ từ đơn hàng đầu tiên
+    // If no store information, use address from first order
     String? address = _deliveryDetail!.orders.first.deliveryAddress;
     if (address == null || address.isEmpty) {
-      return "Chưa có thông tin địa chỉ";
+      return "Address not available";
     }
 
-    // Hiển thị đầy đủ địa chỉ không cắt bớt
+    // Display full address without truncation
     return address;
   }
 
   // Check if a status should be shown as completed based on current status
   bool _isStatusCompleted(String status) {
-    // Danh sách các trạng thái theo thứ tự tiến triển
+    // List of statuses in progression order
     const statusOrder = ['Assigned', 'Started', 'In Progress', 'Completed'];
     final currentIndex = statusOrder.indexOf(_selectedStatus);
     final statusIndex = statusOrder.indexOf(status);
 
-    // Nếu trạng thái hiện tại đã đạt hoặc vượt qua status đang xét
+    // If current status has reached or passed the status being checked
     if (currentIndex >= statusIndex && currentIndex >= 0 && statusIndex >= 0) {
       return true;
     }
 
-    // Trường hợp đặc biệt: Nếu đã hoàn thành (Completed), tất cả các trạng thái đều hoàn thành
+    // Special case: If completed, all statuses are completed
     if (_selectedStatus == 'Completed') {
       return true;
     }
@@ -1174,7 +1175,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       case 'In Progress':
         return "Estimated ${_formatDate(_deliveryDetail?.scheduledTime)}";
       default:
-        return "Chưa có thông tin";
+        return "Not available";
     }
   }
 
@@ -1184,7 +1185,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       return "0 VND";
     }
 
-    // Format với dấu phân cách hàng nghìn
+    // Format with thousands separator
     final formatter = NumberFormat("#,###", "vi_VN");
     return "${formatter.format(amount)} VND";
   }

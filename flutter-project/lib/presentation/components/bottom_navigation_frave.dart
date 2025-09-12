@@ -27,13 +27,16 @@ class BottomNavigationFrave extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // _ItemButton(
-          //   i: 0, 
-          //   index: index, 
-          //   iconData: Icons.home_outlined, 
-          //   text: 'Home',
-          //   onPressed: () => Navigator.pushReplacement(context, routeFrave(page: ClientHomeScreen())),
-          //   ),
+          _ItemButton(
+            i: 0, 
+            index: index, 
+            iconData: Icons.home_outlined, 
+            text: 'Home',
+            onPressed: () {
+              // Navigator.pushReplacement(context, routeFrave(page: ClientHomeScreen()));
+              print('Home pressed');
+            },
+          ),
           // _ItemButton(
           //   i: 1, 
           //   index: index, 
@@ -69,7 +72,13 @@ class _ItemButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
 
-  const _ItemButton({ required this.i, required this.index, required this.iconData, required this.text, this.onPressed });
+  const _ItemButton({ 
+    required this.i, 
+    required this.index, 
+    required this.iconData, 
+    required this.text,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
-import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_login_screen.dart';
+import 'package:ktc_logistics_driver/presentation/screens/environment/environment_selection_screen.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_background.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -18,26 +18,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   
   final List<Map<String, dynamic>> _onboardingData = [
     {
-      'title': 'Chào mừng đến với \nFastRoute',
-      'description': 'Ứng dụng giao hàng thế hệ mới với giao diện Spatial UI hiện đại, được thiết kế riêng cho tài xế KTC Logistics.',
+      'title': 'Welcome to\nFastRoute',
+      'description': 'Next-generation delivery app with modern Spatial UI, designed specifically for KTC Logistics drivers.',
       'image': 'assets/svg/delivery.svg',
       'color': const Color(0xFF0A84FF), // Apple Vision Pro blue
     },
     {
-      'title': 'Quản lý đơn hàng \nthông minh',
-      'description': 'Nhận đơn hàng theo thời gian thực, xem chi tiết, cập nhật trạng thái và quản lý lịch sử giao hàng dễ dàng.',
+      'title': 'Smart\nOrder Management',
+      'description': 'Receive real-time orders, view details, update statuses, and manage delivery history with ease.',
       'image': 'assets/svg/order-tracking.svg',
       'color': const Color(0xFF32D74B), // Apple Vision Pro green
     },
     {
-      'title': 'Bản đồ & điều hướng \nvới AI',
-      'description': 'Tích hợp MapBox với GPS tracking, tối ưu tuyến đường thời gian thực và hiển thị vị trí pickup/delivery rõ ràng.',
+      'title': 'Maps & Navigation\nwith AI',
+      'description': 'Integrated Mapbox with GPS tracking, real-time route optimization, and clear pickup/delivery positions.',
       'image': 'assets/svg/route-optimization.svg',
       'color': const Color(0xFF5E5CE6), // Apple Vision Pro indigo
     },
     {
-      'title': 'Sẵn sàng bắt đầu?',
-      'description': 'Đăng nhập ngay để trải nghiệm ứng dụng giao hàng hiệu quả nhất dành cho tài xế chuyên nghiệp.',
+      'title': 'Ready to get started?',
+      'description': 'Log in now to experience the most efficient delivery app for professional drivers.',
       'image': 'assets/svg/ready-to-go.svg',
       'color': const Color(0xFFFF9F0A), // Apple Vision Pro blue
     },
@@ -62,17 +62,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      // Navigate to login screen
+      // Navigate to environment selection screen
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const SpatialLoginScreen()),
+        MaterialPageRoute(builder: (context) => const EnvironmentSelectionScreen()),
       );
     }
   }
   
   void _onSkipTap() {
-    // Navigate to login screen
+    // Navigate to environment selection screen
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const SpatialLoginScreen()),
+      MaterialPageRoute(builder: (context) => const EnvironmentSelectionScreen()),
     );
   }
   
@@ -157,7 +157,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Bỏ qua',
+                                  'Skip',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w500,
                                     fontSize: 14,
@@ -250,7 +250,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      _currentPage < _onboardingData.length - 1 ? 'Tiếp tục' : 'Bắt đầu ngay',
+                                      _currentPage < _onboardingData.length - 1 ? 'Continue' : 'Get Started',
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
