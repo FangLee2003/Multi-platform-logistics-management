@@ -49,6 +49,7 @@ Hệ thống phân biệt rõ ràng:
   | FIRST_CLASS   | 1.3   |
   | EXPRESS       | 1.8   |
 
+
 ### 2.2. Delivery Fee (Delivery)
 
 **TỔNG DELIVERY FEE = (PHÍ KHOẢNG CÁCH + PHÍ CƠ BẢN DELIVERY) × HỆ SỐ SERVICE_TYPE**
@@ -60,9 +61,9 @@ Hệ thống phân biệt rõ ràng:
 
     | Vùng        | Khoảng cách | Phí cơ bản | Đơn giá/km |
     | ----------- | ----------- | ---------- | ---------- |
-    | Nội thành   | 0-15km      | 15,000     | 1,800      |
-    | Ngoại thành | 15-50km     | 25,000     | 1,500      |
-    | Liên tỉnh   | >50km       | 40,000     | 500        |
+    | Nội thành   | 0-100km      | 15,000     | 1,800      |
+    | Ngoại thành | 100-200km     | 25,000     | 1,500      |
+    | Liên tỉnh   | >200km       | 40,000     | 500        |
 
 - **Phí cơ bản delivery:**
 

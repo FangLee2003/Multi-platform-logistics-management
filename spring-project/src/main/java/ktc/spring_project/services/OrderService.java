@@ -2,7 +2,16 @@ package ktc.spring_project.services;
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.Vehicle;
+import ktc.spring_project.entities.Address;
+import ktc.spring_project.entities.Status;
+import ktc.spring_project.entities.Store;
+import ktc.spring_project.entities.User;
 import ktc.spring_project.repositories.OrderRepository;
+import ktc.spring_project.repositories.AddressRepository;
+import ktc.spring_project.repositories.StatusRepository;
+import ktc.spring_project.repositories.StoreRepository;
+import ktc.spring_project.repositories.UserRepository;
+import ktc.spring_project.repositories.VehicleRepository;
 import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.HttpException;
@@ -29,12 +38,30 @@ public class OrderService {
     @Autowired
     private OrderRepository orderRepository;
     
+    @Autowired
+    private AddressRepository addressRepository;
+    
+    @Autowired
+    private StatusRepository statusRepository;
+    
+    @Autowired
+    private StoreRepository storeRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private VehicleRepository vehicleRepository;
+    
     public Order createOrderFromDTO(ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO dto) {
         try {
             log.debug("Creating order from DTO: {}", dto);
             
             validateCreateOrderDTO(dto);
-            checkOrderCodeDuplication(dto.getOrderCode());
+            // Chỉ kiểm tra trùng lặp nếu orderCode không null
+            if (dto.getOrderCode() != null) {
+                checkOrderCodeDuplication(dto.getOrderCode());
+            }
             
             Order order = buildOrderFromDTO(dto);
             return createOrder(order);
@@ -169,14 +196,29 @@ public class OrderService {
     
     private void validateCreateOrderDTO(ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO dto) {
         validateNotNull(dto, "Request body");
-        validateNotBlank(dto.getOrderCode(), "Order code");
-        validateNotNull(dto.getTotalAmount(), "Total amount");
+        // Cho phép orderCode và totalAmount null
+        validateNotNull(dto.getCreatedBy(), "CreatedBy");
+        validateNotNull(dto.getStore(), "Store");
+        validateNotNull(dto.getStatus(), "Status");
+        // Có thể kiểm tra id của object nếu muốn chắc chắn tồn tại
+        if (dto.getStore() != null && (dto.getStore().getId() == null || !storeRepository.existsById(dto.getStore().getId()))) {
+            throw new EntityNotFoundException("Store not found with id: " + (dto.getStore().getId()));
+        }
+        if (dto.getStatus() != null && (dto.getStatus().getId() == null || !statusRepository.existsById(dto.getStatus().getId()))) {
+            throw new EntityNotFoundException("Status not found with id: " + (dto.getStatus().getId()));
+        }
+        if (dto.getCreatedBy() != null && (dto.getCreatedBy().getId() == null || !userRepository.existsById(dto.getCreatedBy().getId()))) {
+            throw new EntityNotFoundException("User not found with id: " + (dto.getCreatedBy().getId()));
+        }
     }
     
     private void validateOrder(Order order) {
         validateNotNull(order, "Order");
-        validateNotBlank(order.getOrderCode(), "Order code");
-        checkOrderCodeDuplication(order.getOrderCode());
+        // Cho phép orderCode null
+        // validateNotBlank(order.getOrderCode(), "Order code");
+        if (order.getOrderCode() != null) {
+            checkOrderCodeDuplication(order.getOrderCode());
+        }
     }
     
     private void validateBusinessRules(Order order) {
@@ -232,13 +274,34 @@ public class OrderService {
         order.setNotes(dto.getNotes());
         order.setBenefitPerOrder(BigDecimal.ZERO);
         order.setOrderProfitPerOrder(BigDecimal.ZERO);
-        
+
+        // Fetch đầy đủ thông tin từ database thay vì chỉ nhận object từ DTO
+        if (dto.getStore() != null && dto.getStore().getId() != null) {
+            Store store = storeRepository.findById(dto.getStore().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Store not found with id: " + dto.getStore().getId()));
+            order.setStore(store);
+        }
+        if (dto.getStatus() != null && dto.getStatus().getId() != null) {
+            Status status = statusRepository.findById(dto.getStatus().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Status not found with id: " + dto.getStatus().getId()));
+            order.setStatus(status);
+        }
+        if (dto.getCreatedBy() != null && dto.getCreatedBy().getId() != null) {
+            User user = userRepository.findById(dto.getCreatedBy().getId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getCreatedBy().getId()));
+            order.setCreatedBy(user);
+        }
+        if (dto.getAddress() != null && dto.getAddress().getId() != null) {
+            Address address = addressRepository.findById(dto.getAddress().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Address not found with id: " + dto.getAddress().getId()));
+            order.setAddress(address);
+        }
+        // Set Vehicle nếu có
         if (dto.getVehicleId() != null) {
-            Vehicle vehicle = new Vehicle();
-            vehicle.setId(dto.getVehicleId());
+            Vehicle vehicle = vehicleRepository.findById(dto.getVehicleId())
+                .orElseThrow(() -> new EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId()));
             order.setVehicle(vehicle);
         }
-        
         return order;
     }
     

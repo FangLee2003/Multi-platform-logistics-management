@@ -51,19 +51,35 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<Order> createOrder(@Valid @RequestBody CreateDeliveryOrderRequestDTO dto) {
         try {
-            Order order = new Order();
-            order.setDescription(dto.getDescription());
-            order.setNotes(dto.getNotes());
-            order.setTotalAmount(dto.getTotalAmount());
-            order.setBenefitPerOrder(BigDecimal.ZERO); // hoặc tính toán nếu cần
-            order.setOrderProfitPerOrder(BigDecimal.ZERO); // hoặc tính toán nếu cần
-            // Map các trường khác nếu cần
-            // Ví dụ: set address, vehicle, status, store, createdBy nếu có logic
-            Order createdOrder = orderService.createOrder(order);
+            // Log thông tin tạo đơn hàng nếu cần
+            System.out.println("Creating order with DTO: " + dto.getOrderCode());
+            if (dto.getStore() != null) System.out.println("Store ID: " + dto.getStore().getId());
+            if (dto.getCreatedBy() != null) System.out.println("CreatedBy ID: " + dto.getCreatedBy().getId());
+            if (dto.getStatus() != null) System.out.println("Status ID: " + dto.getStatus().getId());
+            if (dto.getAddress() != null) System.out.println("Address ID: " + dto.getAddress().getId());
+
+            Order createdOrder = orderService.createOrderFromDTO(dto);
+
+            // Log thông tin đơn hàng đã tạo
+            System.out.println("Order created successfully:");
+            System.out.println("- Order ID: " + createdOrder.getId());
+            System.out.println("- Store ID: " + (createdOrder.getStore() != null ? createdOrder.getStore().getId() : "null"));
+            System.out.println("- Status ID: " + (createdOrder.getStatus() != null ? createdOrder.getStatus().getId() : "null"));
+            System.out.println("- Created By ID: " + (createdOrder.getCreatedBy() != null ? createdOrder.getCreatedBy().getId() : "null"));
+            System.out.println("- Address ID: " + (createdOrder.getAddress() != null ? createdOrder.getAddress().getId() : "null"));
+
             return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
+            System.err.println("Bad request: " + e.getMessage());
+            e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            System.err.println("===== DETAILED ERROR =====");
+            System.err.println("Error creating order: " + e.getMessage());
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
+            e.printStackTrace();
+            System.err.println("===========================");
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

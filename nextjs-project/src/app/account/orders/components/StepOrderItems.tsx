@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Button, Table } from "antd";
+import { Form, Input, InputNumber, Button, Table, Checkbox } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -175,6 +175,19 @@ export default function StepOrderItems({ form }: Props) {
                         style={{ margin: 0 }}
                       >
                         <InputNumber min={0} style={{ width: "100%" }} />
+                      </Form.Item>
+                    ),
+                  },
+                  {
+                    title: "Hàng dễ vỡ",
+                    key: "is_fragile",
+                    render: (_, __, index) => (
+                      <Form.Item
+                        name={[index, "is_fragile"]}
+                        valuePropName="checked"
+                        style={{ margin: 0 }}
+                      >
+                        <Checkbox>Dễ vỡ</Checkbox>
                       </Form.Item>
                     ),
                   },

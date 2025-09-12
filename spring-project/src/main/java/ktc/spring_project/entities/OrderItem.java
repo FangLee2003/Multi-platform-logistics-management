@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 @Entity
 @Table(name = "order_items")
 public class OrderItem {
-    @Column(name = "product_code", length = 50, nullable = false)
+    @Column(name = "product_code", length = 50, nullable = true)
     private String productCode;
 
     public String getProductCode() { return productCode; }

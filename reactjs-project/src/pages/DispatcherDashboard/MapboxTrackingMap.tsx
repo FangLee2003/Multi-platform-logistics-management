@@ -336,7 +336,7 @@ export default function MapboxTrackingMap() {
       </div>
 
  {/* Hiển thị danh sách waypoint nếu có */}
-       {/* {waypoints.length > 0 && (
+       {waypoints.length > 0 && (
         <div className="mt-2 p-2 bg-gray-50 rounded">
           <div className="font-bold">Danh sách waypoint:</div>
           <ul className="text-xs">
@@ -345,7 +345,7 @@ export default function MapboxTrackingMap() {
             ))}
           </ul>
         </div>
-      )} */}
+      )}
       </div>
   );
 }

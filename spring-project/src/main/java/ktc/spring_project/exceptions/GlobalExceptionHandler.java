@@ -25,6 +25,7 @@ public class GlobalExceptionHandler {
     // Handle malformed JSON or parse errors
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+    ex.printStackTrace();
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 List.of("Malformed JSON request: " + ex.getMessage()),
@@ -34,6 +35,7 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(VehicleInvalidCapacityException.class)
     public ResponseEntity<ErrorResponse> handleVehicleInvalidCapacityException(VehicleInvalidCapacityException ex) {
+    ex.printStackTrace();
         ErrorResponse errorResponse = new ErrorResponse(ex.getStatus().value(), List.of(ex.getMessage()),
                 ex.getStatus().getReasonPhrase());
         return new ResponseEntity<>(errorResponse, ex.getStatus());
@@ -42,6 +44,7 @@ public class GlobalExceptionHandler {
     // Data validation error handler
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
+    ex.printStackTrace();
         List<String> errorMessages = new ArrayList<>();
 
         ex.getBindingResult().getAllErrors().forEach(error -> {
@@ -62,6 +65,7 @@ public class GlobalExceptionHandler {
     // Access denied error handler
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+    ex.printStackTrace();
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("status", 403);
         errorResponse.put("error", "Forbidden");
@@ -73,6 +77,7 @@ public class GlobalExceptionHandler {
     // Authentication error handler
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuthenticationException(AuthenticationException ex) {
+    ex.printStackTrace();
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("status", 401);
         errorResponse.put("error", "Unauthorized");
@@ -84,6 +89,7 @@ public class GlobalExceptionHandler {
     // Custom entity not found exception handler
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
+    ex.printStackTrace();
         ErrorResponse errorResponse = new ErrorResponse(ex.getStatus().value(), List.of(ex.getMessage()),
                 ex.getStatus().getReasonPhrase());
         return new ResponseEntity<>(errorResponse, ex.getStatus());
@@ -91,6 +97,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityDuplicateException.class)
     public ResponseEntity<ErrorResponse> handleEntityDuplicateException(EntityDuplicateException ex) {
+    ex.printStackTrace();
         ErrorResponse errorResponse = new ErrorResponse(ex.getStatus().value(), List.of(ex.getMessage()),
                 ex.getStatus().getReasonPhrase());
         return new ResponseEntity<>(errorResponse, ex.getStatus());
@@ -99,6 +106,7 @@ public class GlobalExceptionHandler {
     // Custom HTTP exception handler
     @ExceptionHandler(HttpException.class)
     public ResponseEntity<ErrorResponse> handleHttpException(HttpException ex) {
+    ex.printStackTrace();
         ErrorResponse errorResponse = new ErrorResponse(
                 ex.getStatus().value(),
                 List.of(ex.getMessage()),
@@ -110,6 +118,7 @@ public class GlobalExceptionHandler {
     // Generic exception handler for uncaught exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+    ex.printStackTrace();
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 List.of(ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
