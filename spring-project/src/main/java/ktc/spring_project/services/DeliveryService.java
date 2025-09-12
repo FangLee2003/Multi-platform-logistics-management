@@ -15,6 +15,7 @@ import ktc.spring_project.dtos.vehicle.VehicleSimpleDTO;
 import ktc.spring_project.entities.Delivery;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.Payment;
+import ktc.spring_project.entities.Store;
 import ktc.spring_project.repositories.DeliveryRepository;
 import ktc.spring_project.repositories.OrderItemRepository;
 import ktc.spring_project.repositories.PaymentRepository;
@@ -407,7 +408,7 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
         orderDto.setId(order.getId());
         
         if (order.getStatus() != null) {
-                        orderDto.setStatusId(order.getStatus().getId());
+            orderDto.setStatusId(order.getStatus().getId());
             orderDto.setStatus(order.getStatus().getName());
         }
         
@@ -421,6 +422,24 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
         orderDto.setCreatedAt(order.getCreatedAt());
         
         dto.setOrders(List.of(orderDto));
+        
+        // Map store information if available
+        if (order.getStore() != null) {
+            StoreResponseDTO storeDto = new StoreResponseDTO();
+            storeDto.setId(order.getStore().getId());
+            storeDto.setStoreName(order.getStore().getStoreName());
+            storeDto.setAddress(order.getStore().getAddress());
+            storeDto.setPhone(order.getStore().getPhone());
+            storeDto.setEmail(order.getStore().getEmail());
+            storeDto.setLatitude(order.getStore().getLatitude());
+            storeDto.setLongitude(order.getStore().getLongitude());
+            storeDto.setNotes(order.getStore().getNotes());
+            storeDto.setIsActive(order.getStore().getIsActive());
+            storeDto.setCreatedAt(order.getStore().getCreatedAt());
+            storeDto.setUpdatedAt(order.getStore().getUpdatedAt());
+            
+            dto.setStore(storeDto);
+        }
     }
     
     return dto;

@@ -43,7 +43,7 @@ class OrdersServices {
 
     try {
       final resp = await http.get(
-        Uri.parse('${_env.apiBaseUrl}/api/driver/$driverId/orders'),
+        Uri.parse('${_env.apiBaseUrl}/driver/$driverId/orders'),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token'
@@ -69,6 +69,12 @@ class OrdersServices {
   /// [orderId] The ID of the order to retrieve
   /// Returns [OrderDetailsResponse] object with order details
   Future<OrderDetailsResponse?> getDriverOrderDetail(int orderId) async {
+        final driverId = await _getDriverId();
+    if (driverId == null) {
+      debugPrint('Driver ID not found - cannot get orders');
+      return null;
+    }
+
     final token = await secureStorage.readToken();
     if (token == null) {
       debugPrint('Token not found - cannot get order details');
@@ -77,7 +83,7 @@ class OrdersServices {
 
     try {
       final resp = await http.get(
-        Uri.parse('${_env.apiBaseUrl}/api/driver/orders/$orderId'),
+        Uri.parse('${_env.apiBaseUrl}/driver/$driverId/orders/$orderId'),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token'
@@ -124,7 +130,7 @@ class OrdersServices {
 
     try {
       // Construct URL using the pattern api/driver/:driverId/orders/:orderId/status
-      final url = '${_env.apiBaseUrl}/api/driver/$dId/orders/$orderId/status';
+      final url = '${_env.apiBaseUrl}/driver/$dId/orders/$orderId/status';
       debugPrint('Updating order status at: $url');
       debugPrint('Request payload: ${statusUpdate.toJson()}');
 
@@ -147,43 +153,6 @@ class OrdersServices {
     } catch (e) {
       debugPrint('Error updating order status: $e');
       return false;
-    }
-  }
-
-  /// Get order details for a specific delivery
-  ///
-  /// [deliveryId] The ID of the delivery to get order information for
-  /// Returns order information if successful, null otherwise
-  Future<dynamic> getOrderForDelivery(int deliveryId) async {
-    final token = await secureStorage.readToken();
-    if (token == null) {
-      debugPrint('Token not found - cannot get order for delivery');
-      return null;
-    }
-
-    try {
-      final url = '${_env.apiBaseUrl}/api/deliveries/$deliveryId/order';
-      debugPrint('Getting order for delivery at: $url');
-
-      final resp = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-      );
-
-      if (resp.statusCode == 200) {
-        final orderData = json.decode(resp.body);
-        debugPrint('Order for delivery retrieved successfully');
-        return orderData;
-      } else {
-        debugPrint('Error getting order for delivery: ${resp.statusCode} - ${resp.body}');
-        return null;
-      }
-    } catch (e) {
-      debugPrint('Error getting order for delivery: $e');
-      return null;
     }
   }
 }

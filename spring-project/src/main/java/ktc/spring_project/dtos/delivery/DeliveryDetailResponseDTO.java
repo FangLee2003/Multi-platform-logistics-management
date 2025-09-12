@@ -3,6 +3,7 @@ package ktc.spring_project.dtos.delivery;
 import ktc.spring_project.dtos.order.OrderSimpleDTO;
 import ktc.spring_project.dtos.user.UserResponseDTO;
 import ktc.spring_project.dtos.vehicle.VehicleSimpleDTO;
+import ktc.spring_project.dtos.store.StoreResponseDTO;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -38,6 +39,7 @@ public class DeliveryDetailResponseDTO {
     private UserResponseDTO driver;
     private VehicleSimpleDTO vehicle;
     private List<OrderSimpleDTO> orders; // Simple order information
+    private StoreResponseDTO store; // Added store information
     
     // Timestamps
     private Timestamp createdAt;
