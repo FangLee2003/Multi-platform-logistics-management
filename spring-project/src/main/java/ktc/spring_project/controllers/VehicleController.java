@@ -4,6 +4,7 @@ import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Vehicle;
 import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.UserService;
+import ktc.spring_project.services.StatusService;
 import ktc.spring_project.dtos.vehicle.PaginatedVehicleResponseDto;
 import ktc.spring_project.dtos.vehicle.CreateVehicleRequestDTO;
 import ktc.spring_project.enums.VehicleType;
@@ -15,10 +16,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -37,6 +40,9 @@ public class VehicleController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private StatusService statusService;
 
     /**
      * Get all vehicles with optional filters and pagination
@@ -135,8 +141,9 @@ public class VehicleController {
             vehicle.setVehicleType(null);
         }
         // Giả sử capacity là trọng lượng, bạn có thể sửa lại nếu cần
-        vehicle.setCapacityWeightKg(dto.getCapacity());
-        vehicle.setNotes(dto.getNotes());
+    vehicle.setCapacityWeightKg(dto.getCapacity());
+    vehicle.setCapacityVolumeM3(dto.getCapacityVolumeM3());
+    vehicle.setNotes(dto.getNotes());
         // Gán status nếu có
         if (dto.getStatusId() != null) {
             ktc.spring_project.entities.Status status = new ktc.spring_project.entities.Status();
@@ -158,6 +165,65 @@ public class VehicleController {
 
         Vehicle updatedVehicle = vehicleService.updateVehicle(id, vehicle);
         return ResponseEntity.ok(updatedVehicle);
+    }
+
+    /**
+     * Partially update vehicle information
+     */
+    @PatchMapping("/{id}")
+    public ResponseEntity<Vehicle> patchVehicle(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates,
+            Authentication authentication) {
+        try {
+            // Get existing vehicle
+            Vehicle existingVehicle = vehicleService.getVehicleById(id);
+            
+            // Apply updates
+            if (updates.containsKey("licensePlate")) {
+                existingVehicle.setLicensePlate((String) updates.get("licensePlate"));
+            }
+            if (updates.containsKey("vehicleType")) {
+                String vehicleTypeStr = (String) updates.get("vehicleType");
+                if (vehicleTypeStr != null && !vehicleTypeStr.isBlank()) {
+                    try {
+                        VehicleType vehicleType = VehicleType.valueOf(vehicleTypeStr.toUpperCase());
+                        existingVehicle.setVehicleType(vehicleType);
+                    } catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().build();
+                    }
+                }
+            }
+            if (updates.containsKey("capacityWeightKg")) {
+                Object capacity = updates.get("capacityWeightKg");
+                if (capacity instanceof Number) {
+                    existingVehicle.setCapacityWeightKg(BigDecimal.valueOf(((Number) capacity).doubleValue()));
+                } else if (capacity instanceof String) {
+                    try {
+                        existingVehicle.setCapacityWeightKg(new BigDecimal((String) capacity));
+                    } catch (NumberFormatException e) {
+                        // Ignore invalid number format
+                    }
+                }
+            }
+            if (updates.containsKey("capacityVolumeM3")) {
+                Object volume = updates.get("capacityVolumeM3");
+                if (volume instanceof Number) {
+                    existingVehicle.setCapacityVolumeM3(BigDecimal.valueOf(((Number) volume).doubleValue()));
+                } else if (volume instanceof String) {
+                    try {
+                        existingVehicle.setCapacityVolumeM3(new BigDecimal((String) volume));
+                    } catch (NumberFormatException e) {
+                        // Ignore invalid number format
+                    }
+                }
+            }
+            
+            Vehicle updatedVehicle = vehicleService.updateVehicle(id, existingVehicle);
+            return ResponseEntity.ok(updatedVehicle);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -186,6 +252,63 @@ public class VehicleController {
     }
 
     /**
+     * Update vehicle status
+     * For updating vehicle status (AVAILABLE, IN_USE, MAINTENANCE)
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Vehicle> updateVehicleStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> statusData,
+            Authentication authentication) {
+        try {
+            // Get existing vehicle
+            Vehicle existingVehicle = vehicleService.getVehicleById(id);
+            
+            // Extract status from request
+            String statusName = (String) statusData.get("status");
+            if (statusName == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // Find the status by type and name using StatusService
+            Optional<ktc.spring_project.entities.Status> statusOptional = 
+                statusService.getStatusByTypeAndName("VEHICLE", statusName);
+            
+            if (!statusOptional.isPresent()) {
+                // If exact match not found, try common vehicle status names
+                switch (statusName.toUpperCase()) {
+                    case "AVAILABLE":
+                        statusOptional = statusService.getStatusByTypeAndName("VEHICLE", "Available");
+                        break;
+                    case "IN_USE":
+                        statusOptional = statusService.getStatusByTypeAndName("VEHICLE", "In Use");
+                        if (!statusOptional.isPresent()) {
+                            statusOptional = statusService.getStatusByTypeAndName("VEHICLE", "In_Use");
+                        }
+                        break;
+                    case "MAINTENANCE":
+                        statusOptional = statusService.getStatusByTypeAndName("VEHICLE", "Maintenance");
+                        break;
+                }
+            }
+            
+            if (!statusOptional.isPresent()) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // Set the status
+            existingVehicle.setStatus(statusOptional.get());
+            
+            // Update the vehicle
+            Vehicle updatedVehicle = vehicleService.updateVehicle(id, existingVehicle);
+            return ResponseEntity.ok(updatedVehicle);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * Schedule vehicle maintenance
      * US-FLEET-MAINTAIN-01
      */
@@ -202,13 +325,13 @@ public class VehicleController {
 
         // Tạm thời trả về thông báo thành công
         // Đây là giải pháp tạm thời cho đến khi có MaintenanceService
-        Map<String, Object> response = Map.of(
-            "status", "scheduled",
-            "vehicleId", id,
-            "maintenanceType", maintenanceType,
-            "scheduledDate", scheduledDate,
-            "message", "Maintenance scheduled successfully"
-        );
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "scheduled");
+        response.put("vehicleId", id);
+        response.put("maintenanceType", maintenanceType);
+        response.put("scheduledDate", scheduledDate);
+        response.put("description", description != null ? description : "");
+        response.put("message", "Maintenance scheduled successfully");
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }

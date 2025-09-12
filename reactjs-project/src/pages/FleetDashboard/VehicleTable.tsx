@@ -1,60 +1,38 @@
 import React, { useState, useMemo } from "react";
-import { Edit, Eye, MoreVertical, Calendar, AlertCircle, CheckCircle, Clock } from "lucide-react";
-import type { FleetVehicle } from "../../types/dashboard";
+import { Edit, MoreVertical, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import type { Vehicle } from '../../types/Operations';
 
-
-export interface Vehicle {
-  id: number;
-  licensePlate: string;
-  type: string;
-  brand?: string;
-  model?: string;
-  capacityWeightKg?: number;
-  capacityVolumeM3?: number;
-  year: number;
-  status: "Hoạt động" | "Bảo trì" | "Cần bảo trì";
-  lastMaintenance: string;
-  nextMaintenance: string;
-  driver: string;
-  mileage?: number;
-}
+export type FleetVehicle = Vehicle;
 
 
 interface VehicleTableProps {
-  vehicles: FleetVehicle[];
-  onEdit?: (vehicle: FleetVehicle) => void;
-  onView?: (vehicle: FleetVehicle) => void;
-  onAssignDriver?: (vehicleId: number) => void;
-  onScheduleMaintenance?: (vehicleId: number) => void;
+  vehicles: Vehicle[];
+  onEdit?: (vehicle: Vehicle) => void;
+  onDelete?: (vehicleId: string | number) => void;
 }
 
 // Enhanced Status Badge Component
-const StatusBadge = React.memo<{ status: FleetVehicle["status"] }>(({ status }) => {
+const StatusBadge = React.memo<{ status: string }>(({ status }) => {
   const statusConfig = useMemo(() => {
     switch (status) {
-      case "Hoạt động":
-        return {
-          icon: <CheckCircle size={14} />,
-          className: "bg-green-50 text-green-700 border-green-200",
-          text: "Hoạt động"
-        };
-      case "Bảo trì":
+      case "MAINTENANCE":
         return {
           icon: <Clock size={14} />,
           className: "bg-yellow-50 text-yellow-700 border-yellow-200",
-          text: "Bảo trì"
+          text: "Đang bảo trì"
         };
-      case "Cần bảo trì":
+      case "IN_USE":
         return {
-          icon: <AlertCircle size={14} />,
-          className: "bg-red-50 text-red-700 border-red-200",
-          text: "Cần bảo trì"
+          icon: <CheckCircle size={14} />,
+          className: "bg-blue-50 text-blue-700 border-blue-200",
+          text: "Đang sử dụng"
         };
+      case "AVAILABLE":
       default:
         return {
-          icon: null,
-          className: "bg-gray-50 text-gray-700 border-gray-200",
-          text: status
+          icon: <CheckCircle size={14} />,
+          className: "bg-green-50 text-green-700 border-green-200",
+          text: "Sẵn sàng sử dụng"
         };
     }
   }, [status]);
@@ -71,12 +49,10 @@ StatusBadge.displayName = "StatusBadge";
 
 // Action Dropdown Component
 const ActionDropdown = React.memo<{
-  vehicle: FleetVehicle;
-  onEdit?: (vehicle: FleetVehicle) => void;
-  onView?: (vehicle: FleetVehicle) => void;
-  onAssignDriver?: (vehicleId: number) => void;
-  onScheduleMaintenance?: (vehicleId: number) => void;
-}>(({ vehicle, onEdit, onView, onAssignDriver, onScheduleMaintenance }) => {
+  vehicle: Vehicle;
+  onEdit?: (vehicle: Vehicle) => void;
+  onDelete?: (vehicleId: string | number) => void;
+}>(({ vehicle, onEdit, onDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -88,26 +64,13 @@ const ActionDropdown = React.memo<{
       >
         <MoreVertical size={18} />
       </button>
-      
       {isOpen && (
         <>
           <div 
             className="fixed inset-0 z-10" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-            {onView && (
-              <button
-                onClick={() => {
-                  onView(vehicle);
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-              >
-                <Eye size={16} />
-                Xem chi tiết
-              </button>
-            )}
+          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-30">
             {onEdit && (
               <button
                 onClick={() => {
@@ -120,27 +83,16 @@ const ActionDropdown = React.memo<{
                 Chỉnh sửa
               </button>
             )}
-            {onAssignDriver && (
+            {onDelete && (
               <button
                 onClick={() => {
-                  onAssignDriver(vehicle.id);
+                  onDelete(vehicle.id);
                   setIsOpen(false);
                 }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
               >
-                {vehicle.driver ? "Thay đổi tài xế" : "Gán tài xế"}
-              </button>
-            )}
-            {onScheduleMaintenance && (
-              <button
-                onClick={() => {
-                  onScheduleMaintenance(vehicle.id);
-                  setIsOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-              >
-                <Calendar size={16} />
-                Lập lịch bảo trì
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+                Xóa
               </button>
             )}
           </div>
@@ -156,12 +108,10 @@ ActionDropdown.displayName = "ActionDropdown";
 const VehicleTable: React.FC<VehicleTableProps> = ({ 
   vehicles, 
   onEdit, 
-  onView, 
-  onAssignDriver, 
-  onScheduleMaintenance 
+  onDelete
 }) => {
   // Calculate days until next maintenance
-  const getDaysUntilMaintenance = (nextMaintenance: string): number | null => {
+  const getDaysUntilMaintenance = (nextMaintenance?: string): number | null => {
     if (!nextMaintenance) return null;
     const today = new Date();
     const maintenanceDate = new Date(nextMaintenance);
@@ -184,7 +134,39 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
       {vehicles.map((vehicle) => {
         const daysUntilMaintenance = getDaysUntilMaintenance(vehicle.nextMaintenance);
         const maintenanceUrgencyColor = getMaintenanceUrgencyColor(daysUntilMaintenance);
+
+        // Logic xác định trạng thái xe - ưu tiên trạng thái từ database
+        let computedStatus: 'MAINTENANCE' | 'IN_USE' | 'AVAILABLE' = 'AVAILABLE';
         
+        console.log('Vehicle data:', vehicle); // Debug log để kiểm tra dữ liệu
+        
+        // Nếu có trạng thái từ database, sử dụng nó
+        if (vehicle.status) {
+          computedStatus = vehicle.status;
+          console.log('Using status from database:', vehicle.status); // Debug log
+        } else {
+          console.log('No status from database, using fallback logic'); // Debug log
+          // Fallback: tính toán dựa trên thời gian bảo trì và tài xế
+          const today = new Date();
+          
+          // Kiểm tra xem xe có đang trong thời gian bảo trì không
+          if (vehicle.lastMaintenance && vehicle.nextMaintenance) {
+            const maintenanceStartDate = new Date(vehicle.lastMaintenance);
+            const maintenanceEndDate = new Date(vehicle.nextMaintenance);
+            
+            // Nếu hôm nay nằm trong khoảng thời gian bảo trì
+            if (today >= maintenanceStartDate && today <= maintenanceEndDate) {
+              computedStatus = 'MAINTENANCE';
+            } else if (vehicle.driver?.name || vehicle.currentDriver?.fullName) {
+              computedStatus = 'IN_USE';
+            } else {
+              computedStatus = 'AVAILABLE';
+            }
+          } else if (vehicle.driver?.name || vehicle.currentDriver?.fullName) {
+            computedStatus = 'IN_USE';
+          }
+        }
+
         return (
           <div 
             key={vehicle.id} 
@@ -198,7 +180,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                   <h3 className="text-xl font-bold text-gray-900">
                     {vehicle.licensePlate}
                   </h3>
-                  <StatusBadge status={vehicle.status} />
+                  <StatusBadge status={computedStatus} />
                 </div>
 
                 {/* Vehicle Details Grid */}
@@ -216,13 +198,9 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                     <div className="text-gray-900 font-semibold">{vehicle.capacityVolumeM3?.toLocaleString() ?? "-"} m³</div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-gray-500 font-medium">Năm sản xuất:</span>
-                    <div className="text-gray-900">{vehicle.year}</div>
-                  </div>
-                  <div className="space-y-1">
                     <span className="text-gray-500 font-medium">Tài xế:</span>
                     <div className="text-gray-900">
-                      {vehicle.driver || (
+                      {vehicle.driver?.name || vehicle.currentDriver?.fullName || (
                         <span className="text-gray-400 italic">Chưa gán</span>
                       )}
                     </div>
@@ -275,9 +253,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                 <ActionDropdown
                   vehicle={vehicle}
                   onEdit={onEdit}
-                  onView={onView}
-                  onAssignDriver={onAssignDriver}
-                  onScheduleMaintenance={onScheduleMaintenance}
+                  onDelete={onDelete}
                 />
               </div>
             </div>

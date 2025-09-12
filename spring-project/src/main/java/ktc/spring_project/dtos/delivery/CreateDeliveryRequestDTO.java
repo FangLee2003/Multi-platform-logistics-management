@@ -27,7 +27,6 @@ public class CreateDeliveryRequestDTO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp pickupDate;
 
-    @NotNull(message = "Schedule delivery time is required")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp scheduleDeliveryTime;
 
@@ -37,7 +36,6 @@ public class CreateDeliveryRequestDTO {
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp orderDate;
-    @NotNull(message = "Vehicle ID is required")
     private Long vehicleId;
 
     private Long driverId;

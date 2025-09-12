@@ -9,7 +9,7 @@ export interface Vehicle {
   capacityWeightKg?: number;
   capacityVolumeM3?: number;
   year?: number;
-  status: { name: string } | 'ACTIVE' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE' | 'NEED_MAINTENANCE';
+  status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE';
   lastMaintenance?: string;
   nextMaintenance?: string;
   currentDriver?: {
