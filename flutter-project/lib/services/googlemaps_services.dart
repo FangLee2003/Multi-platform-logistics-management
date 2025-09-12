@@ -21,41 +21,48 @@ class GoogleMapsService {
     return "$latitude,$longitude";
   }
   
-  /// Opens Google Maps with a route from current location to pickup, 
-  /// through transit points, and finally to delivery location
+  /// Opens Google Maps with a route from current location to delivery location
   Future<bool> openGoogleMapsWithRoute({
     required BuildContext context,
-    required Map<String, dynamic> pickupLocation,
+    Map<String, dynamic>? pickupLocation,
     required Map<String, dynamic> deliveryLocation,
     List<Map<String, dynamic>> transitPoints = const [],
   }) async {
     try {
-      // Starting point - use current location
-      const String origin = "current";
+      String origin;
+      
+      // If pickupLocation is provided, use its coordinates
+      // Otherwise use "current" keyword for device's current location
+      if (pickupLocation != null) {
+        origin = _extractCoordinates(pickupLocation);
+      } else {
+        origin = "current";
+      }
       
       // Destination - delivery location
       final String destination = _extractCoordinates(deliveryLocation);
       
-      // Combine pickup and transit points as waypoints
-      List<String> allWaypoints = [];
-      
-      // Add pickup location as first waypoint
-      allWaypoints.add(_extractCoordinates(pickupLocation));
-      
-      // Add transit points (if any)
-      for (var point in transitPoints) {
-        allWaypoints.add(_extractCoordinates(point));
-      }
-      
-      // Join all waypoints with pipe character
-      final String waypoints = allWaypoints.join('|');
-      
-      // Construct Google Maps URL
-      final String url = "https://www.google.com/maps/dir/?api=1"
+      // Construct Google Maps URL base
+      String url = "https://www.google.com/maps/dir/?api=1"
           "&origin=$origin"
           "&destination=$destination"
-          "&waypoints=$waypoints"
           "&travelmode=driving";
+      
+      // Add transit points as waypoints if any
+      if (transitPoints.isNotEmpty) {
+        List<String> waypointsList = [];
+        
+        // Add transit points
+        for (var point in transitPoints) {
+          waypointsList.add(_extractCoordinates(point));
+        }
+        
+        // Join waypoints with pipe character and add to URL
+        if (waypointsList.isNotEmpty) {
+          final String waypoints = waypointsList.join('|');
+          url += "&waypoints=$waypoints";
+        }
+      }
       
       debugPrint("Opening Google Maps with URL: $url");
       
@@ -105,6 +112,35 @@ class GoogleMapsService {
         return false;
       }
     }
+  
+  /// Gets the current device position and returns it as a Map
+  Future<Map<String, dynamic>> getCurrentPositionData() async {
+    // Get current position for more realistic data
+    Position currentPosition;
+    try {
+      currentPosition = await Geolocator.getCurrentPosition();
+    } catch (e) {
+      // Fallback coordinates if location can't be determined
+      currentPosition = Position(
+        latitude: 10.7769, 
+        longitude: 106.7009, // Ho Chi Minh City coordinates
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        heading: 0,
+        speed: 0,
+        speedAccuracy: 0,
+        altitudeAccuracy: 0,
+        headingAccuracy: 0,
+      );
+    }
+    
+    return {
+      'latitude': currentPosition.latitude,
+      'longitude': currentPosition.longitude,
+      'address': 'Current Location'
+    };
+  }
   
   /// Gets dummy route data for testing
   Future<Map<String, dynamic>> getDummyRouteData() async {

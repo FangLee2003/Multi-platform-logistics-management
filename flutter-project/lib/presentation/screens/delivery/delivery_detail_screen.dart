@@ -1192,7 +1192,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                       : SpatialDesignSystem.textPrimaryColor,
                 ),
               ),
-              content: Container(
+              content: SizedBox(
                 width: double.maxFinite,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
