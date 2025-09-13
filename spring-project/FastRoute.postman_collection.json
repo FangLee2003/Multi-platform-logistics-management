@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "ee339aa7-60ec-443b-b9ba-627a2fde8865",
+		"_postman_id": "3dd348ed-b592-4e83-a07f-95aafe9d4dcc",
 		"name": "FastRoute",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "29278834"
@@ -2625,7 +2625,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -2647,7 +2647,7 @@
 									}
 								},
 								"url": {
-									"raw": "http://localhost:8080/api/drivers/{{driverId}}/maintenance-requests",
+									"raw": "http://localhost:8080/api/drivers/{{driverId}}/maintenance-requests/emergency",
 									"protocol": "http",
 									"host": [
 										"localhost"
@@ -2657,7 +2657,8 @@
 										"api",
 										"drivers",
 										"{{driverId}}",
-										"maintenance-requests"
+										"maintenance-requests",
+										"emergency"
 									]
 								},
 								"description": "Driver creates maintenance request (Step 1) - Backend auto-detects vehicle assigned to driver"
@@ -2672,7 +2673,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -2725,7 +2726,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -2759,7 +2760,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -2857,7 +2858,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -2914,7 +2915,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -2940,14 +2941,14 @@
 							"response": []
 						},
 						{
-							"name": "Step 3a: Schedule Regular Maintenance",
+							"name": "Step 3: Schedule Emergency Maintenance",
 							"request": {
 								"auth": {
 									"type": "bearer",
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -2969,7 +2970,7 @@
 									}
 								},
 								"url": {
-									"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}/schedule",
+									"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
 									"protocol": "http",
 									"host": [
 										"localhost"
@@ -2978,58 +2979,10 @@
 									"path": [
 										"api",
 										"maintenance-requests",
-										"{{maintenanceId}}",
-										"schedule"
+										"{{maintenanceId}}"
 									]
 								},
 								"description": "Fleet manager schedules regular maintenance (keeps existing maintenanceType from create request)"
-							},
-							"response": []
-						},
-						{
-							"name": "Step 3b: Schedule Monthly Maintenance",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{auth_token}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"scheduledMaintenanceDate\": \"2025-09-15T08:00:00\",\r\n  \"cost\": 2500000.0,\r\n  \"notes\": \"Garage A, 178 Nguyễn Thái Học, Hồ Chí Minh. Thợ Nguyễn Văn B (0901234567).\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}/schedule-monthly",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"maintenance-requests",
-										"{{maintenanceId}}",
-										"schedule-monthly"
-									]
-								},
-								"description": "Fleet manager schedules monthly maintenance (sets maintenanceType to 'Bảo dưỡng định kỳ')"
 							},
 							"response": []
 						},
@@ -3041,7 +2994,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -3083,7 +3036,7 @@
 					"description": "APIs for fleet managers to handle maintenance requests"
 				},
 				{
-					"name": "General APIs",
+					"name": "Monthly Maintenance",
 					"item": [
 						{
 							"name": "All Maintenance Requests",
@@ -3093,7 +3046,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
 											"type": "string"
 										}
 									]
@@ -3148,6 +3101,53 @@
 							"response": []
 						},
 						{
+							"name": "Schedule Monthly Maintenance",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{tokenDriver\n}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"vehicleId\": {{vehicleId}},\r\n  \"scheduledMaintenanceDate\": \"2025-09-15T08:00:00\",\r\n  \"cost\": 1500000.0,\r\n  \"notes\": \"Garage B - Bảo dưỡng định kỳ hàng tháng, kiểm tra toàn diện xe\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8080/api/fleet/maintenance-requests/monthly",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8080",
+									"path": [
+										"api",
+										"fleet",
+										"maintenance-requests",
+										"monthly"
+									]
+								},
+								"description": "Fleet manager creates a new monthly maintenance request. Uses standard JSON format."
+							},
+							"response": []
+						},
+						{
 							"name": "Delete Maintenance Request",
 							"request": {
 								"auth": {
@@ -3181,6 +3181,10 @@
 						}
 					],
 					"description": "General maintenance management APIs"
+				},
+				{
+					"name": "Emergency Maintenance",
+					"item": []
 				}
 			],
 			"description": "Vehicle Maintenance Management APIs - Supporting 7-step workflow:\nStep 1: Driver creates request (POST) | Step 2: Fleet views pending (GET) | Step 3a/3b: Fleet schedules regular/monthly (PUT) | Step 4: Driver views scheduled (GET) | Step 5: Driver takes to garage (PUT) | Step 6: Fleet completes (PUT) | Step 7: Driver picks up (PUT)"

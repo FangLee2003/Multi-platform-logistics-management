@@ -41,17 +41,22 @@ public class MaintenanceRequestService {
     @Autowired
     private StatusRepository statusRepository;
 
+    @Autowired
+    private DriverService driverService;
+
     /**
      * Create maintenance request with auto vehicle detection from driver
      */
     public MaintenanceRequestResponseDTO createMaintenanceRequestByDriver(CreateMaintenanceRequestByDriverDTO createDTO, Long driverId) {
-        // Validate driver exists
+        // Validate driver exists using DriverService
         User driver = userRepository.findById(driverId)
                 .orElseThrow(() -> new EntityNotFoundException("Driver not found with ID: " + driverId));
 
-        // Find vehicle assigned to this driver
-        Vehicle vehicle = vehicleRepository.findFirstByCurrentDriverId(driverId)
-                .orElseThrow(() -> new EntityNotFoundException("No vehicle assigned to driver with ID: " + driverId));
+        // Use DriverService to get current vehicle (follows existing pattern)
+        Vehicle vehicle = driverService.getCurrentVehicle(driverId);
+        if (vehicle == null) {
+            throw new EntityNotFoundException("No vehicle assigned to driver with ID: " + driverId);
+        }
 
         // Validate status exists  
         Status status = statusRepository.findById(createDTO.getStatusId().shortValue())
@@ -61,6 +66,41 @@ public class MaintenanceRequestService {
         MaintenanceRequest maintenanceRequest = new MaintenanceRequest();
         maintenanceRequest.setVehicle(vehicle);
         maintenanceRequest.setCreatedBy(driver);
+        maintenanceRequest.setDescription(createDTO.getDescription());
+        maintenanceRequest.setMaintenanceType(createDTO.getMaintenanceType());
+        maintenanceRequest.setStatus(status);
+        maintenanceRequest.setCost(createDTO.getCost());
+        maintenanceRequest.setMaintenanceDate(createDTO.getMaintenanceDate());
+        maintenanceRequest.setNextDueDate(createDTO.getNextDueDate());
+        maintenanceRequest.setNotes(createDTO.getNotes());
+
+        // Save the maintenance request
+        MaintenanceRequest savedRequest = maintenanceRequestRepository.save(maintenanceRequest);
+
+        return convertToDTO(savedRequest);
+    }
+
+    /**
+     * Create monthly maintenance request by fleet manager
+     */
+    public MaintenanceRequestResponseDTO createMonthlyMaintenanceRequest(CreateMaintenanceRequestByDriverDTO createDTO, Long vehicleId) {
+        // Validate vehicle exists
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new EntityNotFoundException("Vehicle not found with ID: " + vehicleId));
+
+        // For monthly maintenance, we don't need a specific driver - it's initiated by fleet
+        // Use a system user or admin as creator (assuming admin user ID = 1)
+        User systemUser = userRepository.findById(1L)
+                .orElseThrow(() -> new EntityNotFoundException("System user not found"));
+
+        // Validate status exists  
+        Status status = statusRepository.findById(createDTO.getStatusId().shortValue())
+                .orElseThrow(() -> new EntityNotFoundException("Status not found with ID: " + createDTO.getStatusId()));
+
+        // Create new maintenance request
+        MaintenanceRequest maintenanceRequest = new MaintenanceRequest();
+        maintenanceRequest.setVehicle(vehicle);
+        maintenanceRequest.setCreatedBy(systemUser); // Created by fleet/admin
         maintenanceRequest.setDescription(createDTO.getDescription());
         maintenanceRequest.setMaintenanceType(createDTO.getMaintenanceType());
         maintenanceRequest.setStatus(status);

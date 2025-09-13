@@ -2,6 +2,7 @@ package ktc.spring_project.controllers;
 
 import ktc.spring_project.dtos.common.ApiResponse;
 import ktc.spring_project.dtos.maintenance.CreateMaintenanceRequestByDriverDTO;
+import ktc.spring_project.dtos.maintenance.CreateMonthlyMaintenanceRequestDTO;
 import ktc.spring_project.dtos.maintenance.MaintenanceRequestResponseDTO;
 import ktc.spring_project.dtos.maintenance.UpdateMaintenanceRequestDTO;
 import ktc.spring_project.services.MaintenanceRequestService;
@@ -45,7 +46,7 @@ public class MaintenanceRequestController {
      * Step 1: Driver creates maintenance request
      * POST /api/drivers/{driverId}/maintenance-requests
      */
-    @PostMapping("/drivers/{driverId}/maintenance-requests")
+    @PostMapping("/drivers/{driverId}/maintenance-requests/emergency")
     public ResponseEntity<ApiResponse<MaintenanceRequestResponseDTO>> createMaintenanceRequest(
             @PathVariable Long driverId,
             @Valid @RequestBody CreateMaintenanceRequestByDriverDTO createDTO) {
@@ -149,11 +150,47 @@ public class MaintenanceRequestController {
     }
 
     /**
-     * Step 3a: Fleet manager schedules regular maintenance (keeps existing maintenanceType)
-     * PUT /api/maintenance-requests/{maintenanceId}/schedule
+     * POST: Fleet manager creates new monthly maintenance request
+     * POST /api/fleet/maintenance-requests/monthly
      */
-    @PutMapping("/maintenance-requests/{maintenanceId}/schedule")
-    public ResponseEntity<ApiResponse<MaintenanceRequestResponseDTO>> scheduleMaintenanceRegular(
+    @PostMapping("/fleet/maintenance-requests/monthly")
+    public ResponseEntity<ApiResponse<MaintenanceRequestResponseDTO>> createMonthlyMaintenanceRequest(
+            @RequestBody @Valid CreateMonthlyMaintenanceRequestDTO requestDTO) {
+        try {
+            // Create a new maintenance request for monthly maintenance
+            CreateMaintenanceRequestByDriverDTO createDTO = new CreateMaintenanceRequestByDriverDTO();
+            createDTO.setDescription("Bảo dưỡng định kỳ hàng tháng");
+            createDTO.setMaintenanceType("Bảo dưỡng định kỳ");
+            createDTO.setStatusId(19L); // Set to MAINTENANCE status for scheduled monthly maintenance
+            
+            if (requestDTO.getCost() != null) {
+                createDTO.setCost(requestDTO.getCost());
+            }
+            
+            if (requestDTO.getScheduledMaintenanceDate() != null) {
+                createDTO.setMaintenanceDate(java.sql.Timestamp.valueOf(requestDTO.getScheduledMaintenanceDate()));
+            }
+            
+            if (requestDTO.getNotes() != null) {
+                createDTO.setNotes(requestDTO.getNotes());
+            }
+            
+            MaintenanceRequestResponseDTO response = maintenanceRequestService.createMonthlyMaintenanceRequest(createDTO, requestDTO.getVehicleId());
+            
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success(response, "Monthly maintenance request created successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Failed to create monthly maintenance request: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Step 3a: Fleet manager schedules emergency maintenance (keeps existing maintenanceType)
+     * PUT /api/fleet/maintenance-requests/{maintenanceId}/schedule
+     */
+    @PutMapping("/fleet/maintenance-requests/{maintenanceId}/schedule")
+    public ResponseEntity<ApiResponse<MaintenanceRequestResponseDTO>> scheduleMaintenanceEmergency(
             @PathVariable Long maintenanceId,
             @RequestBody Map<String, Object> requestBody) {
         try {
@@ -178,18 +215,18 @@ public class MaintenanceRequestController {
             
             MaintenanceRequestResponseDTO response = maintenanceRequestService.updateMaintenanceRequest(maintenanceId, updateDTO);
             
-            return ResponseEntity.ok(ApiResponse.success(response, "Regular maintenance scheduled successfully"));
+            return ResponseEntity.ok(ApiResponse.success(response, "Emergency maintenance scheduled successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error("Failed to schedule regular maintenance: " + e.getMessage()));
+                    .body(ApiResponse.error("Failed to schedule emergency maintenance: " + e.getMessage()));
         }
     }
 
     /**
      * Step 3b: Fleet manager schedules monthly maintenance (sets maintenanceType to periodic)
-     * PUT /api/maintenance-requests/{maintenanceId}/schedule-monthly
+     * PUT /api/fleet/maintenance-requests/{maintenanceId}/schedule-monthly
      */
-    @PutMapping("/maintenance-requests/{maintenanceId}/schedule-monthly")
+    @PutMapping("/fleet/maintenance-requests/{maintenanceId}/schedule-monthly")
     public ResponseEntity<ApiResponse<MaintenanceRequestResponseDTO>> scheduleMaintenanceMonthly(
             @PathVariable Long maintenanceId,
             @RequestBody Map<String, Object> requestBody) {
@@ -268,9 +305,9 @@ public class MaintenanceRequestController {
 
     /**
      * Get all maintenance requests (general endpoint with filtering)
-     * GET /api/maintenance-requests
+     * GET /api/fleet/maintenance-requests
      */
-    @GetMapping("/maintenance-requests")
+    @GetMapping("/fleet/maintenance-requests/all")
     public ResponseEntity<ApiResponse<Page<MaintenanceRequestResponseDTO>>> getAllMaintenanceRequests(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -295,9 +332,9 @@ public class MaintenanceRequestController {
 
     /**
      * Get maintenance requests summary for dashboard
-     * GET /api/maintenance-requests/summary
+     * GET /api/fleet/maintenance-requests/summary
      */
-    @GetMapping("/maintenance-requests/summary")
+    @GetMapping("/fleet/maintenance-requests/summary")
     public ResponseEntity<ApiResponse<Object>> getMaintenanceRequestsSummary() {
         try {
             // You can customize this summary based on requirements
@@ -311,9 +348,9 @@ public class MaintenanceRequestController {
 
     /**
      * Search maintenance requests by keyword
-     * GET /api/maintenance-requests/search
+     * GET /api/fleet/maintenance-requests/search
      */
-    @GetMapping("/maintenance-requests/search")
+    @GetMapping("/fleet/maintenance-requests/search")
     public ResponseEntity<ApiResponse<Page<MaintenanceRequestResponseDTO>>> searchMaintenanceRequests(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -331,9 +368,9 @@ public class MaintenanceRequestController {
 
     /**
      * Delete maintenance request (admin only)
-     * DELETE /api/maintenance-requests/{maintenanceId}
+     * DELETE /api/fleet/maintenance-requests/{maintenanceId}
      */
-    @DeleteMapping("/maintenance-requests/{maintenanceId}")
+    @DeleteMapping("/fleet/maintenance-requests/{maintenanceId}")
     public ResponseEntity<ApiResponse<Void>> deleteMaintenanceRequest(@PathVariable Long maintenanceId) {
         try {
             maintenanceRequestService.deleteMaintenanceRequest(maintenanceId);
