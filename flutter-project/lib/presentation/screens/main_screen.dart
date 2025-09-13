@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ktc_logistics_driver/presentation/screens/dashboard/dashboard_screen_spatial.dart';
 import 'package:ktc_logistics_driver/presentation/screens/delivery/deliveries_screen.dart';
+import 'package:ktc_logistics_driver/presentation/screens/maintenance/maintenance_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/profile/edit_profile_screen.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 
@@ -28,6 +29,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const DashboardScreenSpatial(showBottomNav: false),
     const DeliveriesScreen(),
+    const MaintenanceScreen(),
     const EditProfileScreen(),
   ];
   
@@ -62,6 +64,10 @@ class _MainScreenState extends State<MainScreen> {
         BottomNavigationBarItem(
           icon: Icon(Icons.local_shipping),
           label: "Deliveries",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.build_circle),
+          label: "Bảo trì",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.account_circle),

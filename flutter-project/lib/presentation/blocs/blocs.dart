@@ -15,3 +15,4 @@ export 'products/products_bloc.dart';
 export 'user/user_bloc.dart';
 export 'my_location/mylocationmap_bloc.dart';
 export 'delivery/delivery_bloc.dart';
+export 'maintenance/maintenance_bloc.dart';

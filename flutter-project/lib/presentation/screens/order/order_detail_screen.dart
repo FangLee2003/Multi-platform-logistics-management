@@ -38,7 +38,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   // For order status
   bool _isOrderAccepted = false;
   bool _isUpdatingStatus = false;
-  String _selectedStatus = 'PENDING';
+  String _selectedStatus = 'CREATED';
 
   // For status update
   final TextEditingController _notesController = TextEditingController();
@@ -150,13 +150,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
           // Update status from API response
           if (orderDetails.status != null) {
-            // Normalize status to match dropdown options format
-            _selectedStatus = orderDetails.status!.toUpperCase();
-            _isOrderAccepted = orderDetails.status!.toUpperCase() != 'PENDING';
+            // Map API status to our new status format
+            _selectedStatus = _mapApiStatusToOrderStatus(orderDetails.status!);
+            _isOrderAccepted = _selectedStatus != 'CREATED';
 
             // Debug print
             debugPrint('Order status from API: ${orderDetails.status}');
-            debugPrint('Normalized status: $_selectedStatus');
+            debugPrint('Mapped status: $_selectedStatus');
+          } else {
+            // Default status if none provided
+            _selectedStatus = 'CREATED';
+            _isOrderAccepted = false;
           }
         });
       } else {
@@ -170,6 +174,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         _isLoading = false;
         _errorMessage = 'Error: $e';
       });
+    }
+  }
+
+  // Helper method to map API status to our order status format
+  String _mapApiStatusToOrderStatus(String apiStatus) {
+    final normalizedStatus = apiStatus.toUpperCase();
+    
+    // Map old API status to new order status
+    switch (normalizedStatus) {
+      case 'PENDING':
+        return 'CREATED';
+      case 'PROCESSING':
+        return 'CONFIRMED';
+      case 'IN_TRANSIT':
+        return 'ON_DELIVERY';
+      case 'DELIVERED':
+        return 'DELIVERED_PAID';
+      case 'CANCELLED':
+        return 'CANCELLED';
+      case 'RETURNED':
+        return 'FAILED';
+      // If it already matches our new format, use it directly
+      case 'CREATED':
+      case 'CONFIRMED':
+      case 'ON_DELIVERY':
+      case 'DELIVERED_AWAIT':
+      case 'DELIVERED_PAID':
+      case 'FAILED':
+        return normalizedStatus;
+      default:
+        return 'CREATED'; // Default fallback
     }
   }
 
@@ -480,6 +515,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   // Get progress value based on status
   double _getStatusProgress(String status) {
     switch (status.toUpperCase()) {
+      case 'CREATED':
+        return 0.1;
+      case 'CONFIRMED':
+        return 0.3;
+      case 'ON_DELIVERY':
+        return 0.65;
+      case 'DELIVERED_AWAIT':
+        return 0.85;
+      case 'DELIVERED_PAID':
+        return 1.0;
+      case 'CANCELLED':
+        return 0.0;
+      case 'FAILED':
+        return 0.0;
+      // Keep old status progress for backward compatibility
       case 'PENDING':
         return 0.1;
       case 'PROCESSING':
@@ -488,8 +538,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         return 0.65;
       case 'DELIVERED':
         return 1.0;
-      case 'CANCELLED':
-        return 0.0;
       case 'RETURNED':
         return 0.85;
       default:
@@ -500,6 +548,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   // Get status description
   String _getStatusDescription(String status) {
     switch (status.toUpperCase()) {
+      case 'CREATED':
+        return "Order created";
+      case 'CONFIRMED':
+        return "Order confirmed";
+      case 'ON_DELIVERY':
+        return "Out for delivery";
+      case 'DELIVERED_AWAIT':
+        return "Delivered, awaiting payment";
+      case 'DELIVERED_PAID':
+        return "Delivered and paid";
+      case 'CANCELLED':
+        return "Order cancelled";
+      case 'FAILED':
+        return "Order failed";
+      // Keep old status descriptions for backward compatibility
       case 'PENDING':
         return "Awaiting processing";
       case 'PROCESSING':
@@ -508,8 +571,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         return "Out for delivery";
       case 'DELIVERED':
         return "Order delivered";
-      case 'CANCELLED':
-        return "Order cancelled";
       case 'RETURNED':
         return "Order returned";
       default:
@@ -1466,18 +1527,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     // Use the existing controller from the state
     _notesController.clear();
 
-    // List of status options - using the same options as in the OrderStatusId class
-    final List<String> statusOptions = [
-      "PENDING",
-      "PROCESSING",
-      "IN_TRANSIT",
-      "DELIVERED",
-      "CANCELLED",
-      "RETURNED"
+    // List of status options with their IDs and names for ORDER type
+    final List<Map<String, dynamic>> statusOptions = [
+      {"id": 1, "name": "CREATED", "display": "Created"},
+      {"id": 2, "name": "CONFIRMED", "display": "Confirmed"},
+      {"id": 3, "name": "ON_DELIVERY", "display": "On Delivery"},
+      {"id": 4, "name": "DELIVERED_AWAIT", "display": "Delivered (Awaiting Payment)"},
+      {"id": 5, "name": "DELIVERED_PAID", "display": "Delivered (Paid)"},
+      {"id": 6, "name": "CANCELLED", "display": "Cancelled"},
+      {"id": 50, "name": "FAILED", "display": "Failed"}
     ];
 
     // Load current order status if available
-    // Use the _selectedStatus that's already in the state
+    // Use the _selectedStatus that's already mapped from API
     debugPrint('Current order status: $_selectedStatus');
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1603,21 +1665,45 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         ? SpatialDesignSystem.textDarkPrimaryColor
                         : SpatialDesignSystem.textPrimaryColor,
                   ),
-                  items: statusOptions.map((String status) {
+                  items: statusOptions.map((Map<String, dynamic> status) {
                     return DropdownMenuItem<String>(
-                      value: status,
+                      value: status["name"],
                       child: Row(
                         children: [
                           Container(
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: _getStatusColor(status),
+                              color: _getStatusColor(status["name"]),
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(status.replaceAll('_', ' ')),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  status["display"],
+                                  style: SpatialDesignSystem.bodyMedium.copyWith(
+                                    color: isDark
+                                        ? SpatialDesignSystem.textDarkPrimaryColor
+                                        : SpatialDesignSystem.textPrimaryColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  "ID: ${status["id"]}",
+                                  style: SpatialDesignSystem.captionText.copyWith(
+                                    color: isDark
+                                        ? SpatialDesignSystem.textDarkSecondaryColor
+                                        : SpatialDesignSystem.textSecondaryColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     );
@@ -1826,21 +1912,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   // Get color for status
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
+      case 'CREATED':
+        return SpatialDesignSystem.primaryColor; // Blue
+      case 'CONFIRMED':
+        return SpatialDesignSystem.warningColor; // Orange/Yellow
+      case 'ON_DELIVERY':
+        return Colors.blue; // Blue for in transit
+      case 'DELIVERED_AWAIT':
+        return SpatialDesignSystem.warningColor; // Orange for awaiting payment
+      case 'DELIVERED_PAID':
+        return SpatialDesignSystem.successColor; // Green for completed
+      case 'CANCELLED':
+        return SpatialDesignSystem.errorColor; // Red
+      case 'FAILED':
+        return SpatialDesignSystem.errorColor; // Red
+      // Keep old status colors for backward compatibility
       case 'PENDING':
         return SpatialDesignSystem.warningColor; // Orange/Yellow
       case 'PROCESSING':
-        return SpatialDesignSystem
-            .primaryColor; // Use primary color instead of info
+        return SpatialDesignSystem.primaryColor; // Use primary color
       case 'IN_TRANSIT':
         return SpatialDesignSystem.warningColor; // Orange/Yellow
       case 'DELIVERED':
         return SpatialDesignSystem.successColor; // Green
-      case 'CANCELLED':
-        return SpatialDesignSystem.errorColor; // Red
       case 'RETURNED':
         return SpatialDesignSystem.errorColor; // Red
       default:
-        return SpatialDesignSystem.warningColor; // Default to orange/yellow
+        return SpatialDesignSystem.primaryColor; // Default to primary color
     }
   }
 }
