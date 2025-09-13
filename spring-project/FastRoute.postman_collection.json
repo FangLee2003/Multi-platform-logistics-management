@@ -26,7 +26,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{ \r\n    \"email\": \"driver@gmail.com\",\r\n    \"password\": \"123456\" \r\n}",
+							"raw": "{ \r\n    \"email\": \"fleet@fr.com\",\r\n    \"password\": \"123456\" \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2673,7 +2673,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+											"value": "{{tokenDriver\n}}",
 											"type": "string"
 										}
 									]
@@ -2760,7 +2760,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+											"value": "{{tokenDriver\n}}",
 											"type": "string"
 										}
 									]
@@ -2806,7 +2806,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "{{tokenDriver\n}}",
 											"type": "string"
 										}
 									]
@@ -2858,7 +2858,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+											"value": "{{tokenFleet}}",
 											"type": "string"
 										}
 									]
@@ -2915,7 +2915,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+											"value": "{{tokenFleet}}",
 											"type": "string"
 										}
 									]
@@ -2948,7 +2948,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+											"value": "{{tokenFleet}}",
 											"type": "string"
 										}
 									]
@@ -3046,7 +3046,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+											"value": "{{tokenFleet}}",
 											"type": "string"
 										}
 									]
@@ -3054,7 +3054,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8080/api/maintenance-requests?page=0&size=20",
+									"raw": "http://localhost:8080/api/fleet/maintenance-requests?page=0&size=20",
 									"protocol": "http",
 									"host": [
 										"localhost"
@@ -3062,6 +3062,7 @@
 									"port": "8080",
 									"path": [
 										"api",
+										"fleet",
 										"maintenance-requests"
 									],
 									"query": [
@@ -3108,7 +3109,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{tokenDriver\n}}",
+											"value": "{{tokenFleet}}",
 											"type": "string"
 										}
 									]
@@ -3155,7 +3156,7 @@
 									"bearer": [
 										{
 											"key": "token",
-											"value": "{{auth_token}}",
+											"value": "{{tokenFleet}}",
 											"type": "string"
 										}
 									]
@@ -3163,7 +3164,7 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
+									"raw": "http://localhost:8080/api/fleet/maintenance-requests/{{maintenanceId}}",
 									"protocol": "http",
 									"host": [
 										"localhost"
@@ -3171,6 +3172,7 @@
 									"port": "8080",
 									"path": [
 										"api",
+										"fleet",
 										"maintenance-requests",
 										"{{maintenanceId}}"
 									]
