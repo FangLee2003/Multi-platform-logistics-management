@@ -60,7 +60,7 @@ class MaintenanceServices {
       };
 
       final response = await _httpClient.post(
-        '/api/drivers/$driverId/maintenance-requests',
+        '/drivers/$driverId/maintenance-requests',
         body: createDto,
       );
 
@@ -85,11 +85,17 @@ class MaintenanceServices {
     int size = 10,
     String? status,
     String? maintenanceType,
+    bool useCache = true, // Thêm tham số useCache
   }) async {
+    print('🌐 MaintenanceServices: getDriverMaintenanceRequests called');
+    print('🌐 MaintenanceServices: useCache = $useCache');
+    
     final driverId = await _getDriverId();
     if (driverId == null) {
+      print('❌ MaintenanceServices: Driver ID not found');
       throw Exception('Driver ID not found');
     }
+    print('✅ MaintenanceServices: Driver ID found: $driverId');
 
     try {
       final Map<String, String> queryParams = {
@@ -104,18 +110,29 @@ class MaintenanceServices {
         queryParams['maintenanceType'] = maintenanceType;
       }
 
+      final endpoint = '/drivers/$driverId/maintenance-requests';
+      print('🌐 MaintenanceServices: Making API call to: $baseUrl$endpoint');
+      print('🌐 MaintenanceServices: Query params: $queryParams');
+
       final response = await _httpClient.get(
-        '/api/drivers/$driverId/maintenance-requests',
+        endpoint,
         queryParams: queryParams,
+        useCache: useCache, // Sử dụng giá trị useCache
       );
 
+      print('✅ MaintenanceServices: API response received');
+      
       final data = response['data'] as Map<String, dynamic>;
       final content = data['content'] as List<dynamic>;
       
-      return content
+      final requests = content
           .map((json) => MaintenanceRequest.fromJson(json as Map<String, dynamic>))
           .toList();
+      
+      print('✅ MaintenanceServices: Parsed ${requests.length} maintenance requests');
+      return requests;
     } catch (e) {
+      print('❌ MaintenanceServices: Error during API call: $e');
       throw Exception('Failed to fetch driver maintenance requests: $e');
     }
   }
@@ -136,7 +153,7 @@ class MaintenanceServices {
 
     try {
       final response = await _httpClient.get(
-        '/api/drivers/$driverId/maintenance-requests/$maintenanceId',
+        '/drivers/$driverId/maintenance-requests/$maintenanceId',
       );
 
       final data = response['data'] as Map<String, dynamic>;
@@ -163,7 +180,7 @@ class MaintenanceServices {
     }
 
     try {
-      String url = '/api/drivers/$driverId/maintenance-requests/$maintenanceId/to-garage';
+      String url = '/drivers/$driverId/maintenance-requests/$maintenanceId/to-garage';
       
       if (notes != null) {
         url += '?notes=${Uri.encodeComponent(notes)}';
@@ -198,13 +215,17 @@ class MaintenanceServices {
     }
 
     try {
-      String url = '/api/drivers/$driverId/maintenance-requests/$maintenanceId/pickup';
+      String url = '/maintenance-requests/$maintenanceId';
       
-      if (notes != null) {
-        url += '?notes=${Uri.encodeComponent(notes)}';
-      }
+      // if (notes != null) {
+      //   url += '?notes=${Uri.encodeComponent(notes)}';
+      // }
 
-      final response = await _httpClient.put(url);
+      final body = {
+        'statusId': 18,
+      };
+
+      final response = await _httpClient.put(url, body: body);
 
       final data = response['data'] as Map<String, dynamic>;
       return MaintenanceRequest.fromJson(data);
@@ -231,7 +252,7 @@ class MaintenanceServices {
 
     try {
       final response = await _httpClient.put(
-        '/api/drivers/$driverId/maintenance-requests/$maintenanceId/cancel?reason=${Uri.encodeComponent(reason)}',
+        '/drivers/$driverId/maintenance-requests/$maintenanceId/cancel?reason=${Uri.encodeComponent(reason)}',
       );
 
       final data = response['data'] as Map<String, dynamic>;
@@ -253,7 +274,7 @@ class MaintenanceServices {
 
     try {
       final response = await _httpClient.get(
-        '/api/drivers/$driverId/maintenance-requests/counts',
+        '/drivers/$driverId/maintenance-requests/counts',
       );
 
       final data = response['data'] as Map<String, dynamic>;

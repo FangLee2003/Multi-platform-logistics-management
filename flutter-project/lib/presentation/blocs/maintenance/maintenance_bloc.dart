@@ -144,37 +144,37 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
   MaintenanceBloc({
     required MaintenanceServices apiService,
   }) : _apiService = apiService, super(const MaintenanceInitial()) {
+    print('🏗️ MaintenanceBloc: Constructor called');
     
     on<LoadMaintenanceRequests>(_onLoadMaintenanceRequests);
+    print('🏗️ MaintenanceBloc: LoadMaintenanceRequests handler registered');
+    
     on<RefreshMaintenanceRequests>(_onRefreshMaintenanceRequests);
+    print('🏗️ MaintenanceBloc: RefreshMaintenanceRequests handler registered');
+    
     on<CreateMaintenanceRequest>(_onCreateMaintenanceRequest);
     on<UpdateMaintenanceRequest>(_onUpdateMaintenanceRequest);
     on<DeleteMaintenanceRequest>(_onDeleteMaintenanceRequest);
+    
+    print('🏗️ MaintenanceBloc: All event handlers registered');
   }
 
   Future<void> _onLoadMaintenanceRequests(
     LoadMaintenanceRequests event,
     Emitter<MaintenanceState> emit,
   ) async {
+    emit(const MaintenanceLoading());
     try {
-      emit(const MaintenanceLoading());
-
-      final requests = await _apiService.getDriverMaintenanceRequests(
-        page: event.page,
-        size: event.size,
-        status: event.statusIdFilter?.toString(),
-      );
-
-      emit(MaintenanceLoaded(
-        requests: requests,
-        totalPages: 1, // TODO: Get from API response pagination
-        currentPage: event.page,
-      ));
+      // useCache = false để đảm bảo luôn gọi API mới
+      final requests = await _apiService.getDriverMaintenanceRequests(useCache: false);
+      
+      if (requests.isEmpty) {
+        emit(const MaintenanceLoaded(requests: [], totalPages: 1, currentPage: 1));
+      } else {
+        emit(MaintenanceLoaded(requests: requests, totalPages: 1, currentPage: 1));
+      }
     } catch (e) {
-      emit(MaintenanceError(
-        message: 'Failed to load maintenance requests',
-        details: e.toString(),
-      ));
+      emit(MaintenanceError(message: 'Không thể tải danh sách bảo trì: ${e.toString()}', details: e.toString()));
     }
   }
 
@@ -182,22 +182,30 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
     RefreshMaintenanceRequests event,
     Emitter<MaintenanceState> emit,
   ) async {
+    print('🔄 MaintenanceBloc: _onRefreshMaintenanceRequests method CALLED!');
+    print('🔄 MaintenanceBloc: Event type: ${event.runtimeType}');
+    print('🔄 MaintenanceBloc: Current state: ${state.runtimeType}');
+    print('🔄 MaintenanceBloc: Refresh button pressed - starting refresh...');
     try {
+      // Emit loading state first để UI biết đang refresh
+      emit(const MaintenanceLoading());
+      print('🔄 MaintenanceBloc: Loading state emitted, calling API...');
+
       final requests = await _apiService.getDriverMaintenanceRequests();
+      print('🔄 MaintenanceBloc: API call successful, received ${requests.length} requests');
 
       emit(MaintenanceLoaded(
         requests: requests,
         totalPages: 1,
         currentPage: 1,
       ));
+      print('🔄 MaintenanceBloc: MaintenanceLoaded state emitted');
     } catch (e) {
-      // On refresh error, keep existing state but could show snackbar
-      if (state is! MaintenanceLoaded) {
-        emit(MaintenanceError(
-          message: 'Failed to refresh maintenance requests',
-          details: e.toString(),
-        ));
-      }
+      print('❌ MaintenanceBloc: Error during refresh: $e');
+      emit(MaintenanceError(
+        message: 'Failed to refresh maintenance requests',
+        details: e.toString(),
+      ));
     }
   }
 

@@ -4,7 +4,7 @@ import 'package:ktc_logistics_driver/domain/models/delivery/delivery_detail_resp
 import 'package:ktc_logistics_driver/domain/models/order/order_status_update.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_button.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
-import 'package:ktc_logistics_driver/presentation/components/spatial_text_field.dart';
+import 'package:ktc_logistics_driver/presentation/components/status_update_modal.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_screen.dart';
 import 'package:ktc_logistics_driver/services/delivery_services.dart';
@@ -1323,198 +1323,116 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
   // Show dialog to update order status
   void _showOrderStatusUpdateDialog(dynamic order) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final TextEditingController notesController = TextEditingController();
-    bool isUpdating = false;
-
-    // List of available order statuses - ensure it matches _statusOptions format
-    final List<String> orderStatusOptions = [
-      'Assigned',
-      'Started',
-      'In Progress',
-      'Completed',
-      'Cancelled'
+    // List of available order statuses for delivery - using standardized 7-status list
+    final List<Map<String, dynamic>> statusOptions = [
+      {"id": 1, "name": "CREATED", "display": "Created"},
+      {"id": 2, "name": "CONFIRMED", "display": "Confirmed"},
+      {"id": 3, "name": "ON_DELIVERY", "display": "On Delivery"},
+      {"id": 4, "name": "DELIVERED_AWAIT", "display": "Delivered (Awaiting Payment)"},
+      {"id": 5, "name": "DELIVERED_PAID", "display": "Delivered (Paid)"},
+      {"id": 6, "name": "CANCELLED", "display": "Cancelled"},
+      {"id": 50, "name": "FAILED", "display": "Failed"}
     ];
 
-    // Convert API status to UI status format
-    String selectedStatus = _mapApiStatusToUiStatus(order.status ?? 'ASSIGNED');
+    // Convert API status to status name
+    String currentStatus = _mapApiStatusToStatusName(order.status ?? 'CREATED');
 
-    // Make sure selectedStatus is in the orderStatusOptions list
-    if (!orderStatusOptions.contains(selectedStatus)) {
-      selectedStatus = orderStatusOptions.first;
-    }
-
-    showDialog(
+    showStatusUpdateModal(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: isDark
-                  ? SpatialDesignSystem.darkBackgroundColor
-                  : SpatialDesignSystem.backgroundColor,
-              title: Text(
-                "Update Order Status",
-                style: SpatialDesignSystem.subtitleMedium.copyWith(
-                  color: isDark
-                      ? SpatialDesignSystem.textDarkPrimaryColor
-                      : SpatialDesignSystem.textPrimaryColor,
-                ),
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Order #${order.orderCode ?? order.id}",
-                      style: SpatialDesignSystem.bodyMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: SpatialDesignSystem.primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: selectedStatus,
-                      decoration: InputDecoration(
-                        labelText: 'Status',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        filled: true,
-                        fillColor: isDark
-                            ? Colors.black.withValues(alpha: 0.2)
-                            : Colors.white.withValues(alpha: 0.8),
-                      ),
-                      items: orderStatusOptions.map((status) {
-                        return DropdownMenuItem<String>(
-                          value: status,
-                          child: Text(status),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            selectedStatus = newValue;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    SpatialTextField(
-                      controller: notesController,
-                      label: "Notes",
-                      hint: "Add notes about status change",
-                      maxLines: 3,
-                      isGlass: true,
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    "Cancel",
-                    style: TextStyle(
-                        color: SpatialDesignSystem.textSecondaryColor),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: SpatialDesignSystem.primaryColor,
-                  ),
-                  onPressed: isUpdating
-                      ? null
-                      : () async {
-                          // Validate selected status
-                          if (selectedStatus.isEmpty ||
-                              !orderStatusOptions.contains(selectedStatus)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Invalid status selected'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-
-                          setState(() {
-                            isUpdating = true;
-                          });
-
-                          // Get the status ID based on the selected status
-                          final int statusId =
-                              _getStatusIdFromString(selectedStatus);
-
-                          // Create the update model
-                          final statusUpdate = OrderStatusUpdate(
-                            statusId: statusId,
-                            notes: notesController.text,
-                          );
-
-                          // Call API service to update order status
-                          final success =
-                              await ordersServices.updateOrderStatus(
-                            orderId: order.id,
-                            statusUpdate: statusUpdate,
-                          );
-
-                          // Pop the dialog regardless of result
-                          Navigator.pop(context);
-
-                          if (success) {
-                            // Show success message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    'Order status updated to $selectedStatus'),
-                                backgroundColor:
-                                    SpatialDesignSystem.successColor,
-                              ),
-                            );
-
-                            // Refresh delivery details to show updated status
-                            _loadDeliveryDetails();
-                          } else {
-                            // Show error message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to update order status'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                  child: Text(
-                    isUpdating ? "Updating..." : "Update",
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            );
-          },
+      title: "Update Order Status",
+      itemId: "Order #${order.orderCode ?? order.id}",
+      currentStatus: currentStatus,
+      statusOptions: statusOptions,
+      getStatusColor: _getStatusColorFromName,
+      onUpdateStatus: (String status, String notes) async {
+        // Create the update model using OrderStatusId.fromStatusName for consistency
+        final statusUpdate = OrderStatusUpdate(
+          statusId: OrderStatusId.fromStatusName(status),
+          notes: notes.isNotEmpty ? notes : null,
         );
+
+        // Call API service to update order status
+        final success = await ordersServices.updateOrderStatus(
+          orderId: order.id,
+          statusUpdate: statusUpdate,
+        );
+
+        if (success) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Order status updated to $status'),
+              backgroundColor: SpatialDesignSystem.successColor,
+            ),
+          );
+
+          // Refresh delivery details to show updated status
+          _loadDeliveryDetails();
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to update order status'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       },
     );
   }
 
-  // Convert status string to status ID for API
-  int _getStatusIdFromString(String status) {
-    switch (status.toUpperCase()) {
-      case 'PENDING':
-        return 1;
+  // Helper method to map API status to status name - updated for standardized 7-status system
+  String _mapApiStatusToStatusName(String apiStatus) {
+    switch (apiStatus.toUpperCase()) {
+      // Map old delivery statuses to new order statuses
       case 'ASSIGNED':
-        return 2;
+        return 'CREATED';
+      case 'STARTED':
+        return 'CONFIRMED';
       case 'IN_PROGRESS':
-        return 3;
-      case 'DELIVERED':
-        return 4;
+      case 'INPROGRESS':
+        return 'ON_DELIVERY';
+      case 'COMPLETED':
+        return 'DELIVERED_PAID';
       case 'CANCELLED':
-        return 5;
+        return 'CANCELLED';
+      // Direct mappings for standard order statuses
+      case 'CREATED':
+        return 'CREATED';
+      case 'CONFIRMED':
+        return 'CONFIRMED';
+      case 'ON_DELIVERY':
+        return 'ON_DELIVERY';
+      case 'DELIVERED_AWAIT':
+        return 'DELIVERED_AWAIT';
+      case 'DELIVERED_PAID':
+        return 'DELIVERED_PAID';
+      case 'FAILED':
+        return 'FAILED';
       default:
-        return 1; // Default to pending
+        return 'CREATED';
+    }
+  }
+
+  // Helper method to get status color from name - updated for standardized 7-status system
+  Color _getStatusColorFromName(String statusName) {
+    switch (statusName.toUpperCase()) {
+      case 'CREATED':
+        return SpatialDesignSystem.primaryColor; // Blue
+      case 'CONFIRMED':
+        return SpatialDesignSystem.warningColor; // Orange/Yellow
+      case 'ON_DELIVERY':
+        return Colors.blue; // Blue for in transit
+      case 'DELIVERED_AWAIT':
+        return SpatialDesignSystem.warningColor; // Orange for awaiting payment
+      case 'DELIVERED_PAID':
+        return SpatialDesignSystem.successColor; // Green for completed
+      case 'CANCELLED':
+        return SpatialDesignSystem.errorColor; // Red
+      case 'FAILED':
+        return SpatialDesignSystem.errorColor; // Red
+      default:
+        return SpatialDesignSystem.primaryColor; // Default to primary color
     }
   }
 
@@ -1611,7 +1529,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       final deliveryId = _deliveryDetail?.id ?? int.parse(widget.deliveryId);
       final vehicleId = _deliveryDetail?.vehicle?.id ??
           1; // Default vehicle ID if not available
-      final statusId = _getStatusIdFromString(_selectedStatus);
+      final statusId = OrderStatusId.fromStatusName(_selectedStatus);
 
       // Start background tracking service
       final locationService = LocationService();

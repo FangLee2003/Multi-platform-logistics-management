@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
 import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_login_screen.dart';
@@ -177,20 +176,14 @@ class _OnboardingStartScreenState extends State<OnboardingStartScreen> {
   }
 
   Future<void> _checkOnboardingAndNavigate() async {
-    // Check if the user has completed onboarding using secure storage
-    const storage = FlutterSecureStorage();
-    final hasCompletedOnboarding =
-        await storage.read(key: 'onboarding_completed') == 'true';
-
-    if (context.mounted) {
-      if (!hasCompletedOnboarding) {
-        // Navigate to onboarding screen
+    // Always show onboarding for demo purposes
+    // Use addPostFrameCallback to ensure navigation happens after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) {
+        // Navigate to onboarding screen every time for demo
         Navigator.of(context).pushReplacementNamed('/onboarding');
-      } else {
-        // Navigate directly to login
-        Navigator.of(context).pushReplacementNamed('/login');
       }
-    }
+    });
   }
 
   @override

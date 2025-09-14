@@ -28,34 +28,37 @@ class OrderStatusUpdate {
   }
 }
 
-// Mapping statusId cho đơn hàng
+// Mapping statusId cho đơn hàng - updated for standardized 7-status system
 class OrderStatusId {
-  static const int PENDING = 1;
-  static const int PROCESSING = 2;
-  static const int IN_TRANSIT = 3;
-  static const int DELIVERED = 4;
-  static const int CANCELLED = 5;
-  static const int RETURNED = 6;
+  // New standardized status IDs
+  static const int CREATED = 1;
+  static const int CONFIRMED = 2;
+  static const int ON_DELIVERY = 3;
+  static const int DELIVERED_AWAIT = 4;
+  static const int DELIVERED_PAID = 5;
+  static const int CANCELLED = 6;
+  static const int FAILED = 50;
   
   // Chuyển đổi từ tên trạng thái sang id
   static int fromStatusName(String statusName) {
     switch (statusName.toUpperCase()) {
-      case 'PENDING':
-        return PENDING;
-      case 'PROCESSING':
-        return PROCESSING;
-      case 'IN_TRANSIT':
-      case 'IN PROGRESS':
-        return IN_TRANSIT;
-      case 'DELIVERED':
-      case 'COMPLETED':
-        return DELIVERED;
+      // Standardized statuses
+      case 'CREATED':
+        return CREATED;
+      case 'CONFIRMED':
+        return CONFIRMED;
+      case 'ON_DELIVERY':
+        return ON_DELIVERY;
+      case 'DELIVERED_AWAIT':
+        return DELIVERED_AWAIT;
+      case 'DELIVERED_PAID':
+        return DELIVERED_PAID;
       case 'CANCELLED':
         return CANCELLED;
-      case 'RETURNED':
-        return RETURNED;
+      case 'FAILED':
+        return FAILED;
       default:
-        return PENDING;
+        return CREATED; // Default to CREATED
     }
   }
 }

@@ -285,10 +285,25 @@ public class MaintenanceRequestController {
                 updateDTO.setNextDueDate(Timestamp.valueOf(dateStr.replace("T", " ")));
             }
             
-            // Note: Do not update notes, cost, or maintenanceType in unified endpoint
-            // - notes are preserved (garage info from scheduling)
-            // - cost was set during scheduling
-            // - maintenanceType was set during creation or monthly scheduling
+            // Support for scheduling fields (scheduledMaintenanceDate, cost, notes)
+            if (requestBody.containsKey("scheduledMaintenanceDate")) {
+                String dateStr = (String) requestBody.get("scheduledMaintenanceDate");
+                updateDTO.setMaintenanceDate(Timestamp.valueOf(dateStr.replace("T", " ")));
+            }
+            
+            if (requestBody.containsKey("cost")) {
+                updateDTO.setCost(java.math.BigDecimal.valueOf(((Number) requestBody.get("cost")).doubleValue()));
+            }
+            
+            if (requestBody.containsKey("notes")) {
+                updateDTO.setNotes((String) requestBody.get("notes"));
+            }
+            
+            // Support for direct maintenanceDate field as well
+            if (requestBody.containsKey("maintenanceDate")) {
+                String dateStr = (String) requestBody.get("maintenanceDate");
+                updateDTO.setMaintenanceDate(Timestamp.valueOf(dateStr.replace("T", " ")));
+            }
             
             MaintenanceRequestResponseDTO response = maintenanceRequestService.updateMaintenanceRequest(maintenanceId, updateDTO);
             

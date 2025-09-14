@@ -47,7 +47,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen>
             : SpatialDesignSystem.backgroundColor,
         title: Text(
           'Deliveries',
-          style: SpatialDesignSystem.subtitleLarge.copyWith(
+          style: SpatialDesignSystem.headingMedium.copyWith(
             color: isDark
                 ? SpatialDesignSystem.textDarkPrimaryColor
                 : SpatialDesignSystem.textPrimaryColor,
@@ -65,8 +65,10 @@ class _DeliveriesScreenState extends State<DeliveriesScreen>
                   : SpatialDesignSystem.textPrimaryColor,
             ),
             onPressed: () {
+              print('🔄 UI: Delivery refresh button pressed!');
               // Reload deliveries from API
               context.read<DeliveryBloc>().add(LoadDeliveriesEvent());
+              print('🔄 UI: LoadDeliveriesEvent dispatched');
               
               // Show loading indicator
               ScaffoldMessenger.of(context).showSnackBar(

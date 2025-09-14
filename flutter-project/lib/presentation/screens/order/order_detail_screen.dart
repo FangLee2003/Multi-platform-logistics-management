@@ -6,6 +6,7 @@ import 'package:ktc_logistics_driver/services/orders_services.dart';
 import '../../design/spatial_ui.dart';
 import '../../components/spatial_button.dart';
 import '../../components/spatial_glass_card.dart';
+import '../../components/status_update_modal.dart';
 import '../../helpers/url_launcher_frave.dart';
 import '../../../services/googlemaps_services.dart';
 import 'package:intl/intl.dart';
@@ -39,9 +40,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   bool _isUpdatingStatus = false;
   String _selectedStatus = 'CREATED';
 
-  // For status update
-  final TextEditingController _notesController = TextEditingController();
-
   // For API integration
   bool _isLoading = true;
   String _errorMessage = '';
@@ -69,7 +67,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
@@ -516,11 +513,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           // Add Update Status button below the progress bar
           const SizedBox(height: 16),
           SpatialButton(
-            text: "Update Status",
-            onPressed: _showOrderStatusUpdateDialog,
-            iconData: Icons.track_changes_outlined,
+            text: _isUpdatingStatus ? "Updating..." : "Update Status",
+            onPressed: _isUpdatingStatus ? () {} : _showOrderStatusUpdateDialog,
+            iconData: _isUpdatingStatus ? Icons.hourglass_empty : Icons.track_changes_outlined,
             isGlass: true,
-            textColor: SpatialDesignSystem.primaryColor,
+            textColor: _isUpdatingStatus 
+                ? SpatialDesignSystem.primaryColor.withOpacity(0.6)
+                : SpatialDesignSystem.primaryColor,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             width: double.infinity,
           ),
@@ -1405,9 +1404,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     // Check if widget is still mounted before proceeding
     if (!mounted) return;
     
-    // Use the existing controller from the state
-    _notesController.clear();
-
     // List of status options with their IDs and names for ORDER type
     final List<Map<String, dynamic>> statusOptions = [
       {"id": 1, "name": "CREATED", "display": "Created"},
@@ -1419,312 +1415,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       {"id": 50, "name": "FAILED", "display": "Failed"}
     ];
 
-    // Load current order status if available
-    // Use the _selectedStatus that's already mapped from API
-    debugPrint('Current order status: $_selectedStatus');
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog(
+    showStatusUpdateModal(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: GlassCard(
-          padding: const EdgeInsets.all(24),
-          gradient: LinearGradient(
-            colors: [
-              SpatialDesignSystem.primaryColor.withOpacity(0.1),
-              SpatialDesignSystem.accentColor.withOpacity(0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: SpatialDesignSystem.primaryColor
-                          .withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.update,
-                      size: 22,
-                      color: SpatialDesignSystem.primaryColor,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Update Order Status",
-                    style: SpatialDesignSystem.subtitleMedium.copyWith(
-                      color: isDark
-                          ? SpatialDesignSystem.textDarkPrimaryColor
-                          : SpatialDesignSystem.textPrimaryColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+      title: "Update Order Status",
+      itemId: "Order #${widget.orderId}",
+      currentStatus: _selectedStatus,
+      statusOptions: statusOptions,
+      getStatusColor: _getStatusColor,
+      onUpdateStatus: (String status, String notes) {
+        // Create status update object
+        final OrderStatusUpdate statusUpdate = OrderStatusUpdate(
+          statusId: OrderStatusId.fromStatusName(status),
+          notes: notes.isNotEmpty ? notes : null,
+        );
 
-              const SizedBox(height: 20),
-              const Divider(),
-              const SizedBox(height: 16),
-
-              // Order ID
-              Text(
-                "Order #${widget.orderId}",
-                style: SpatialDesignSystem.bodyMedium.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: SpatialDesignSystem.primaryColor,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Status dropdown
-              Text(
-                "Select new status:",
-                style: SpatialDesignSystem.bodyMedium.copyWith(
-                  color: isDark
-                      ? SpatialDesignSystem.textDarkSecondaryColor
-                      : SpatialDesignSystem.textSecondaryColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: DropdownButtonFormField<String>(
-                  value: _selectedStatus,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.1),
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.1),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: SpatialDesignSystem.primaryColor,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? Colors.black.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.8),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                  ),
-                  style: SpatialDesignSystem.bodyMedium.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkPrimaryColor
-                        : SpatialDesignSystem.textPrimaryColor,
-                  ),
-                  items: statusOptions.map((Map<String, dynamic> status) {
-                    return DropdownMenuItem<String>(
-                      value: status["name"],
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(status["name"]),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                status["display"],
-                                style: SpatialDesignSystem.bodyMedium.copyWith(
-                                  color: isDark
-                                      ? SpatialDesignSystem.textDarkPrimaryColor
-                                      : SpatialDesignSystem.textPrimaryColor,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                "ID: ${status["id"]}",
-                                style: SpatialDesignSystem.captionText.copyWith(
-                                  color: isDark
-                                      ? SpatialDesignSystem.textDarkSecondaryColor
-                                      : SpatialDesignSystem.textSecondaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      _selectedStatus = newValue;
-                    }
-                  },
-                  icon: Icon(
-                    Icons.arrow_drop_down,
-                    color: SpatialDesignSystem.primaryColor,
-                  ),
-                  dropdownColor: isDark
-                      ? SpatialDesignSystem.darkBackgroundColor
-                      : SpatialDesignSystem.backgroundColor,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Notes field
-              Text(
-                "Add notes (optional):",
-                style: SpatialDesignSystem.bodyMedium.copyWith(
-                  color: isDark
-                      ? SpatialDesignSystem.textDarkSecondaryColor
-                      : SpatialDesignSystem.textSecondaryColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _notesController,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.1),
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.1),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                        color: SpatialDesignSystem.primaryColor,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? Colors.black.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.8),
-                    hintText: "Enter notes about status change",
-                    hintStyle: TextStyle(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.5)
-                          : Colors.black.withOpacity(0.5),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                  ),
-                  maxLines: 3,
-                  style: SpatialDesignSystem.bodyMedium.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkPrimaryColor
-                        : SpatialDesignSystem.textPrimaryColor,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SpatialButton(
-                    text: "Cancel",
-                    onPressed: () => Navigator.pop(context),
-                    isOutlined: true,
-                    textColor: isDark
-                        ? SpatialDesignSystem.textDarkSecondaryColor
-                        : SpatialDesignSystem.textSecondaryColor,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                  ),
-                  const SizedBox(width: 12),
-                  SpatialButton(
-                    text: "Update",
-                    onPressed: () {
-                      // Close dialog
-                      Navigator.pop(context);
-
-                      // Create status update object
-                      final OrderStatusUpdate statusUpdate = OrderStatusUpdate(
-                        statusId: OrderStatusId.fromStatusName(_selectedStatus),
-                        notes: _notesController.text.trim().isNotEmpty
-                            ? _notesController.text.trim()
-                            : null,
-                      );
-
-                      // Call update function
-                      _updateOrderStatus(statusUpdate);
-                    },
-                    isGradient: true,
-                    gradient: LinearGradient(
-                      colors: [
-                        SpatialDesignSystem.primaryColor,
-                        SpatialDesignSystem.accentColor,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+        // Call update function
+        _updateOrderStatus(statusUpdate);
+      },
     );
   }
 
@@ -1765,12 +1472,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           ),
         );
 
-        // Update local state to reflect the change
-        setState(() {
-          _selectedStatus = statusUpdate.statusId == OrderStatusId.DELIVERED
-              ? "DELIVERED"
-              : _selectedStatus;
-        });
+        // Reload order details from API to get the latest data
+        _loadOrderDetails();
       } else {
         // Check if widget is still mounted before accessing context
         if (!mounted) return;

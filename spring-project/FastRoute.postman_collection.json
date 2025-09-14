@@ -2615,425 +2615,384 @@
 			"name": "Maintenance",
 			"item": [
 				{
-					"name": "Driver APIs",
+					"name": "Emergency Maintenance",
 					"item": [
 						{
-							"name": "Step 1: Create Maintenance Request",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
-											"type": "string"
-										}
-									]
-								},
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"description\": \"Phanh trước bị yếu, cần kiểm tra và thay phanh gấp. Xe đang ở vị trí km 25 quốc lộ 1A.\",\r\n  \"maintenanceType\": \"Sửa chữa khẩn cấp\",\r\n  \"statusId\": 51\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:8080/api/drivers/{{driverId}}/maintenance-requests/emergency",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"drivers",
-										"{{driverId}}",
-										"maintenance-requests",
-										"emergency"
-									]
-								},
-								"description": "Driver creates maintenance request (Step 1) - Backend auto-detects vehicle assigned to driver"
-							},
-							"response": []
-						},
-						{
-							"name": "Step 4: Driver View All Requests",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{tokenDriver\n}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:8080/api/drivers/{{driverId}}/maintenance-requests?page=0&size=10",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"drivers",
-										"{{driverId}}",
-										"maintenance-requests"
-									],
-									"query": [
-										{
-											"key": "page",
-											"value": "0"
+							"name": "Driver APIs",
+							"item": [
+								{
+									"name": "Step 1: Create Maintenance Request",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+													"type": "string"
+												}
+											]
 										},
-										{
-											"key": "size",
-											"value": "10"
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"description\": \"Phanh trước bị yếu, cần kiểm tra và thay phanh gấp. Xe đang ở vị trí km 25 quốc lộ 1A.\",\r\n  \"maintenanceType\": \"Sửa chữa khẩn cấp\",\r\n  \"statusId\": 51\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
 										},
-										{
-											"key": "status",
-											"value": "MAINTENANCE_PENDING",
-											"disabled": true
+										"url": {
+											"raw": "http://localhost:8080/api/drivers/{{driverId}}/maintenance-requests/emergency",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "8080",
+											"path": [
+												"api",
+												"drivers",
+												"{{driverId}}",
+												"maintenance-requests",
+												"emergency"
+											]
 										},
-										{
-											"key": "maintenanceType",
-											"value": "Sửa chữa khẩn cấp",
-											"disabled": true
-										}
-									]
+										"description": "Driver creates maintenance request (Step 1) - Backend auto-detects vehicle assigned to driver"
+									},
+									"response": []
 								},
-								"description": "Driver views their maintenance requests (Step 4)"
-							},
-							"response": []
+								{
+									"name": "Step 4: Driver View All Requests",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenDriver\n}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://localhost:8080/api/drivers/{{driverId}}/maintenance-requests?page=0&size=10",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "8080",
+											"path": [
+												"api",
+												"drivers",
+												"{{driverId}}",
+												"maintenance-requests"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "0"
+												},
+												{
+													"key": "size",
+													"value": "10"
+												},
+												{
+													"key": "status",
+													"value": "MAINTENANCE_PENDING",
+													"disabled": true
+												},
+												{
+													"key": "maintenanceType",
+													"value": "Sửa chữa khẩn cấp",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Driver views their maintenance requests (Step 4)"
+									},
+									"response": []
+								},
+								{
+									"name": "Step 4: Driver Maintenance Request Detail",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://localhost:8080/api/drivers/{{driverId}}/maintenance-requests/{{maintenanceId}}",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "8080",
+											"path": [
+												"api",
+												"drivers",
+												"{{driverId}}",
+												"maintenance-requests",
+												"{{maintenanceId}}"
+											]
+										},
+										"description": "Driver views specific maintenance request detail (Step 4)"
+									},
+									"response": []
+								},
+								{
+									"name": "Step 6: Driver Get Vehicle",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenDriver\n}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"statusId\": 18\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "8080",
+											"path": [
+												"api",
+												"maintenance-requests",
+												"{{maintenanceId}}"
+											]
+										},
+										"description": "Driver picks up vehicle after maintenance completed - changes status to IN_USE (Step 7)"
+									},
+									"response": []
+								}
+							],
+							"description": "APIs for drivers to create and manage maintenance requests"
 						},
 						{
-							"name": "Step 4: Driver Maintenance Request Detail",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
-											"type": "string"
-										}
-									]
+							"name": "Fleet Manager APIs",
+							"item": [
+								{
+									"name": "Step 2: View Pending Maintenance Requests",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenFleet}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://localhost:8080/api/fleet/maintenance-requests?page=0&size=20",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "8080",
+											"path": [
+												"api",
+												"fleet",
+												"maintenance-requests"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "0"
+												},
+												{
+													"key": "size",
+													"value": "20"
+												},
+												{
+													"key": "status",
+													"value": "MAINTENANCE_PENDING",
+													"disabled": true
+												},
+												{
+													"key": "maintenanceType",
+													"value": "Sửa chữa khẩn cấp",
+													"disabled": true
+												},
+												{
+													"key": "vehicleId",
+													"value": "1",
+													"disabled": true
+												}
+											]
+										},
+										"description": "Fleet manager views all pending maintenance requests (Step 2)"
+									},
+									"response": []
 								},
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:8080/api/drivers/{{driverId}}/maintenance-requests/{{maintenanceId}}",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"drivers",
-										"{{driverId}}",
-										"maintenance-requests",
-										"{{maintenanceId}}"
-									]
+								{
+									"name": "Step 2: View Request Detail",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenFleet}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://localhost:8080/api/fleet/maintenance-requests/{{maintenanceId}}",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "8080",
+											"path": [
+												"api",
+												"fleet",
+												"maintenance-requests",
+												"{{maintenanceId}}"
+											]
+										},
+										"description": "Fleet manager views specific maintenance request detail (Step 2)"
+									},
+									"response": []
 								},
-								"description": "Driver views specific maintenance request detail (Step 4)"
-							},
-							"response": []
-						},
-						{
-							"name": "Step 5: Driver Take Vehicle To Garage",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{tokenDriver\n}}",
-											"type": "string"
-										}
-									]
+								{
+									"name": "Step 3: Schedule Emergency Maintenance",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{tokenFleet}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"statusId\": 19,\r\n    \"scheduledMaintenanceDate\": \"2025-09-15T08:00:00\",\r\n    \"cost\": 2500000.0,\r\n    \"notes\": \"Garage A, 178 Nguyễn Thái Học, Hồ Chí Minh. Thợ Nguyễn Văn B (0901234567).\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "8080",
+											"path": [
+												"api",
+												"maintenance-requests",
+												"{{maintenanceId}}"
+											]
+										},
+										"description": "Fleet manager schedules regular maintenance (keeps existing maintenanceType from create request)"
+									},
+									"response": []
 								},
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"statusId\": 19\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"maintenance-requests",
-										"{{maintenanceId}}"
-									]
-								},
-								"description": "Driver takes vehicle to garage for maintenance (Step 5)"
-							},
-							"response": []
-						},
-						{
-							"name": "Step 7: Driver Get Vehicle",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{tokenDriver\n}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"statusId\": 18\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"maintenance-requests",
-										"{{maintenanceId}}"
-									]
-								},
-								"description": "Driver picks up vehicle after maintenance completed - changes status to IN_USE (Step 7)"
-							},
-							"response": []
+								{
+									"name": "Step 5: Complete Maintenance",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"statusId\": 17,\r\n  \"nextDueDate\": \"2025-12-15T08:00:00\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
+											"protocol": "http",
+											"host": [
+												"localhost"
+											],
+											"port": "8080",
+											"path": [
+												"api",
+												"maintenance-requests",
+												"{{maintenanceId}}"
+											]
+										},
+										"description": "Fleet manager completes maintenance and sets next due date (Step 6). Notes preserved from scheduling."
+									},
+									"response": []
+								}
+							],
+							"description": "APIs for fleet managers to handle maintenance requests"
 						}
-					],
-					"description": "APIs for drivers to create and manage maintenance requests"
-				},
-				{
-					"name": "Fleet Manager APIs",
-					"item": [
-						{
-							"name": "Step 2: View Pending Maintenance Requests",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{tokenFleet}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:8080/api/fleet/maintenance-requests?page=0&size=20",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"fleet",
-										"maintenance-requests"
-									],
-									"query": [
-										{
-											"key": "page",
-											"value": "0"
-										},
-										{
-											"key": "size",
-											"value": "20"
-										},
-										{
-											"key": "status",
-											"value": "MAINTENANCE_PENDING",
-											"disabled": true
-										},
-										{
-											"key": "maintenanceType",
-											"value": "Sửa chữa khẩn cấp",
-											"disabled": true
-										},
-										{
-											"key": "vehicleId",
-											"value": "1",
-											"disabled": true
-										}
-									]
-								},
-								"description": "Fleet manager views all pending maintenance requests (Step 2)"
-							},
-							"response": []
-						},
-						{
-							"name": "Step 2: View Request Detail",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{tokenFleet}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:8080/api/fleet/maintenance-requests/{{maintenanceId}}",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"fleet",
-										"maintenance-requests",
-										"{{maintenanceId}}"
-									]
-								},
-								"description": "Fleet manager views specific maintenance request detail (Step 2)"
-							},
-							"response": []
-						},
-						{
-							"name": "Step 3: Schedule Emergency Maintenance",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{tokenFleet}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"scheduledMaintenanceDate\": \"2025-09-15T08:00:00\",\r\n  \"cost\": 2500000.0,\r\n  \"notes\": \"Garage A, 178 Nguyễn Thái Học, Hồ Chí Minh. Thợ Nguyễn Văn B (0901234567).\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"maintenance-requests",
-										"{{maintenanceId}}"
-									]
-								},
-								"description": "Fleet manager schedules regular maintenance (keeps existing maintenanceType from create request)"
-							},
-							"response": []
-						},
-						{
-							"name": "Step 6: Complete Maintenance",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkcml2ZXIiLCJpYXQiOjE3NTc3NzUwNjcsImV4cCI6MTc1Nzg2MTQ2N30.sgP4sQI5TV2vpsnPhXPhxXoRtEgs6mJ6S-_vyhM5NUJLpDQwkxMhTDo1Avg2zxIPgQ17uAw-4v_3iaT8CEx9fQ",
-											"type": "string"
-										}
-									]
-								},
-								"method": "PUT",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"statusId\": 17,\r\n  \"nextDueDate\": \"2025-12-15T08:00:00\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "http://localhost:8080/api/maintenance-requests/{{maintenanceId}}",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8080",
-									"path": [
-										"api",
-										"maintenance-requests",
-										"{{maintenanceId}}"
-									]
-								},
-								"description": "Fleet manager completes maintenance and sets next due date (Step 6). Notes preserved from scheduling."
-							},
-							"response": []
-						}
-					],
-					"description": "APIs for fleet managers to handle maintenance requests"
+					]
 				},
 				{
 					"name": "Monthly Maintenance",
@@ -3183,10 +3142,6 @@
 						}
 					],
 					"description": "General maintenance management APIs"
-				},
-				{
-					"name": "Emergency Maintenance",
-					"item": []
 				}
 			],
 			"description": "Vehicle Maintenance Management APIs - Supporting 7-step workflow:\nStep 1: Driver creates request (POST) | Step 2: Fleet views pending (GET) | Step 3a/3b: Fleet schedules regular/monthly (PUT) | Step 4: Driver views scheduled (GET) | Step 5: Driver takes to garage (PUT) | Step 6: Fleet completes (PUT) | Step 7: Driver picks up (PUT)"
