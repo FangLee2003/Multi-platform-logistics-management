@@ -8,19 +8,17 @@ import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_forgot_pa
 import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_check_email_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/environment/environment_selection_screen.dart';
-import 'package:ktc_logistics_driver/domain/usecases/usecases.dart';
-import 'package:ktc_logistics_driver/data/repositories/repository_implementations.dart'
-    as mock_repo;
-import 'package:ktc_logistics_driver/services/mock_data_service.dart';
 import 'package:ktc_logistics_driver/presentation/screens/map/route_map_screen.dart';
-import 'package:ktc_logistics_driver/presentation/blocs/driver/driver_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/screens/order/order_detail_screen.dart';
 import 'package:ktc_logistics_driver/presentation/screens/main_screen.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_services.dart';
-import 'services/driver_services.dart';
 import 'services/tracking_services.dart';
 import 'services/push_notification_services.dart';
+import 'services/delivery_services.dart';
+import 'services/maintenance_services.dart';
+import 'services/user_services.dart';
+import 'presentation/blocs/tracking/simple_tracking_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -44,12 +42,14 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 0));
       case '/deliveries':
         return MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 1));
+      case '/maintenance':
+        return MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 2));
+      case '/profile':
+        return MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 3));
       case '/routes':
         // Tạm thời dùng một routeId mặc định
         return MaterialPageRoute(
             builder: (_) => const RouteMapScreen(routeId: 'RT-2025-08-14-01'));
-      case '/profile':
-        return MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 2));
       case '/order-detail':
         // Lấy order ID từ arguments
         final orderId = settings.arguments as String;
@@ -94,61 +94,43 @@ class _AppState extends State<App> {
       ],
       child: MultiBlocProvider(
         providers: [
-          // Auth Bloc
+          // Auth Bloc - chỉ giữ lại những gì cần thiết cho login
           BlocProvider<AuthBloc>(
             create: (context) => AuthBloc(
               authServices: AuthServices(),
-            )..add(CheckLoginEvent()),
+            ), // Bỏ CheckLoginEvent để tránh xung đột
           ),
-          
-          // Driver Bloc
-          BlocProvider<DriverBloc>(
-            create: (context) => DriverBloc(
-              driverServices: DriverServices(),
-            ),
-          ),
-          
-          // User Bloc
-          BlocProvider<UserBloc>(
-            create: (context) => UserBloc(userServices: getIt()),
-          ),
-          
-          // TrackingBloc
-          BlocProvider<TrackingBloc>(
-            create: (context) => TrackingBloc(
-              startRouteTrackingUseCase: StartRouteTrackingUseCase(
-                repository: mock_repo.TrackingRepositoryImpl(
-                    mockDataService: MockDataService()),
-              ),
-              endRouteTrackingUseCase: EndRouteTrackingUseCase(
-                repository: mock_repo.TrackingRepositoryImpl(
-                    mockDataService: MockDataService()),
-              ),
-              updateLocationUseCase: UpdateLocationUseCase(
-                repository: mock_repo.TrackingRepositoryImpl(
-                    mockDataService: MockDataService()),
-              ),
-              getTrackingHistoryUseCase: GetTrackingHistoryUseCase(
-                repository: mock_repo.TrackingRepositoryImpl(
-                    mockDataService: MockDataService()),
-              ),
-            ),
-          ),
-          // Add DeliveryBloc provider 
+          // Thêm DeliveryBloc
           BlocProvider<DeliveryBloc>(
             create: (context) => DeliveryBloc(
-              deliveryServices: getIt(),
+              deliveryServices: DeliveryServices(),
             ),
+            lazy: true, // Chỉ tạo khi cần
           ),
-          // Add OrdersBloc provider
-          BlocProvider<OrdersBloc>(
-            create: (context) => OrdersBloc(
-              ordersServices: getIt(),
+          // Thêm MaintenanceBloc
+          BlocProvider<MaintenanceBloc>(
+            create: (context) => MaintenanceBloc(
+              apiService: MaintenanceServices(),
             ),
+            lazy: true, // Chỉ tạo khi cần
+          ),
+          // Thêm UserBloc cho profile screen
+          BlocProvider<UserBloc>(
+            create: (context) => UserBloc(
+              userServices: UserServices(),
+            ),
+            lazy: true, // Chỉ tạo khi cần
+          ),
+          // Thêm SimpleTrackingBloc cho dashboard tracking
+          BlocProvider<SimpleTrackingBloc>(
+            create: (context) => SimpleTrackingBloc(
+              locationService: LocationService(),
+            ),
+            lazy: true, // Chỉ tạo khi cần
           ),
         ],
         child: MaterialApp(
-          title: 'KTC Logistics Driver',
+          title: 'KTC Logistics',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
@@ -170,51 +152,31 @@ class _AppState extends State<App> {
           ),
           themeMode: ThemeMode.system,
           onGenerateRoute: AppRouter.generateRoute,
-          home: const SplashScreen(),
+          // Chuyển thẳng đến màn hình onboarding hoặc login dựa vào trạng thái
+          home: const OnboardingStartScreen(),
         ),
       ),
     );
   }
 }
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+/// Màn hình khởi động để kiểm tra trạng thái onboarding và chuyển hướng phù hợp
+class OnboardingStartScreen extends StatefulWidget {
+  const OnboardingStartScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<OnboardingStartScreen> createState() => _OnboardingStartScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-
+class _OnboardingStartScreenState extends State<OnboardingStartScreen> {
   @override
   void initState() {
     super.initState();
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeIn,
-      ),
-    );
-
-    _animationController.forward();
-
-    // Check if the user has completed onboarding
-    _checkOnboarding();
+    // Kiểm tra trạng thái onboarding ngay lập tức mà không hiển thị splash screen
+    _checkOnboardingAndNavigate();
   }
 
-  Future<void> _checkOnboarding() async {
-    // Simulating a delay for splash screen
-    await Future.delayed(const Duration(seconds: 3));
-
+  Future<void> _checkOnboardingAndNavigate() async {
     // Check if the user has completed onboarding using secure storage
     const storage = FlutterSecureStorage();
     final hasCompletedOnboarding =
@@ -225,98 +187,17 @@ class _SplashScreenState extends State<SplashScreen>
         // Navigate to onboarding screen
         Navigator.of(context).pushReplacementNamed('/onboarding');
       } else {
-        // For now, navigate directly to login since we don't have proper auth state
-        // TODO: Implement proper authentication state listening
+        // Navigate directly to login
         Navigator.of(context).pushReplacementNamed('/login');
       }
     }
   }
 
   @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // Màn hình trống tối giản trong khi kiểm tra trạng thái
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.blue.shade800,
-              Colors.blue.shade600,
-              Colors.blue.shade400,
-            ],
-          ),
-        ),
-        child: Center(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.local_shipping_rounded,
-                    size: 80,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-                const SizedBox(height: 30),
-                // App name
-                Text(
-                  'KTC Logistics',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        offset: const Offset(0, 2),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Tagline
-                Text(
-                  'Đồng hành cùng mọi hành trình',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-                const SizedBox(height: 60),
-                // Loading indicator
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      backgroundColor: Colors.white,
     );
   }
 }

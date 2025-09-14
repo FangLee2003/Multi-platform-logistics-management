@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../design/spatial_ui.dart';
 import '../../components/spatial_stat_card.dart';
 import '../../components/spatial_button.dart';
 import '../../components/spatial_glass_card.dart';
-import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
 import '../../components/delivery_charts.dart';
-import '../../helpers/performance_helper.dart';
 
 class DashboardScreenSpatial extends StatefulWidget {
-  final bool showBottomNav;
-
   const DashboardScreenSpatial({
     super.key,
-    this.showBottomNav = true,
   });
 
   @override
@@ -39,10 +33,11 @@ class _DashboardScreenSpatialState extends State<DashboardScreenSpatial>
   void initState() {
     super.initState();
 
-    // Start performance monitoring in debug mode
-    PerformanceHelper.startFrameMonitoring();
-    PerformanceHelper.logPerformanceTip(
-        'Dashboard optimized with lazy loading and RepaintBoundary');
+    // Tạm thời tắt performance monitoring để debug
+    // PerformanceHelper.startFrameMonitoring();
+    // PerformanceHelper.logPerformanceTip(
+    //     'Dashboard optimized with lazy loading and RepaintBoundary');
+    print('Dashboard initialized'); // Debug log
   }
 
   @override
@@ -72,19 +67,19 @@ class _DashboardScreenSpatialState extends State<DashboardScreenSpatial>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     return Scaffold(
       backgroundColor: _isDark
           ? SpatialDesignSystem.darkBackgroundColor
           : SpatialDesignSystem.backgroundColor,
-      body: Row(
-        children: [
-          // Sidebar Navigation
-          if (_isTablet)
-            RepaintBoundary(
-              child: AnimatedContainer(
+      body: SafeArea(
+        child: Row(
+          children: [
+            // Sidebar for Tablet/Desktop
+            if (_isTablet) ...[
+              AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                width: _isSidebarExpanded ? 250 : 80,
+                width: _isSidebarExpanded ? 280 : 80,
                 child: _SidebarWidget(
                   isTablet: _isTablet,
                   isDark: _isDark,
@@ -103,125 +98,49 @@ class _DashboardScreenSpatialState extends State<DashboardScreenSpatial>
                   },
                 ),
               ),
-            ),
-
-          // Main Content
-          Expanded(
-            child: Column(
-              children: [
-                // Top App Bar
-                _DashboardAppBar(isDark: _isDark, isTablet: _isTablet),
-
-                // Content Area
-                Expanded(
-                  child: _DashboardContent(
-                    isDark: _isDark,
-                    isTablet: _isTablet,
-                    onStartTracking: () => _startTracking(context),
+            ],
+            // Main content
+            Expanded(
+              child: Column(
+                children: [
+                  // App Bar
+                  if (!_isTablet)
+                    _DashboardAppBar(
+                      isDark: _isDark,
+                      isTablet: _isTablet,
+                    ),
+                  // Main Dashboard Content
+                  Expanded(
+                    child: _DashboardContent(
+                      isDark: _isDark,
+                      isTablet: _isTablet,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-      // Bottom Navigation for Mobile
-      bottomNavigationBar: !_isTablet ? _buildBottomNav() : null,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _startTracking(context);
-        },
-        backgroundColor: SpatialDesignSystem.primaryColor,
-        child: const Icon(Icons.location_on, color: Colors.white),
-      ),
+      // Không còn bottom navigation bar
     );
   }
 
   void _handleNavigation(int index) {
+    print('Dashboard: Navigating to index $index'); // Debug log
     switch (index) {
       case 0: // Dashboard - đã ở trang hiện tại
         break;
       case 1: // Deliveries
         Navigator.pushNamed(context, '/deliveries');
         break;
+      case 2: // Maintenance
+        Navigator.pushNamed(context, '/maintenance');
+        break;
       case 3: // Profile
         Navigator.pushNamed(context, '/profile');
         break;
     }
-  }
-
-  void _startTracking(BuildContext context) {
-    final trackingBloc = BlocProvider.of<TrackingBloc>(context);
-
-    trackingBloc.add(StartTrackingEvent(
-      driverId: "driver_123",
-      vehicleId: "vehicle_456",
-      routeId: "RT-2025-08-14-01",
-    ));
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.location_on, color: Colors.white),
-            SizedBox(width: 10),
-            Text('Location tracking started'),
-          ],
-        ),
-        backgroundColor: SpatialDesignSystem.successColor,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    // Only show bottom nav if showBottomNav is true
-    if (!widget.showBottomNav) {
-      return const SizedBox.shrink();
-    }
-
-    return BottomNavigationBar(
-      currentIndex: _selectedIndex,
-      onTap: (index) {
-        setState(() {
-          _selectedIndex = index;
-        });
-
-        // Thêm điều hướng đến trang tương ứng
-        switch (index) {
-          case 0: // Dashboard - đã ở trang hiện tại
-            break;
-          case 1: // Deliveries - chuyển hướng đến màn hình gộp mới
-            Navigator.pushNamed(context, '/deliveries');
-            break;
-          case 2: // Profile
-            Navigator.pushNamed(context, '/profile');
-            break;
-        }
-      },
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      selectedItemColor: SpatialDesignSystem.primaryColor,
-      unselectedItemColor: SpatialDesignSystem.textSecondaryColor,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard),
-          label: "Dashboard",
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.local_shipping),
-          label: "Deliveries",
-        ),
-        // BottomNavigationBarItem(
-        //   icon: Icon(Icons.shopping_bag),
-        //   label: "Orders",
-        // ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.account_circle),
-          label: "Profile",
-        ),
-      ],
-    );
   }
 }
 
@@ -449,12 +368,10 @@ class _DashboardAppBar extends StatelessWidget {
 class _DashboardContent extends StatelessWidget {
   final bool isDark;
   final bool isTablet;
-  final VoidCallback onStartTracking;
 
   const _DashboardContent({
     required this.isDark,
     required this.isTablet,
-    required this.onStartTracking,
   });
 
   @override
@@ -465,19 +382,6 @@ class _DashboardContent extends StatelessWidget {
         // Welcome Section
         _WelcomeSection(isDark: isDark),
         const SizedBox(height: 24),
-
-        // // Current Activity & Route
-        // _CurrentActivitySection(isDark: isDark, isTablet: isTablet),
-        // const SizedBox(height: 24),
-
-        Text(
-          "Delivery Analytics",
-          style: SpatialDesignSystem.subtitleLarge.copyWith(
-            color: isDark
-                ? SpatialDesignSystem.textDarkPrimaryColor
-                : SpatialDesignSystem.textPrimaryColor,
-          ),
-        ),
 
         // Stats Grid
         _StatsGridSection(isDark: isDark, isTablet: isTablet),
@@ -528,7 +432,7 @@ class _WelcomeText extends StatelessWidget {
             children: [
               TextSpan(
                 text: "Good Morning,\n",
-                style: SpatialDesignSystem.headingSmall.copyWith(
+                style: SpatialDesignSystem.headingMedium.copyWith(
                   color: isDark
                       ? SpatialDesignSystem.textDarkPrimaryColor
                       : SpatialDesignSystem.textPrimaryColor,
@@ -536,7 +440,7 @@ class _WelcomeText extends StatelessWidget {
               ),
               TextSpan(
                 text: "Việt Hùng",
-                style: SpatialDesignSystem.headingLarge.copyWith(
+                style: SpatialDesignSystem.headingMedium.copyWith(
                   color: SpatialDesignSystem.primaryColor,
                   fontWeight: FontWeight.bold,
                 ),
@@ -553,58 +457,7 @@ class _WelcomeText extends StatelessWidget {
                 : SpatialDesignSystem.textSecondaryColor,
           ),
         ),
-        const SizedBox(height: 16),
-        const _TrackingStatus(),
       ],
-    );
-  }
-}
-
-class _TrackingStatus extends StatelessWidget {
-  const _TrackingStatus();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocSelector<TrackingBloc, TrackingState, bool>(
-      selector: (state) => state is TrackingActiveState,
-      builder: (context, isTracking) {
-        if (isTracking) {
-          return const Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: SpatialDesignSystem.successColor,
-                size: 20,
-              ),
-              SizedBox(width: 8),
-              Text(
-                "Location tracking active",
-                style: TextStyle(
-                  color: SpatialDesignSystem.successColor,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          );
-        }
-        return const Row(
-          children: [
-            Icon(
-              Icons.info_outline,
-              color: SpatialDesignSystem.warningColor,
-              size: 20,
-            ),
-            SizedBox(width: 8),
-            Text(
-              "Location tracking inactive",
-              style: TextStyle(
-                color: SpatialDesignSystem.warningColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -616,13 +469,36 @@ class _DeliveryScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            SpatialDesignSystem.darkSurfaceColor.withValues(alpha: 0.15),
+            SpatialDesignSystem.primaryColor.withValues(alpha: 0.2),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
       child: Column(
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 40,
+            height: 40,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: SpatialDesignSystem.accentGradient,
@@ -631,11 +507,11 @@ class _DeliveryScoreCard extends StatelessWidget {
               child: Icon(
                 Icons.emoji_events,
                 color: Colors.white,
-                size: 30,
+                size: 20,
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             "95%",
             style: SpatialDesignSystem.headingMedium.copyWith(
@@ -651,159 +527,6 @@ class _DeliveryScoreCard extends StatelessWidget {
                   ? SpatialDesignSystem.textDarkSecondaryColor
                   : SpatialDesignSystem.textSecondaryColor,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CurrentActivitySection extends StatelessWidget {
-  final bool isDark;
-  final bool isTablet;
-
-  const _CurrentActivitySection({
-    required this.isDark,
-    required this.isTablet,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Current Activity",
-          style: SpatialDesignSystem.subtitleLarge.copyWith(
-            color: isDark
-                ? SpatialDesignSystem.textDarkPrimaryColor
-                : SpatialDesignSystem.textPrimaryColor,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildCurrentRouteCard(context),
-      ],
-    );
-  }
-
-  Widget _buildCurrentRouteCard(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      gradient: LinearGradient(
-        colors: [
-          SpatialDesignSystem.primaryColor.withValues(alpha: 0.1),
-          SpatialDesignSystem.accentColor.withValues(alpha: 0.05),
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Active Route",
-                style: SpatialDesignSystem.subtitleMedium.copyWith(
-                  color: isDark
-                      ? SpatialDesignSystem.textDarkPrimaryColor
-                      : SpatialDesignSystem.textPrimaryColor,
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color:
-                      SpatialDesignSystem.successColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color:
-                        SpatialDesignSystem.successColor.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  "In Progress",
-                  style: SpatialDesignSystem.captionText.copyWith(
-                    color: SpatialDesignSystem.successColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Row(
-            children: [
-              Icon(Icons.route, color: SpatialDesignSystem.primaryColor),
-              SizedBox(width: 8),
-              Text("Route #RT-2025-08-14-01"),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Row(
-            children: [
-              Icon(Icons.timer_outlined,
-                  color: SpatialDesignSystem.accentColor),
-              SizedBox(width: 8),
-              Text("Started at 08:30 AM (2h 45m elapsed)"),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Row(
-            children: [
-              Icon(Icons.local_shipping_outlined,
-                  color: SpatialDesignSystem.warningColor),
-              SizedBox(width: 8),
-              Text("Vehicle: Delivery Van #KTC-2025"),
-            ],
-          ),
-          const SizedBox(height: 20),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return Row(
-                children: [
-                  SizedBox(
-                    width: (constraints.maxWidth - 16) / 2,
-                    child: SpatialButton(
-                      text: "See Details",
-                      textColor: SpatialDesignSystem.primaryColor,
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/order-detail',
-                            arguments: 'ORD-2025-08-14-042');
-                      },
-                      iconData: Icons.info_outline,
-                      isGlass: false,
-                      backgroundColor: SpatialDesignSystem.primaryColor
-                          .withValues(alpha: 0.5),
-                      isOutlined: true,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 16),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: (constraints.maxWidth - 16) / 2,
-                    child: SpatialButton(
-                      text: "Navigation",
-                      textColor: SpatialDesignSystem.successColor,
-                      iconData: Icons.directions,
-                      isGlass: false,
-                      backgroundColor: SpatialDesignSystem.successColor
-                          .withValues(alpha: 0.8),
-                      isOutlined: true,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 16),
-                      onPressed: () async {
-                        // Navigation logic here
-                      },
-                    ),
-                  ),
-                ],
-              );
-            },
           ),
         ],
       ),

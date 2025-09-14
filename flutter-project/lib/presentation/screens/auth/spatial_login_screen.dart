@@ -5,6 +5,10 @@ import 'package:ktc_logistics_driver/presentation/design/spatial_components.dart
 import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:ktc_logistics_driver/data/env/environment.dart';
+import 'dart:ui';
+import 'package:ktc_logistics_driver/presentation/screens/environment/environment_selection_screen.dart';
+import 'package:ktc_logistics_driver/presentation/screens/main_screen.dart';
 
 class SpatialLoginScreen extends StatefulWidget {
   const SpatialLoginScreen({super.key});
@@ -28,22 +32,169 @@ class _SpatialLoginScreenState extends State<SpatialLoginScreen> {
   }
 
   void _handleLogin() {
+    print('Login button pressed'); // Debug log
     if (_formKey.currentState!.validate()) {
+      print('Form validation passed, sending login event'); // Debug log
       context.read<AuthBloc>().add(
             LoginEvent(
               email: _emailController.text.trim(),
               password: _passwordController.text,
             ),
           );
+      print('Login event sent to AuthBloc'); // Debug log
+    } else {
+      print('Form validation failed'); // Debug log
     }
+  }
+  
+  // Method to display environment switch dialog
+  void _showEnvironmentSwitchDialog(BuildContext context) {
+    final env = Environment.getInstance();
+    final isTestMode = env.isTestMode;
+    final currentUrl = env.apiBaseUrl;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        child: AlertDialog(
+          backgroundColor: Color(0xFF1F2133).withOpacity(0.95),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Colors.white.withOpacity(0.1),
+              width: 1,
+            ),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.settings,
+                color: SpatialTheme.primaryBlue,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Switch Environment',
+                style: SpatialTheme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Current environment:',
+                style: SpatialTheme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isTestMode
+                      ? const Color(0xFFFF9F0A).withOpacity(0.1)
+                      : const Color(0xFF0A84FF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isTestMode
+                        ? const Color(0xFFFF9F0A)
+                        : const Color(0xFF0A84FF),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          isTestMode ? Icons.code : Icons.cloud_done,
+                          color: isTestMode
+                              ? const Color(0xFFFF9F0A)
+                              : const Color(0xFF0A84FF),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isTestMode ? 'Test Environment' : 'Live Environment',
+                          style: SpatialTheme.textTheme.bodyMedium?.copyWith(
+                            color: isTestMode
+                                ? const Color(0xFFFF9F0A)
+                                : const Color(0xFF0A84FF),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      currentUrl,
+                      style: SpatialTheme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Choose a different environment for the application',
+                style: SpatialTheme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SpatialTheme.primaryBlue.withOpacity(0.85),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                // Navigate to environment selection screen
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const EnvironmentSelectionScreen()),
+                );
+              },
+              child: const Text('Switch', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
+        print('AuthState changed: $state'); // Debug log
         if (state is AuthenticatedState || state is AuthSuccessState) {
-          Navigator.of(context).pushReplacementNamed('/dashboard');
+          print('Navigating to dashboard...'); // Debug log
+          // Navigate to MainScreen instead of complex dashboard
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => const MainScreen(initialIndex: 0),
+            ),
+            (route) => false,
+          );
         } else if (state is AuthErrorState) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -61,54 +212,111 @@ class _SpatialLoginScreenState extends State<SpatialLoginScreen> {
         body: SpatialComponents.backgroundContainer(
           useDarkMode: true,
           child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: SpatialTheme.spaceLG,
-                  vertical: SpatialTheme.spaceSM),
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  const SizedBox(height: SpatialTheme.spaceSM),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: SpatialTheme.spaceLG,
+                      vertical: SpatialTheme.spaceSM),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: SpatialTheme.spaceSM),
 
-                  // Logo & Welcome Section
-                  _buildHeader().animate().fadeIn(duration: 800.ms).slideY(
-                        begin: -0.3,
-                        duration: 800.ms,
-                        curve: Curves.easeOutBack,
+                      // Logo & Welcome Section
+                      _buildHeader().animate().fadeIn(duration: 800.ms).slideY(
+                            begin: -0.3,
+                            duration: 800.ms,
+                            curve: Curves.easeOutBack,
+                          ),
+
+                      const SizedBox(height: SpatialTheme.spaceXL),
+
+                      // Login Form
+                      _buildLoginForm()
+                          .animate()
+                          .fadeIn(
+                            delay: 300.ms,
+                            duration: 600.ms,
+                          )
+                          .slideY(
+                            begin: 0.3,
+                            duration: 600.ms,
+                            curve: Curves.easeOutCubic,
+                          ),
+
+                      const SizedBox(height: SpatialTheme.spaceXL),
+
+                      // Quick Login Buttons
+                      _buildQuickLoginButtons().animate().fadeIn(
+                            delay: 600.ms,
+                            duration: 500.ms,
+                          ),
+
+                      const SizedBox(height: SpatialTheme.spaceLG),
+
+                      // Footer
+                      _buildFooter().animate().fadeIn(
+                            delay: 900.ms,
+                            duration: 500.ms,
+                          ),
+                    ],
+                  ),
+                ),
+                
+                // Environment settings button in top-right corner
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _showEnvironmentSwitchDialog(context),
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: SpatialTheme.primaryBlue.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: SpatialTheme.primaryBlue.withOpacity(0.4),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.settings,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'ENV',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-
-                  const SizedBox(height: SpatialTheme.spaceXL),
-
-                  // Login Form
-                  _buildLoginForm()
-                      .animate()
-                      .fadeIn(
-                        delay: 300.ms,
-                        duration: 600.ms,
-                      )
-                      .slideY(
-                        begin: 0.3,
-                        duration: 600.ms,
-                        curve: Curves.easeOutCubic,
-                      ),
-
-                  const SizedBox(height: SpatialTheme.spaceXL),
-
-                  // Quick Login Buttons
-                  _buildQuickLoginButtons().animate().fadeIn(
-                        delay: 600.ms,
-                        duration: 500.ms,
-                      ),
-
-                  const SizedBox(height: SpatialTheme.spaceLG),
-
-                  // Footer
-                  _buildFooter().animate().fadeIn(
-                        delay: 900.ms,
-                        duration: 500.ms,
-                      ),
-                ],
-              ),
+                    ),
+                  ),
+                ).animate().fadeIn(
+                      delay: 500.ms,
+                      duration: 500.ms,
+                    ),
+              ],
             ),
           ),
         ),

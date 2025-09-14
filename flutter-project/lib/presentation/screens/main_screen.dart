@@ -24,24 +24,34 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    print('MainScreen: Initialized with index $_currentIndex'); // Debug log
   }
-  
-  final List<Widget> _screens = [
-    const DashboardScreenSpatial(showBottomNav: false),
-    const DeliveriesScreen(),
-    const MaintenanceScreen(),
-    const EditProfileScreen(),
-  ];
   
   @override
   Widget build(BuildContext context) {
+    print('MainScreen: Building with index $_currentIndex'); // Debug log
+    
+    // Sử dụng Scaffold với bottom navigation bar
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: _buildCurrentScreen(),
       bottomNavigationBar: _buildBottomNav(context),
     );
+  }
+  
+  Widget _buildCurrentScreen() {
+    print('MainScreen: Building screen index $_currentIndex'); // Debug log
+    switch (_currentIndex) {
+      case 0:
+        return const DashboardScreenSpatial();
+      case 1:
+        return const DeliveriesScreen();
+      case 2:
+        return const MaintenanceScreen();
+      case 3:
+        return const EditProfileScreen();
+      default:
+        return const DashboardScreenSpatial();
+    }
   }
   
   Widget _buildBottomNav(BuildContext context) {
@@ -67,7 +77,7 @@ class _MainScreenState extends State<MainScreen> {
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.build_circle),
-          label: "Bảo trì",
+          label: "Maintenance",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.account_circle),

@@ -52,7 +52,7 @@ class _MapDeliveryScreenState extends State<MapDeliveryScreen> with WidgetsBindi
 
       if( !await Geolocator.isLocationServiceEnabled() || !await Permission.location.isGranted ){
 
-        Navigator.pushReplacement(context, routeFrave(page: DashboardScreenSpatial()));
+        Navigator.pushReplacement(context, routeFrave(page: const DashboardScreenSpatial()));
 
       }
     }
@@ -72,7 +72,7 @@ class _MapDeliveryScreenState extends State<MapDeliveryScreen> with WidgetsBindi
         } else if ( state is SuccessOrdersState ){
 
           Navigator.pop(context);
-          modalSuccess(context, 'DELIVERED', () => Navigator.pushAndRemoveUntil(context, routeFrave(page: DashboardScreenSpatial()), (route) => false));
+          modalSuccess(context, 'DELIVERED', () => Navigator.pushAndRemoveUntil(context, routeFrave(page: const DashboardScreenSpatial()), (route) => false));
 
         } else if ( state is FailureOrdersState ){
 

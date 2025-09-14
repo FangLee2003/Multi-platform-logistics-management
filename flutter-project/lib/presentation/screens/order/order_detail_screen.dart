@@ -36,7 +36,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   late List<OrderTab> _tabs;
 
   // For order status
-  bool _isOrderAccepted = false;
   bool _isUpdatingStatus = false;
   String _selectedStatus = 'CREATED';
 
@@ -76,6 +75,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
   // Load order details from API
   Future<void> _loadOrderDetails() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -84,6 +85,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     try {
       final orderId = int.tryParse(widget.orderId);
       if (orderId == null) {
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
           _errorMessage = 'Invalid order ID format';
@@ -92,6 +94,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       }
 
       final orderDetails = await ordersServices.getDriverOrderDetail(orderId);
+
+      if (!mounted) return;
 
       if (orderDetails != null) {
         // Debug print the address information
@@ -144,6 +148,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           }
         }
 
+        if (!mounted) return;
         setState(() {
           _orderDetails = orderDetails;
           _isLoading = false;
@@ -152,7 +157,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           if (orderDetails.status != null) {
             // Map API status to our new status format
             _selectedStatus = _mapApiStatusToOrderStatus(orderDetails.status!);
-            _isOrderAccepted = _selectedStatus != 'CREATED';
 
             // Debug print
             debugPrint('Order status from API: ${orderDetails.status}');
@@ -160,16 +164,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           } else {
             // Default status if none provided
             _selectedStatus = 'CREATED';
-            _isOrderAccepted = false;
           }
         });
       } else {
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
           _errorMessage = 'Failed to load order details';
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = 'Error: $e';
@@ -506,6 +511,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 ),
               ),
             ],
+          ),
+          
+          // Add Update Status button below the progress bar
+          const SizedBox(height: 16),
+          SpatialButton(
+            text: "Update Status",
+            onPressed: _showOrderStatusUpdateDialog,
+            iconData: Icons.track_changes_outlined,
+            isGlass: true,
+            textColor: SpatialDesignSystem.primaryColor,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            width: double.infinity,
           ),
         ],
       ),
@@ -1237,104 +1254,40 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   Widget _buildBottomBar() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    // Dark mode is used in UI styling for text colors and backgrounds
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: screenWidth < 400
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Navigation button (shows only when order is accepted)
-                  if (_isOrderAccepted)
-                    SpatialButton(
-                      text: "Start Navigation",
-                      textColor: SpatialDesignSystem.primaryColor,
-                      onPressed: _navigateToRouteMap,
-                      iconData: Icons.map,
-                      isGlass: true,
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                    ),
-                  if (_isOrderAccepted) const SizedBox(height: 10),
-
-                  SpatialButton(
-                    text: "Update Status",
-                    onPressed: _showOrderStatusUpdateDialog,
-                    iconData: Icons.track_changes_outlined,
-                    isGradient: true,
-                    gradient: LinearGradient(
-                      colors: [
-                        SpatialDesignSystem.primaryColor,
-                        SpatialDesignSystem.accentColor,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                  ),
-                ],
-              )
-            // For wider screens, use a Row layout with smaller padding
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Navigation button (shows only when order is accepted)
-                  if (_isOrderAccepted)
-                    Expanded(
-                      flex: 1,
-                      child: SpatialButton(
-                        text: "Navigation",
-                        onPressed: _navigateToRouteMap,
-                        iconData: Icons.directions,
-                        isGlass: true,
-                        backgroundColor: Colors.white,
-                        textColor: SpatialDesignSystem.primaryColor,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                      ),
-                    ),
-                  if (_isOrderAccepted) const SizedBox(width: 10),
-
-                  // Accept or Delivered button
-                  Expanded(
-                    flex: _isOrderAccepted ? 1 : 2,
-                    child: _isOrderAccepted
-                        ? SpatialButton(
-                            text: "Mark as Delivered",
-                            onPressed: () {
-                              // Mark as delivered logic
-                              _showDeliveryConfirmationDialog();
-                            },
-                            iconData: Icons.check_circle,
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 12),
-                          )
-                        : SpatialButton(
-                            text: "Update Status",
-                            onPressed: _showOrderStatusUpdateDialog,
-                            iconData: Icons.update,
-                            isGradient: true,
-                            gradient: LinearGradient(
-                              colors: [
-                                SpatialDesignSystem.primaryColor,
-                                SpatialDesignSystem.accentColor,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 12),
-                          ),
-                  ),
-                ],
+    // Use Container instead of SafeArea+Padding for more consistent layout
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Navigation Button - Just one button in the bottom bar
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _navigateToRouteMap(),
+                icon: const Icon(Icons.navigation, color: Colors.white, size: 24),
+                label: const Text(
+                  'Navigate',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: SpatialDesignSystem.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  elevation: 3,
+                ),
               ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1342,6 +1295,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   // Navigate to map screen
   void _navigateToRouteMap() async {
     try {
+      // Check if widget is still mounted before accessing context
+      if (!mounted) return;
+      
       // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1364,6 +1320,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
       // Get current position for navigation (ensures we start from actual current location)
       final currentPositionData = await mapsService.getCurrentPositionData();
+      
+      // Check if widget is still mounted after async operation
+      if (!mounted) return;
       
       // Default destination coordinates if not available from API
       Map<String, dynamic> deliveryLocation = {
@@ -1388,6 +1347,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         }
       }
 
+      // Check if widget is still mounted before accessing context
+      if (!mounted) return;
+
       // Open Google Maps with direct route from current location to destination
       final result = await mapsService.openGoogleMapsWithRoute(
         context: context,
@@ -1396,7 +1358,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         deliveryLocation: deliveryLocation,
       );
 
-      if (!result && context.mounted) {
+      if (!result && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -1406,7 +1368,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         print("Error opening navigation: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1418,94 +1380,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     }
   }
 
-  void _showDeliveryConfirmationDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: GlassCard(
-          padding: const EdgeInsets.all(24),
-          gradient: LinearGradient(
-            colors: [
-              SpatialDesignSystem.successColor.withOpacity(0.1),
-              SpatialDesignSystem.successColor.withOpacity(0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: SpatialDesignSystem.successColor,
-                size: 64,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                "Confirm Delivery",
-                style: SpatialDesignSystem.headingSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Are you sure you want to mark this order as delivered?",
-                style: SpatialDesignSystem.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  SpatialButton(
-                    text: "Cancel",
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    isOutlined: true,
-                  ),
-                  SpatialButton(
-                    text: "Confirm",
-                    onPressed: () {
-                      // Handle delivery confirmation
-                      Navigator.pop(context);
-                      // Show success message
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              'Order #${widget.orderId} marked as delivered'),
-                          backgroundColor: SpatialDesignSystem.successColor,
-                        ),
-                      );
-                      // Navigate back to delivery list
-                      Future.delayed(const Duration(seconds: 1), () {
-                        Navigator.pop(context);
-                      });
-                    },
-                    isGradient: true,
-                    gradient: LinearGradient(
-                      colors: [
-                        SpatialDesignSystem.successColor,
-                        Color.fromARGB(
-                          SpatialDesignSystem.successColor.alpha,
-                          SpatialDesignSystem.successColor.red + 40,
-                          SpatialDesignSystem.successColor.green + 40,
-                          SpatialDesignSystem.successColor.blue,
-                        ),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _callCustomer() {
+    // Check if widget is still mounted before proceeding
+    if (!mounted) return;
+    
     // Extract the phone number from the order details
     String phoneNumber = "+84 123 456 789"; // Default number
 
@@ -1524,6 +1402,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
   // Show dialog to update order status
   void _showOrderStatusUpdateDialog() {
+    // Check if widget is still mounted before proceeding
+    if (!mounted) return;
+    
     // Use the existing controller from the state
     _notesController.clear();
 
@@ -1669,6 +1550,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     return DropdownMenuItem<String>(
                       value: status["name"],
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
                             width: 12,
@@ -1679,30 +1561,28 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  status["display"],
-                                  style: SpatialDesignSystem.bodyMedium.copyWith(
-                                    color: isDark
-                                        ? SpatialDesignSystem.textDarkPrimaryColor
-                                        : SpatialDesignSystem.textPrimaryColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                status["display"],
+                                style: SpatialDesignSystem.bodyMedium.copyWith(
+                                  color: isDark
+                                      ? SpatialDesignSystem.textDarkPrimaryColor
+                                      : SpatialDesignSystem.textPrimaryColor,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                Text(
-                                  "ID: ${status["id"]}",
-                                  style: SpatialDesignSystem.captionText.copyWith(
-                                    color: isDark
-                                        ? SpatialDesignSystem.textDarkSecondaryColor
-                                        : SpatialDesignSystem.textSecondaryColor,
-                                  ),
+                              ),
+                              Text(
+                                "ID: ${status["id"]}",
+                                style: SpatialDesignSystem.captionText.copyWith(
+                                  color: isDark
+                                      ? SpatialDesignSystem.textDarkSecondaryColor
+                                      : SpatialDesignSystem.textSecondaryColor,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1852,6 +1732,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   Future<void> _updateOrderStatus(OrderStatusUpdate statusUpdate) async {
     try {
       // Show loading indicator
+      if (!mounted) return;
       setState(() {
         _isUpdatingStatus = true;
       });
@@ -1863,6 +1744,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         statusUpdate: statusUpdate,
       );
 
+      // Check if widget is still mounted before updating state
+      if (!mounted) return;
+      
       // Hide loading indicator
       setState(() {
         _isUpdatingStatus = false;
@@ -1870,6 +1754,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
       // Show success or error message
       if (success) {
+        // Check if widget is still mounted before accessing context
+        if (!mounted) return;
+        
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1885,6 +1772,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               : _selectedStatus;
         });
       } else {
+        // Check if widget is still mounted before accessing context
+        if (!mounted) return;
+        
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1894,6 +1784,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
       }
     } catch (e) {
+      // Check if widget is still mounted before updating state
+      if (!mounted) return;
+      
       // Hide loading indicator
       setState(() {
         _isUpdatingStatus = false;

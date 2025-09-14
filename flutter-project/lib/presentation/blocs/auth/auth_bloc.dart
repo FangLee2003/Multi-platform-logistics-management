@@ -20,33 +20,47 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
+    print('AuthBloc: Starting login process...'); // Debug log
+    
+    // Kiểm tra nếu đang ở trạng thái loading, bỏ qua để tránh emit trùng
+    if (state is AuthLoadingState) {
+      print('AuthBloc: Already in loading state, ignoring request');
+      return;
+    }
+    
     try {
       emit(AuthLoadingState());
+      print('AuthBloc: Emitted loading state'); // Debug log
 
       // Gọi trực tiếp service đăng nhập
+      print('AuthBloc: Calling auth service...'); // Debug log
       final loginResponse = await _authServices.login(event.email, event.password);
-
-      // Thêm delay để hiển thị loading
-      await Future.delayed(const Duration(milliseconds: 500));
+      print('AuthBloc: Login response received: ${loginResponse.username}'); // Debug log
       
       // Chuyển đổi từ LoginResponse của API sang UserModel
       final userModel = _convertToUserModel(loginResponse);
+      print('AuthBloc: User model created: ${userModel.name}'); // Debug log
       
+      // Chỉ emit khi thành công, không delay
       emit(AuthenticatedState(
         user: userModel,
         token: loginResponse.accessToken,
       ));
+      print('AuthBloc: Emitted authenticated state'); // Debug log
     } catch (e) {
+      print('AuthBloc: Login error: $e'); // Debug log
       emit(AuthErrorState(message: 'Đăng nhập thất bại: ${e.toString()}'));
     }
   }
 
   Future<void> _onCheckLogin(CheckLoginEvent event, Emitter<AuthState> emit) async {
+    print('AuthBloc: Checking login status...'); // Debug log
     try {
-      emit(AuthLoadingState());
-
+      // Không emit loading state cho check login để tránh xung đột
+      
       // Kiểm tra trạng thái đăng nhập trực tiếp từ service
       final isAuthenticated = await _authServices.checkAuthStatus();
+      print('AuthBloc: Check auth status result: $isAuthenticated'); // Debug log
 
       if (isAuthenticated) {
         try {
@@ -60,13 +74,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             user: userModel,
             token: loginResponse.accessToken,
           ));
+          print('AuthBloc: User already authenticated'); // Debug log
         } catch (e) {
+          print('AuthBloc: Refresh token failed: $e'); // Debug log
           emit(UnauthenticatedState());
         }
       } else {
+        print('AuthBloc: User not authenticated'); // Debug log
         emit(UnauthenticatedState());
       }
     } catch (e) {
+      print('AuthBloc: Check login error: $e'); // Debug log
       emit(UnauthenticatedState());
     }
   }

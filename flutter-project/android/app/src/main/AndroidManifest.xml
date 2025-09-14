@@ -48,6 +48,7 @@
         android:label="KTC Logistics Driver"
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
         <meta-data android:name="com.google.android.geo.API_KEY"
                android:value="AIzaSyAA6NAaCO_wqNsUjjp86q8JcTBoQZRtW20"/>

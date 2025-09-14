@@ -1,6 +1,29 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../data/services/maintenance_api_service.dart';
+import '../../../services/maintenance_services.dart';
 import '../../../domain/models/maintenance/maintenance_request.dart';
+
+// Data Transfer Object for creating maintenance requests
+class CreateMaintenanceRequestDto {
+  final int vehicleId;
+  final String description;
+  final String maintenanceType;
+  final int statusId;
+  final double? cost;
+  final String? maintenanceDate;
+  final String? nextDueDate;
+  final String? notes;
+
+  const CreateMaintenanceRequestDto({
+    required this.vehicleId,
+    required this.description,
+    required this.maintenanceType,
+    required this.statusId,
+    this.cost,
+    this.maintenanceDate,
+    this.nextDueDate,
+    this.notes,
+  });
+}
 
 // States
 abstract class MaintenanceState {
@@ -65,14 +88,12 @@ abstract class MaintenanceEvent {
 }
 
 class LoadMaintenanceRequests extends MaintenanceEvent {
-  final int driverId;
   final int page;
   final int size;
   final int? statusIdFilter;
   final bool? isEmergencyFilter;
 
   const LoadMaintenanceRequests({
-    required this.driverId,
     this.page = 1,
     this.size = 10,
     this.statusIdFilter,
@@ -81,9 +102,7 @@ class LoadMaintenanceRequests extends MaintenanceEvent {
 }
 
 class RefreshMaintenanceRequests extends MaintenanceEvent {
-  final int driverId;
-
-  const RefreshMaintenanceRequests({required this.driverId});
+  const RefreshMaintenanceRequests();
 }
 
 class CreateMaintenanceRequest extends MaintenanceEvent {
@@ -120,10 +139,10 @@ class DeleteMaintenanceRequest extends MaintenanceEvent {
 
 // BLoC
 class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
-  final MaintenanceApiService _apiService;
+  final MaintenanceServices _apiService;
 
   MaintenanceBloc({
-    required MaintenanceApiService apiService,
+    required MaintenanceServices apiService,
   }) : _apiService = apiService, super(const MaintenanceInitial()) {
     
     on<LoadMaintenanceRequests>(_onLoadMaintenanceRequests);
@@ -141,7 +160,6 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
       emit(const MaintenanceLoading());
 
       final requests = await _apiService.getDriverMaintenanceRequests(
-        driverId: event.driverId,
         page: event.page,
         size: event.size,
         status: event.statusIdFilter?.toString(),
@@ -165,9 +183,7 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
     Emitter<MaintenanceState> emit,
   ) async {
     try {
-      final requests = await _apiService.getDriverMaintenanceRequests(
-        driverId: event.driverId,
-      );
+      final requests = await _apiService.getDriverMaintenanceRequests();
 
       emit(MaintenanceLoaded(
         requests: requests,
@@ -192,15 +208,19 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
     try {
       emit(const MaintenanceCreating());
 
+      final dto = event.createDto;
+      
       final newRequest = await _apiService.createMaintenanceRequest(
-        driverId: event.driverId,
-        createDto: event.createDto,
+        vehicleId: dto.vehicleId,
+        description: dto.description,
+        maintenanceType: dto.maintenanceType,
+        notes: dto.notes,
       );
 
       emit(MaintenanceCreated(request: newRequest));
 
       // Refresh the list
-      add(RefreshMaintenanceRequests(driverId: event.driverId));
+      add(const RefreshMaintenanceRequests());
     } catch (e) {
       emit(MaintenanceError(
         message: 'Failed to create maintenance request',
@@ -214,15 +234,23 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
     Emitter<MaintenanceState> emit,
   ) async {
     try {
-      await _apiService.updateMaintenanceStatus(
-        maintenanceId: event.maintenanceId,
-        statusId: event.updateDto.statusId,
-        notes: event.updateDto.notes,
-        cost: event.updateDto.cost,
-      );
+      // For taking vehicle to garage
+      if (event.updateDto.statusId == 19) { // MAINTENANCE status
+        await _apiService.takeVehicleToGarage(
+          maintenanceId: event.maintenanceId,
+          notes: event.updateDto.notes,
+        );
+      } 
+      // For picking up vehicle or canceling maintenance
+      else if (event.updateDto.statusId == 18 || event.updateDto.statusId == 17) { // IN_USE or AVAILABLE status
+        await _apiService.pickUpVehicle(
+          maintenanceId: event.maintenanceId,
+          notes: event.updateDto.notes,
+        );
+      }
 
       // Refresh the list
-      add(RefreshMaintenanceRequests(driverId: event.driverId));
+      add(const RefreshMaintenanceRequests());
     } catch (e) {
       emit(MaintenanceError(
         message: 'Failed to update maintenance request',
@@ -236,15 +264,17 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
     Emitter<MaintenanceState> emit,
   ) async {
     try {
-      await _apiService.deleteMaintenanceRequest(
+      // Instead of deleting, update the status to 18 (IN_USE) to cancel maintenance
+      await _apiService.pickUpVehicle(
         maintenanceId: event.maintenanceId,
+        notes: 'Yêu cầu bảo trì đã bị hủy bởi tài xế',
       );
 
       // Refresh the list
-      add(RefreshMaintenanceRequests(driverId: event.driverId));
+      add(const RefreshMaintenanceRequests());
     } catch (e) {
       emit(MaintenanceError(
-        message: 'Failed to delete maintenance request',
+        message: 'Failed to cancel maintenance request',
         details: e.toString(),
       ));
     }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery_detail_response.dart';
-import 'package:ktc_logistics_driver/domain/models/delivery/delivery_status_update.dart';
 import 'package:ktc_logistics_driver/domain/models/order/order_status_update.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_button.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
@@ -11,8 +11,10 @@ import 'package:ktc_logistics_driver/services/delivery_services.dart';
 import 'package:ktc_logistics_driver/services/orders_services.dart';
 import 'package:ktc_logistics_driver/services/googlemaps_services.dart';
 import 'package:ktc_logistics_driver/services/tracking_services.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/tracking/simple_tracking_bloc.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 import 'dart:ui';
+import 'dart:async';
 import 'package:intl/intl.dart';
 
 // Tab containing configuration data
@@ -41,9 +43,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   late List<DeliveryTab> _tabs;
   String _selectedStatus = 'Assigned'; // Default status
   final _noteController = TextEditingController();
-  final bool _isUpdatingStatus = false;
   bool _isLoading = true;
   String _errorMessage = '';
+  bool _isTrackingLoading = false; // Thêm biến theo dõi trạng thái loading khi tracking
+  StreamSubscription? _trackingSubscription; // Theo dõi sự thay đổi trạng thái tracking
 
   DeliveryDetailResponse? _deliveryDetail;
 
@@ -76,6 +79,17 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       _selectedStatus = _statusOptions.first;
     }
 
+    // Listen to tracking state changes
+    _trackingSubscription = BlocProvider.of<SimpleTrackingBloc>(context).stream.listen((state) {
+      print('SimpleTrackingBloc state changed: $state');
+      // Only update loading state if we're currently in loading state
+      if (_isTrackingLoading) {
+        setState(() {
+          _isTrackingLoading = false; // Reset loading state when tracking state changes
+        });
+      }
+    });
+
     // Get detailed data of the delivery from API
     _loadDeliveryDetails();
   }
@@ -105,8 +119,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           deliveryId = int.parse(parts[1]); // Get "26009" from "DEL-26009"
           debugPrint('Extracted numeric ID from format: $deliveryId');
         } else {
-          throw FormatException(
-              'Cannot parse delivery code: $deliveryIdStr');
+          throw FormatException('Cannot parse delivery code: $deliveryIdStr');
         }
       } else {
         // If no dash, try to parse directly
@@ -134,7 +147,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Unable to load order details for delivery $deliveryId';
+          _errorMessage =
+              'Unable to load order details for delivery $deliveryId';
         });
       }
     } catch (e) {
@@ -148,7 +162,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   // Convert status from API to UI display status
   String _mapApiStatusToUiStatus(String apiStatus) {
     String mappedStatus;
-    
+
     switch (apiStatus.toUpperCase()) {
       case 'ASSIGNED':
         mappedStatus = 'Assigned';
@@ -169,12 +183,12 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         mappedStatus = apiStatus; // Keep original if no mapping
         break;
     }
-    
+
     // Ensure the mapped status is in the valid options list
     if (!_statusOptions.contains(mappedStatus)) {
       mappedStatus = _statusOptions.first; // Default to first status if invalid
     }
-    
+
     return mappedStatus;
   }
 
@@ -182,6 +196,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   void dispose() {
     _tabController.dispose();
     _noteController.dispose();
+    _trackingSubscription?.cancel();
     // Don't stop tracking service - it should continue in the background
     super.dispose();
   }
@@ -365,6 +380,47 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     );
   }
 
+  Widget _buildBottomBar() {
+    if (_deliveryDetail == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Navigation Button
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _openNavigation(),
+                icon: const Icon(Icons.navigation, color: Colors.white, size: 24),
+                label: const Text(
+                  'Navigate',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      SpatialDesignSystem.primaryColor, // Xanh lá cây
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  elevation: 3,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatusCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -448,7 +504,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
               ),
             ],
           ),
-          
+
           // Add tracking control button
           const SizedBox(height: 16),
           _buildTrackingControlButton(),
@@ -507,62 +563,147 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         return "Unknown status";
     }
   }
-  
+
   Widget _buildTrackingControlButton() {
-    final isCurrentlyTracking = locationService.isTracking;
-    
-    return SpatialButton(
-      text: isCurrentlyTracking ? "Stop Location Tracking" : "Start Location Tracking",
-      iconData: isCurrentlyTracking ? Icons.location_off : Icons.location_on,
-      onPressed: () {
-        if (isCurrentlyTracking) {
-          // Stop tracking
-          locationService.stopBackgroundLocationService();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Background location tracking stopped'),
-              backgroundColor: Colors.blue,
-            ),
-          );
-        } else {
-          // Start tracking
-          if (_deliveryDetail != null) {
-            final driverId = _deliveryDetail?.driver?.id ?? 20696;
-            final deliveryId = _deliveryDetail?.id ?? int.parse(widget.deliveryId);
-            final vehicleId = _deliveryDetail?.vehicle?.id ?? 1;
-            final statusId = _getStatusIdFromString(_selectedStatus);
-            
-            locationService.startDeliveryTracking(
-              driverId: driverId,
-              deliveryId: deliveryId,
-              vehicleId: vehicleId,
-              statusId: statusId,
-            );
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Background location tracking started'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Cannot start tracking - delivery details not available'),
-                backgroundColor: Colors.red,
-              ),
-            );
+    // Sử dụng Bloc để kiểm tra trạng thái tracking hiện tại
+    return BlocBuilder<SimpleTrackingBloc, SimpleTrackingState>(
+      builder: (context, state) {
+        // Trích xuất deliveryId từ widget.deliveryId có thể ở định dạng "DEL-85797"
+        int? currentDeliveryId;
+        try {
+          if (widget.deliveryId.contains('-')) {
+            final parts = widget.deliveryId.split('-');
+            if (parts.length > 1 && int.tryParse(parts[1]) != null) {
+              currentDeliveryId = int.parse(parts[1]);
+            }
+          } else if (int.tryParse(widget.deliveryId) != null) {
+            currentDeliveryId = int.parse(widget.deliveryId);
           }
+        } catch (e) {
+          print('Error parsing delivery ID: $e');
         }
-        // Force UI to update
-        setState(() {});
+        
+        final isCurrentlyTracking = state is TrackingActiveState && 
+            currentDeliveryId != null && 
+            state.deliveryId == currentDeliveryId;
+
+        return SpatialButton(
+          text: _isTrackingLoading 
+              ? "Processing..." 
+              : (isCurrentlyTracking ? "Stop Tracking" : "Start Tracking"),
+          iconData:
+              _isTrackingLoading ? Icons.hourglass_top : (isCurrentlyTracking ? Icons.location_off : Icons.location_on),
+          onPressed: _isTrackingLoading 
+              ? () {} // No-op function when disabled 
+              : () {
+                  setState(() {
+                    _isTrackingLoading = true;
+                  });
+                  
+                  print('Tracking button pressed. Current tracking state: ${isCurrentlyTracking ? 'active' : 'inactive'}');
+                  
+                  if (isCurrentlyTracking) {
+                    // Stop tracking - gọi tới bloc
+                    context.read<SimpleTrackingBloc>().add(StopTrackingEvent());
+                    
+                    print('Stopped tracking');
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Background location tracking stopped'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  } else {
+                    // Start tracking
+                    if (_deliveryDetail == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Cannot start tracking - delivery details not available'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      setState(() {
+                        _isTrackingLoading = false;
+                      });
+                      return;
+                    }
+
+                    try {
+                      int deliveryId;
+
+                      // Kiểm tra nếu ID có định dạng "DEL-85797"
+                      if (widget.deliveryId.contains('-')) {
+                        final parts = widget.deliveryId.split('-');
+                        if (parts.length > 1 && int.tryParse(parts[1]) != null) {
+                          deliveryId = int.parse(parts[1]); // Lấy "85797" từ "DEL-85797"
+                        } else {
+                          throw FormatException('Không thể parse delivery ID: ${widget.deliveryId}');
+                        }
+                      } else {
+                        deliveryId = int.parse(widget.deliveryId);
+                      }
+
+                      final vehicleId = _deliveryDetail!.vehicle?.id;
+
+                      if (vehicleId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vehicle ID not found for this delivery'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        setState(() {
+                          _isTrackingLoading = false;
+                        });
+                        return;
+                      }
+
+                      // Start tracking using SimpleTrackingBloc
+                      context.read<SimpleTrackingBloc>().add(
+                            StartTrackingEvent(deliveryId, vehicleId: vehicleId),
+                          );
+
+                      print('Started tracking for delivery #$deliveryId with vehicle #$vehicleId');
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Background location tracking started'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error starting tracking: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      setState(() {
+                        _isTrackingLoading = false;
+                      });
+                    }
+                  }
+                  
+                  // Note: We don't reset loading state here.
+                  // The loading state will be reset automatically when the tracking state changes
+                  // via the StreamSubscription in initState
+                },
+          width: double.infinity,
+          height: 45, // Giảm chiều cao một chút
+          padding: SpatialDesignSystem.paddingS, // Padding nhỏ hơn
+          isGlass: true, // Sử dụng hiệu ứng kính (glass effect)
+          textColor: _isTrackingLoading 
+              ? Colors.grey 
+              : (isCurrentlyTracking ? Colors.red : Colors.green),
+          backgroundColor: _isTrackingLoading
+              ? Colors.grey.withOpacity(0.05)
+              : (isCurrentlyTracking
+                  ? Colors.red.withOpacity(0.15)
+                  : Colors.green.withOpacity(0.15)),
+        );
       },
-      isGlass: true,
-      backgroundColor: isCurrentlyTracking ? Colors.red.withOpacity(0.2) : Colors.green.withOpacity(0.2),
-      textColor: isCurrentlyTracking ? Colors.red : Colors.green,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      height: 40,
-      width: double.infinity,
     );
   }
 
@@ -633,101 +774,70 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
           const SizedBox(height: 16),
 
-          // Status Update - Uncommented and updated
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Update Status",
-                  style: SpatialDesignSystem.subtitleMedium.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkPrimaryColor
-                        : SpatialDesignSystem.textPrimaryColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedStatus,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? Colors.black.withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.8),
-                  ),
-                  items: _statusOptions.map((status) {
-                    return DropdownMenuItem<String>(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _selectedStatus = newValue;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                SpatialTextField(
-                  controller: _noteController,
-                  label: "Notes",
-                  hint: "Add notes about status change",
-                  maxLines: 3,
-                  isGlass: true,
-                ),
-                const SizedBox(height: 16),
-                SpatialButton(
-                  text: "Update Status",
-                  onPressed: () => _updateDeliveryStatus(_selectedStatus),
-                  isGlass: true,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  height: 40,
-                  width: double.infinity,
-                ),
-              ],
-            ),
-          ),
+          // // Status Update for All Orders in this Delivery
+          // GlassCard(
+          //   padding: const EdgeInsets.all(16),
+          //   child: Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       Text(
+          //         "Update Status",
+          //         style: SpatialDesignSystem.subtitleMedium.copyWith(
+          //           color: isDark
+          //               ? SpatialDesignSystem.textDarkPrimaryColor
+          //               : SpatialDesignSystem.textPrimaryColor,
+          //         ),
+          //       ),
+          //       const SizedBox(height: 16),
+          //       DropdownButtonFormField<String>(
+          //         value: _selectedStatus,
+          //         decoration: InputDecoration(
+          //           labelText: 'Status',
+          //           border: OutlineInputBorder(
+          //             borderRadius: BorderRadius.circular(10),
+          //           ),
+          //           filled: true,
+          //           fillColor: isDark
+          //               ? Colors.black.withValues(alpha: 0.2)
+          //               : Colors.white.withValues(alpha: 0.8),
+          //         ),
+          //         items: _statusOptions.map((status) {
+          //           return DropdownMenuItem<String>(
+          //             value: status,
+          //             child: Text(status),
+          //           );
+          //         }).toList(),
+          //         onChanged: (newValue) {
+          //           if (newValue != null) {
+          //             setState(() {
+          //               _selectedStatus = newValue;
+          //             });
+          //           }
+          //         },
+          //       ),
+          //       const SizedBox(height: 16),
+          //       SpatialTextField(
+          //         controller: _noteController,
+          //         label: "Notes",
+          //         hint: "Add notes about status change",
+          //         maxLines: 3,
+          //         isGlass: true,
+          //       ),
+          //       const SizedBox(height: 16),
+          //       SpatialButton(
+          //         text: "Update Status",
+          //         onPressed: () => _updateDeliveryStatus(_selectedStatus),
+          //         isGlass: true,
+          //         padding:
+          //             const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          //         height: 40,
+          //         width: double.infinity,
+          //       ),
+          //     ],
+          //   ),
+          // ),
 
-          const SizedBox(height: 16),
-          
-          // Location Tracking Control
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Location Tracking",
-                  style: SpatialDesignSystem.subtitleMedium.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkPrimaryColor
-                        : SpatialDesignSystem.textPrimaryColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Background location tracking sends your position to the server every 30 minutes to help operations track delivery progress.",
-                  style: SpatialDesignSystem.bodySmall.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkSecondaryColor
-                        : SpatialDesignSystem.textSecondaryColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildTrackingControlButton(),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
+          // const SizedBox(height: 16),
 
           // Timeline
           GlassCard(
@@ -1091,8 +1201,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                           onPressed: () {
                             _showOrderStatusUpdateDialog(order);
                           },
-                          backgroundColor: SpatialDesignSystem.surfaceColor
-                              .withOpacity(0.9),
+                          backgroundColor:
+                              SpatialDesignSystem.surfaceColor.withOpacity(0.9),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 8),
                           height: 50,
@@ -1133,7 +1243,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     }
 
     // Prioritize using store address
-    if (_deliveryDetail!.store != null && _deliveryDetail!.store!.address != null) {
+    if (_deliveryDetail!.store != null &&
+        _deliveryDetail!.store!.address != null) {
       return _deliveryDetail!.store!.address!;
     }
 
@@ -1224,10 +1335,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       'Completed',
       'Cancelled'
     ];
-    
+
     // Convert API status to UI status format
     String selectedStatus = _mapApiStatusToUiStatus(order.status ?? 'ASSIGNED');
-    
+
     // Make sure selectedStatus is in the orderStatusOptions list
     if (!orderStatusOptions.contains(selectedStatus)) {
       selectedStatus = orderStatusOptions.first;
@@ -1318,7 +1429,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                       ? null
                       : () async {
                           // Validate selected status
-                          if (selectedStatus.isEmpty || 
+                          if (selectedStatus.isEmpty ||
                               !orderStatusOptions.contains(selectedStatus)) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -1328,7 +1439,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                             );
                             return;
                           }
-                          
+
                           setState(() {
                             isUpdating = true;
                           });
@@ -1408,83 +1519,21 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   }
 
   // Update delivery status via API
-  Future<void> _updateDeliveryStatus(String newStatus) async {
-    if (_deliveryDetail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Delivery information is missing'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    
-    try {
-      // If delivery is completed or cancelled, stop tracking
-      if (newStatus == 'Completed' || newStatus == 'Cancelled') {
-        locationService.stopBackgroundLocationService();
-        
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Background location tracking stopped'),
-              backgroundColor: Colors.blue,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-      }
-      
-      // Update UI
-      setState(() {
-        _selectedStatus = newStatus;
-      });
-      
-      // TODO: Implement API call to update status when endpoint is available
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Status updated to $newStatus'),
-          backgroundColor: SpatialDesignSystem.successColor,
-        ),
-      );
-      
-    } catch (e) {
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating status: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+
+
+  /// Open navigation to pickup/delivery location
+  void _openNavigation() {
+    if (_deliveryDetail == null) return;
+
+    // Use the existing navigation method
+    _navigateToRouteMap();
   }
 
-  Widget _buildBottomBar() {
-    final locationService = LocationService();
-    final isCurrentlyTracking = locationService.isTracking;
-    
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: SpatialButton(
-                text: isCurrentlyTracking ? "Navigate (Tracking)" : "Start Navigation",
-                iconData: isCurrentlyTracking ? Icons.location_on : Icons.directions,
-                onPressed: () {
-                  _navigateToRouteMap();
-                },
-                isOutlined: true,
-                textColor: SpatialDesignSystem.primaryColor,
-                backgroundColor: SpatialDesignSystem.primaryColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  /// Start tracking for this specific delivery
+
+
+  /// Stop tracking
+
 
   void _navigateToRouteMap() async {
     try {
@@ -1519,8 +1568,9 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       final googleMapsService = GoogleMapsService();
 
       // Get current position for navigation (ensures we start from actual current location)
-      final currentPositionData = await googleMapsService.getCurrentPositionData();
-      
+      final currentPositionData =
+          await googleMapsService.getCurrentPositionData();
+
       // Default destination coordinates if not available from API
       Map<String, dynamic> storeLocation = {
         'latitude': 10.7756,
@@ -1529,9 +1579,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       };
 
       // Get real coordinates from the first order in delivery detail
-      if (_deliveryDetail!.orders.isNotEmpty && _deliveryDetail!.orders.first.store != null) {
+      if (_deliveryDetail!.orders.isNotEmpty &&
+          _deliveryDetail!.orders.first.store != null) {
         final store = _deliveryDetail!.orders.first.store!;
-        
+
         if (store.latitude != null && store.longitude != null) {
           // Ưu tiên sử dụng tọa độ của store nếu có
           storeLocation = {
@@ -1540,7 +1591,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
             'address': store.address ?? 'Store Address'
           };
           // Debug address information
-          print("Using store coordinates: ${store.latitude}, ${store.longitude}");
+          print(
+              "Using store coordinates: ${store.latitude}, ${store.longitude}");
         } else if (store.address != null && store.address!.isNotEmpty) {
           // Nếu không có tọa độ, sử dụng địa chỉ cho Google Maps tìm kiếm
           storeLocation = {
@@ -1554,11 +1606,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       }
 
       // Start tracking service
-      final driverId = _deliveryDetail?.driver?.id ?? 20696; // Default driver ID if not available
+      final driverId = _deliveryDetail?.driver?.id ??
+          20696; // Default driver ID if not available
       final deliveryId = _deliveryDetail?.id ?? int.parse(widget.deliveryId);
-      final vehicleId = _deliveryDetail?.vehicle?.id ?? 1; // Default vehicle ID if not available
+      final vehicleId = _deliveryDetail?.vehicle?.id ??
+          1; // Default vehicle ID if not available
       final statusId = _getStatusIdFromString(_selectedStatus);
-      
+
       // Start background tracking service
       final locationService = LocationService();
       if (!locationService.isTracking) {
@@ -1568,7 +1622,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           vehicleId: vehicleId,
           statusId: statusId,
         );
-        
+
         // Show a message that tracking has started
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1584,7 +1638,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
       // Open Google Maps with direct route from current location to destination
       final result = await googleMapsService.openGoogleMapsWithRoute(
         context: context,
-        pickupLocation: currentPositionData, // Use actual current position from device
+        pickupLocation:
+            currentPositionData, // Use actual current position from device
         transitPoints: [], // No transit points
         deliveryLocation: storeLocation,
       );

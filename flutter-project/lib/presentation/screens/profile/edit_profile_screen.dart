@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ktc_logistics_driver/data/env/environment.dart';
 import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
 import 'package:ktc_logistics_driver/presentation/helpers/helpers.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_button.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_text_field.dart';
-import 'package:ktc_logistics_driver/presentation/screens/environment/environment_selection_screen.dart';
 import 'dart:ui';
 
 class EditProfileScreen extends StatefulWidget {
@@ -125,155 +123,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // Method to display environment switch dialog
-  void _showEnvironmentSwitchDialog(BuildContext context) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final env = Environment.getInstance();
-    final isTestMode = env.isTestMode;
-    final currentUrl = env.apiBaseUrl;
-
-    if (!context.mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-        child: AlertDialog(
-          backgroundColor: isDark
-              ? SpatialDesignSystem.darkSurfaceColor.withValues(alpha: 0.9)
-              : SpatialDesignSystem.surfaceColor.withValues(alpha: 0.9),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
-              width: 1,
-            ),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.settings,
-                color: SpatialDesignSystem.primaryColor,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Switch Environment',
-                style: SpatialDesignSystem.subtitleLarge.copyWith(
-                  color: isDark
-                      ? SpatialDesignSystem.textDarkPrimaryColor
-                      : SpatialDesignSystem.textPrimaryColor,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Current environment:',
-                style: SpatialDesignSystem.bodyMedium.copyWith(
-                  color: isDark
-                      ? SpatialDesignSystem.textDarkSecondaryColor
-                      : SpatialDesignSystem.textSecondaryColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isTestMode
-                      ? const Color(0xFFFF9F0A).withValues(alpha: 0.1)
-                      : const Color(0xFF0A84FF).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isTestMode
-                        ? const Color(0xFFFF9F0A)
-                        : const Color(0xFF0A84FF),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          isTestMode ? Icons.code : Icons.cloud_done,
-                          color: isTestMode
-                              ? const Color(0xFFFF9F0A)
-                              : const Color(0xFF0A84FF),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isTestMode ? 'Test Environment' : 'Live Environment',
-                          style: SpatialDesignSystem.bodyMedium.copyWith(
-                            color: isTestMode
-                                ? const Color(0xFFFF9F0A)
-                                : const Color(0xFF0A84FF),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      currentUrl,
-                      style: SpatialDesignSystem.captionText.copyWith(
-                        color: isDark
-                            ? SpatialDesignSystem.textDarkSecondaryColor
-                            : SpatialDesignSystem.textSecondaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Choose a different environment for the application',
-                style: SpatialDesignSystem.bodyMedium.copyWith(
-                  color: isDark
-                      ? SpatialDesignSystem.textDarkSecondaryColor
-                      : SpatialDesignSystem.textSecondaryColor,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: SpatialDesignSystem.textSecondaryColor),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: SpatialDesignSystem.primaryColor.withValues(alpha: 0.85),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                // Navigate to environment selection screen
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const EnvironmentSelectionScreen()),
-                );
-                // Note: Environment selection will handle logout and navigation to login
-              },
-              child: const Text('Switch', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final userBloc = BlocProvider.of<UserBloc>(context, listen: false); // Optimize: don't listen here
@@ -322,41 +171,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
           automaticallyImplyLeading: false, // Remove back button
-          leading: 
-            // Environment switch button in top-left corner
-            Container(
-              width: 70,
-              child: TextButton(
-                onPressed: () {
-                  _showEnvironmentSwitchDialog(context);
-                },
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.settings,
-                      size: 18,
-                      color: SpatialDesignSystem.primaryColor,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Env',
-                      style: SpatialDesignSystem.bodyMedium.copyWith(
-                        color: SpatialDesignSystem.primaryColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           actions: [
             // Logout button in top-right corner
             TextButton.icon(

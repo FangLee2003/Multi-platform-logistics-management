@@ -4,17 +4,21 @@ import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
 import 'package:ktc_logistics_driver/domain/models/maintenance/maintenance_request.dart';
 import 'package:ktc_logistics_driver/presentation/blocs/maintenance/maintenance_bloc.dart';
-import 'package:ktc_logistics_driver/data/services/maintenance_api_service.dart';
 
 class MaintenanceScreen extends StatelessWidget {
   const MaintenanceScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => MaintenanceBloc(
-        apiService: MaintenanceApiService(),
-      )..add(const LoadMaintenanceRequests(driverId: 1)), // TODO: Get actual driverId
+    // Do not create BlocProvider here, use the BlocProvider already provided in app.dart
+    // and trigger load event when the screen is first displayed
+    return BlocListener<MaintenanceBloc, MaintenanceState>(
+      listener: (context, state) {
+        // Trigger load event when the screen is first initialized
+        if (state is MaintenanceInitial) {
+          context.read<MaintenanceBloc>().add(const LoadMaintenanceRequests());
+        }
+      },
       child: const MaintenanceScreenContent(),
     );
   }
@@ -24,12 +28,31 @@ class MaintenanceScreenContent extends StatefulWidget {
   const MaintenanceScreenContent({super.key});
 
   @override
-  State<MaintenanceScreenContent> createState() => _MaintenanceScreenContentState();
+  State<MaintenanceScreenContent> createState() =>
+      _MaintenanceScreenContentState();
 }
 
 class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
+  // Add variable to track dark mode
+  bool _isDark = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Update dark mode state
+    final newIsDark = Theme.of(context).brightness == Brightness.dark;
+    if (_isDark != newIsDark) {
+      setState(() {
+        _isDark = newIsDark;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Update state in build to ensure always correct
+    _isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -37,8 +60,12 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              SpatialDesignSystem.backgroundColor,
-              SpatialDesignSystem.backgroundColor.withOpacity(0.8),
+              _isDark
+                  ? SpatialDesignSystem.darkBackgroundColor
+                  : SpatialDesignSystem.backgroundColor,
+              _isDark
+                  ? SpatialDesignSystem.darkBackgroundColor.withOpacity(0.8)
+                  : SpatialDesignSystem.backgroundColor.withOpacity(0.8),
             ],
           ),
         ),
@@ -54,7 +81,8 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
             } else if (state is MaintenanceCreated) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('Yêu cầu bảo trì đã được tạo thành công'),
+                  content:
+                      const Text('Maintenance request created successfully'),
                   backgroundColor: SpatialDesignSystem.successColor,
                 ),
               );
@@ -92,9 +120,11 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Báo Bảo Trì',
+                'Report Maintenance',
                 style: SpatialDesignSystem.headingLarge.copyWith(
-                  color: SpatialDesignSystem.textPrimaryColor,
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkPrimaryColor
+                      : SpatialDesignSystem.textPrimaryColor,
                 ),
               ),
               const Spacer(),
@@ -107,8 +137,8 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
               IconButton(
                 onPressed: () {
                   context.read<MaintenanceBloc>().add(
-                    const RefreshMaintenanceRequests(driverId: 1),
-                  );
+                        const RefreshMaintenanceRequests(),
+                      );
                 },
                 icon: const Icon(Icons.refresh),
                 color: SpatialDesignSystem.primaryColor,
@@ -117,9 +147,11 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Quản lý yêu cầu bảo trì xe của bạn',
+            'Manage your vehicle maintenance requests',
             style: SpatialDesignSystem.bodyMedium.copyWith(
-              color: SpatialDesignSystem.textSecondaryColor,
+              color: _isDark
+                  ? SpatialDesignSystem.textDarkSecondaryColor
+                  : SpatialDesignSystem.textSecondaryColor,
             ),
           ),
           const SizedBox(height: 16),
@@ -132,15 +164,20 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
   Widget _buildStatsCards(MaintenanceState state) {
     if (state is MaintenanceLoaded) {
       final requests = state.requests;
-      final pendingCount = requests.where((r) => r.status?.id == 17).length; // AVAILABLE - chờ xử lý
-      final acceptedCount = requests.where((r) => r.status?.id == 18).length; // IN_USE - đã chấp nhận
-      final maintenanceCount = requests.where((r) => r.status?.id == 19).length; // MAINTENANCE - đang bảo trì
+      final pendingCount = requests
+          .where((r) => r.status?.id == 17)
+          .length; // AVAILABLE - pending
+      final acceptedCount =
+          requests.where((r) => r.status?.id == 18).length; // IN_USE - accepted
+      final maintenanceCount = requests
+          .where((r) => r.status?.id == 19)
+          .length; // MAINTENANCE - under maintenance
 
       return Row(
         children: [
           Expanded(
             child: _buildStatCard(
-              'Chờ xử lý',
+              'Pending',
               pendingCount.toString(),
               SpatialDesignSystem.warningColor,
               Icons.pending_actions,
@@ -149,7 +186,7 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              'Đã chấp nhận',
+              'Accepted',
               acceptedCount.toString(),
               SpatialDesignSystem.successColor,
               Icons.check_circle,
@@ -158,7 +195,7 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
           const SizedBox(width: 12),
           Expanded(
             child: _buildStatCard(
-              'Đang bảo trì',
+              'Under Maintenance',
               maintenanceCount.toString(),
               SpatialDesignSystem.primaryColor,
               Icons.build,
@@ -171,21 +208,25 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard('Chờ xử lý', '-', SpatialDesignSystem.warningColor, Icons.pending_actions),
+          child: _buildStatCard('Pending', '-',
+              SpatialDesignSystem.warningColor, Icons.pending_actions),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Đã chấp nhận', '-', SpatialDesignSystem.successColor, Icons.check_circle),
+          child: _buildStatCard('Accepted', '-',
+              SpatialDesignSystem.successColor, Icons.check_circle),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Đang bảo trì', '-', SpatialDesignSystem.primaryColor, Icons.build),
+          child: _buildStatCard('Under Maintenance', '-',
+              SpatialDesignSystem.primaryColor, Icons.build),
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, String value, Color color, IconData icon) {
+  Widget _buildStatCard(
+      String label, String value, Color color, IconData icon) {
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -209,7 +250,9 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
             Text(
               label,
               style: SpatialDesignSystem.captionText.copyWith(
-                color: SpatialDesignSystem.textSecondaryColor,
+                color: _isDark
+                    ? SpatialDesignSystem.textDarkSecondaryColor
+                    : SpatialDesignSystem.textSecondaryColor,
               ),
             ),
           ],
@@ -218,7 +261,8 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
     );
   }
 
-  Widget _buildMaintenanceContent(BuildContext context, MaintenanceState state) {
+  Widget _buildMaintenanceContent(
+      BuildContext context, MaintenanceState state) {
     if (state is MaintenanceLoading && state is! MaintenanceLoaded) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -237,16 +281,20 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Không thể tải dữ liệu',
+              'Cannot load data',
               style: SpatialDesignSystem.headingMedium.copyWith(
-                color: SpatialDesignSystem.textPrimaryColor,
+                color: _isDark
+                    ? SpatialDesignSystem.textDarkPrimaryColor
+                    : SpatialDesignSystem.textPrimaryColor,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               state.message,
               style: SpatialDesignSystem.bodyMedium.copyWith(
-                color: SpatialDesignSystem.textSecondaryColor,
+                color: _isDark
+                    ? SpatialDesignSystem.textDarkSecondaryColor
+                    : SpatialDesignSystem.textSecondaryColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -254,13 +302,13 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
             ElevatedButton(
               onPressed: () {
                 context.read<MaintenanceBloc>().add(
-                  const LoadMaintenanceRequests(driverId: 1),
-                );
+                      const LoadMaintenanceRequests(),
+                    );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: SpatialDesignSystem.primaryColor,
               ),
-              child: const Text('Thử lại'),
+              child: const Text('Try again'),
             ),
           ],
         ),
@@ -269,7 +317,7 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
 
     if (state is MaintenanceLoaded) {
       final requests = state.requests;
-      
+
       if (requests.isEmpty) {
         return Center(
           child: Column(
@@ -278,20 +326,26 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
               Icon(
                 Icons.build_circle_outlined,
                 size: 64,
-                color: SpatialDesignSystem.textSecondaryColor,
+                color: _isDark
+                    ? SpatialDesignSystem.textDarkSecondaryColor
+                    : SpatialDesignSystem.textSecondaryColor,
               ),
               const SizedBox(height: 16),
               Text(
-                'Chưa có yêu cầu bảo trì',
+                'No maintenance requests yet',
                 style: SpatialDesignSystem.headingMedium.copyWith(
-                  color: SpatialDesignSystem.textPrimaryColor,
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkPrimaryColor
+                      : SpatialDesignSystem.textPrimaryColor,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Bạn chưa có yêu cầu bảo trì nào. Nhấn nút + để tạo yêu cầu mới.',
+                'You have no maintenance requests. Press the + button to create a new request.',
                 style: SpatialDesignSystem.bodyMedium.copyWith(
-                  color: SpatialDesignSystem.textSecondaryColor,
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -303,8 +357,8 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
       return RefreshIndicator(
         onRefresh: () async {
           context.read<MaintenanceBloc>().add(
-            const RefreshMaintenanceRequests(driverId: 1),
-          );
+                const RefreshMaintenanceRequests(),
+              );
         },
         child: ListView.builder(
           padding: const EdgeInsets.all(16.0),
@@ -323,7 +377,8 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
     return const SizedBox.shrink();
   }
 
-  Widget _buildMaintenanceCard(BuildContext context, MaintenanceRequest request) {
+  Widget _buildMaintenanceCard(
+      BuildContext context, MaintenanceRequest request) {
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -335,10 +390,13 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
                 _buildStatusBadge(request.status),
                 const Spacer(),
                 // Emergency badge if available in notes or description
-                if (request.description.toLowerCase().contains('khẩn cấp') || 
-                    request.description.toLowerCase().contains('emergency')) ...[
+                if (request.description.toLowerCase().contains('khẩn cấp') ||
+                    request.description
+                        .toLowerCase()
+                        .contains('emergency')) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -366,7 +424,9 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
             Text(
               request.description,
               style: SpatialDesignSystem.headingSmall.copyWith(
-                color: SpatialDesignSystem.textPrimaryColor,
+                color: _isDark
+                    ? SpatialDesignSystem.textDarkPrimaryColor
+                    : SpatialDesignSystem.textPrimaryColor,
                 fontWeight: FontWeight.bold,
               ),
               maxLines: 2,
@@ -377,7 +437,9 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
               Text(
                 request.notes!,
                 style: SpatialDesignSystem.bodyMedium.copyWith(
-                  color: SpatialDesignSystem.textSecondaryColor,
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
@@ -389,7 +451,9 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
                 Icon(
                   Icons.directions_car,
                   size: 16,
-                  color: SpatialDesignSystem.textSecondaryColor,
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -413,6 +477,10 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
                 ),
               ],
             ),
+
+            // Add action buttons based on the status
+            const SizedBox(height: 16),
+            _buildActionButtons(context, request),
           ],
         ),
       ),
@@ -424,9 +492,16 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: SpatialDesignSystem.textSecondaryColor.withOpacity(0.1),
+          color: (_isDark
+                  ? SpatialDesignSystem.textDarkSecondaryColor
+                  : SpatialDesignSystem.textSecondaryColor)
+              .withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: SpatialDesignSystem.textSecondaryColor.withOpacity(0.3)),
+          border: Border.all(
+              color: (_isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor)
+                  .withOpacity(0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -434,7 +509,7 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
             const Icon(Icons.help_outline, size: 14, color: Colors.grey),
             const SizedBox(width: 4),
             Text(
-              'Chưa xác định',
+              'Unknown',
               style: SpatialDesignSystem.captionText.copyWith(
                 color: Colors.grey,
                 fontWeight: FontWeight.w600,
@@ -450,15 +525,15 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
 
     // Map status based on ID (from our API: 17=AVAILABLE, 18=IN_USE, 19=MAINTENANCE)
     switch (status.id) {
-      case 17: // AVAILABLE - chờ xử lý
+      case 17: // AVAILABLE - pending
         color = SpatialDesignSystem.warningColor;
         icon = Icons.pending;
         break;
-      case 18: // IN_USE - đã chấp nhận
+      case 18: // IN_USE - accepted
         color = SpatialDesignSystem.successColor;
         icon = Icons.check_circle_outline;
         break;
-      case 19: // MAINTENANCE - đang bảo trì
+      case 19: // MAINTENANCE - under maintenance
         color = SpatialDesignSystem.primaryColor;
         icon = Icons.build;
         break;
@@ -495,11 +570,11 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
   String _getStatusDisplayName(StatusInfo status) {
     switch (status.id) {
       case 17: // AVAILABLE
-        return 'Chờ xử lý';
-      case 18: // IN_USE  
-        return 'Đã chấp nhận';
+        return 'Pending';
+      case 18: // IN_USE
+        return 'Accepted';
       case 19: // MAINTENANCE
-        return 'Đang bảo trì';
+        return 'Under Maintenance';
       default:
         return status.name; // Fallback to API name
     }
@@ -509,11 +584,12 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
     return BlocBuilder<MaintenanceBloc, MaintenanceState>(
       builder: (context, state) {
         final isCreating = state is MaintenanceCreating;
-        
+
         return FloatingActionButton.extended(
-          onPressed: isCreating ? null : () => _showCreateMaintenanceDialog(context),
+          onPressed:
+              isCreating ? null : () => _showCreateMaintenanceDialog(context),
           backgroundColor: SpatialDesignSystem.primaryColor,
-          icon: isCreating 
+          icon: isCreating
               ? const SizedBox(
                   width: 20,
                   height: 20,
@@ -524,7 +600,7 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
                 )
               : const Icon(Icons.add, color: Colors.white),
           label: Text(
-            isCreating ? 'Đang tạo...' : 'Báo bảo trì',
+            isCreating ? 'Creating...' : 'Report maintenance',
             style: SpatialDesignSystem.captionText.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w600,
@@ -536,32 +612,253 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
   }
 
   void _showCreateMaintenanceDialog(BuildContext context) {
+    final descriptionController = TextEditingController();
+    final notesController = TextEditingController();
+    String selectedType = MaintenanceType.routine.name;
+    int selectedVehicleId =
+        1; // Default vehicle ID, should be retrieved from a list
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: SpatialDesignSystem.surfaceColor,
+        backgroundColor: _isDark
+            ? SpatialDesignSystem.darkSurfaceColor
+            : SpatialDesignSystem.surfaceColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
         title: Text(
-          'Tạo yêu cầu bảo trì',
+          'Create maintenance request',
           style: SpatialDesignSystem.headingSmall.copyWith(
-            color: SpatialDesignSystem.textPrimaryColor,
+            color: _isDark
+                ? SpatialDesignSystem.textDarkPrimaryColor
+                : SpatialDesignSystem.textPrimaryColor,
           ),
         ),
-        content: Text(
-          'Chức năng tạo yêu cầu bảo trì sẽ được phát triển trong phiên bản tiếp theo.',
-          style: SpatialDesignSystem.bodyMedium.copyWith(
-            color: SpatialDesignSystem.textSecondaryColor,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Vehicle selection (would be a dropdown in a real app)
+              Text(
+                'Vehicle',
+                style: SpatialDesignSystem.captionText.copyWith(
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _isDark
+                      ? SpatialDesignSystem.darkSurfaceColorSecondary
+                      : SpatialDesignSystem.backgroundColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.directions_car,
+                        size: 18,
+                        color: _isDark
+                            ? SpatialDesignSystem.textDarkPrimaryColor
+                            : SpatialDesignSystem.textPrimaryColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      'KTC-51A 12345', // Demo value, should be dynamic
+                      style: SpatialDesignSystem.bodyMedium.copyWith(
+                        color: _isDark
+                            ? SpatialDesignSystem.textDarkPrimaryColor
+                            : SpatialDesignSystem.textPrimaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Maintenance type selection
+              Text(
+                'Maintenance type',
+                style: SpatialDesignSystem.captionText.copyWith(
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
+                ),
+              ),
+              StatefulBuilder(
+                builder: (context, setState) {
+                  return DropdownButtonFormField<String>(
+                    value: selectedType,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: _isDark
+                          ? SpatialDesignSystem.darkSurfaceColorSecondary
+                          : SpatialDesignSystem.backgroundColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide:
+                            BorderSide(color: Colors.grey.withOpacity(0.3)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                    ),
+                    dropdownColor: _isDark
+                        ? SpatialDesignSystem.darkSurfaceColorSecondary
+                        : SpatialDesignSystem.backgroundColor,
+                    style: TextStyle(
+                      color: _isDark
+                          ? SpatialDesignSystem.textDarkPrimaryColor
+                          : SpatialDesignSystem.textPrimaryColor,
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: MaintenanceType.routine.name,
+                        child: Text('Routine maintenance'),
+                      ),
+                      DropdownMenuItem(
+                        value: MaintenanceType.repair.name,
+                        child: Text('Repair'),
+                      ),
+                      DropdownMenuItem(
+                        value: MaintenanceType.inspection.name,
+                        child: Text('Inspection'),
+                      ),
+                      DropdownMenuItem(
+                        value: MaintenanceType.emergency.name,
+                        child: Text('Emergency'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => selectedType = value);
+                      }
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Description input
+              Text(
+                'Problem description',
+                style: SpatialDesignSystem.captionText.copyWith(
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
+                ),
+              ),
+              TextField(
+                controller: descriptionController,
+                style: TextStyle(
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkPrimaryColor
+                      : SpatialDesignSystem.textPrimaryColor,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: _isDark
+                      ? SpatialDesignSystem.darkSurfaceColorSecondary
+                      : SpatialDesignSystem.backgroundColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                  ),
+                  hintText: 'Describe the vehicle issue in detail',
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+
+              // Notes input
+              Text(
+                'Additional notes (optional)',
+                style: SpatialDesignSystem.captionText.copyWith(
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
+                ),
+              ),
+              TextField(
+                controller: notesController,
+                style: TextStyle(
+                  color: _isDark
+                      ? SpatialDesignSystem.textDarkPrimaryColor
+                      : SpatialDesignSystem.textPrimaryColor,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: _isDark
+                      ? SpatialDesignSystem.darkSurfaceColorSecondary
+                      : SpatialDesignSystem.backgroundColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                  ),
+                  hintText: 'Additional information',
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                maxLines: 2,
+              ),
+            ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(
-              'Đóng',
+              'Cancel',
               style: SpatialDesignSystem.bodyMedium.copyWith(
-                color: SpatialDesignSystem.primaryColor,
+                color: _isDark
+                    ? SpatialDesignSystem.textDarkSecondaryColor
+                    : SpatialDesignSystem.textSecondaryColor,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (descriptionController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Please enter a problem description')),
+                );
+                return;
+              }
+
+              // Create maintenance request
+              context.read<MaintenanceBloc>().add(
+                    CreateMaintenanceRequest(
+                      driverId: 1, // This will be ignored by the service
+                      createDto: CreateMaintenanceRequestDto(
+                        vehicleId: selectedVehicleId,
+                        description: descriptionController.text.trim(),
+                        maintenanceType: selectedType,
+                        statusId: 51, // MAINTENANCE_PENDING
+                        notes: notesController.text.trim().isNotEmpty
+                            ? notesController.text.trim()
+                            : null,
+                      ),
+                    ),
+                  );
+
+              Navigator.of(dialogContext).pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SpatialDesignSystem.primaryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Create request',
+              style: SpatialDesignSystem.bodyMedium.copyWith(
+                color: Colors.white,
               ),
             ),
           ),
@@ -569,19 +866,530 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent> {
       ),
     );
   }
+}
 
-  String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+String _formatTime(DateTime dateTime) {
+  final now = DateTime.now();
+  final difference = now.difference(dateTime);
 
-    if (difference.inDays > 0) {
-      return '${difference.inDays} ngày trước';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} giờ trước';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} phút trước';
-    } else {
-      return 'Vừa xong';
-    }
+  if (difference.inDays > 0) {
+    return '${difference.inDays} days ago';
+  } else if (difference.inHours > 0) {
+    return '${difference.inHours} hours ago';
+  } else if (difference.inMinutes > 0) {
+    return '${difference.inMinutes} minutes ago';
+  } else {
+    return 'Just now';
   }
+}
+
+// Widget to show action buttons based on maintenance request status
+Widget _buildActionButtons(BuildContext context, MaintenanceRequest request) {
+  final status = request.status?.id;
+
+  // No status or no need for actions
+  if (status == null) {
+    return const SizedBox.shrink();
+  }
+
+  // Scheduled/Accepted - Status 18 (IN_USE)
+  // Show "Take vehicle to garage" button for scheduled maintenance
+  if (status == 18) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => _showTakeToGarageDialog(context, request),
+          icon: const Icon(Icons.garage_outlined),
+          label: const Text('Take vehicle to garage'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: SpatialDesignSystem.primaryColor,
+            side: BorderSide(color: SpatialDesignSystem.primaryColor),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Under Maintenance - Status 19 (MAINTENANCE)
+  // Show "View Details" button since driver is waiting
+  else if (status == 19) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => _showMaintenanceDetailDialog(context, request),
+          icon: const Icon(Icons.info_outline),
+          label: const Text('View details'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.blue,
+            side: BorderSide(color: Colors.blue),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Completed, ready for pickup - Status 17 (AVAILABLE)
+  // Show "Pick up vehicle" button
+  else if (status == 17) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        ElevatedButton.icon(
+          onPressed: () => _showPickUpVehicleDialog(context, request),
+          icon: const Icon(Icons.check),
+          label: const Text('Pick up vehicle'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: SpatialDesignSystem.successColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Pending - Status 51 (MAINTENANCE_PENDING)
+  // Show "Cancel" button
+  else if (status == 51) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => _showCancelMaintenanceDialog(context, request),
+          icon: const Icon(Icons.cancel_outlined),
+          label: const Text('Cancel request'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: SpatialDesignSystem.errorColor,
+            side: BorderSide(color: SpatialDesignSystem.errorColor),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  return const SizedBox.shrink();
+}
+
+// Dialog for driver to take vehicle to garage (Step 5)
+void _showTakeToGarageDialog(BuildContext context, MaintenanceRequest request) {
+  final notesController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: SpatialDesignSystem.surfaceColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: Text(
+        'Take vehicle to garage',
+        style: SpatialDesignSystem.headingSmall.copyWith(
+          color: SpatialDesignSystem.textPrimaryColor,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Confirm taking vehicle ${request.vehicle?.licensePlate ?? "N/A"} to garage for maintenance.',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: SpatialDesignSystem.textPrimaryColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Notes (optional)',
+            style: SpatialDesignSystem.captionText.copyWith(
+              color: SpatialDesignSystem.textSecondaryColor,
+            ),
+          ),
+          TextField(
+            controller: notesController,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: SpatialDesignSystem.backgroundColor,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+              ),
+              hintText: 'Add notes when handing over the vehicle...',
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            maxLines: 3,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(
+            'Hủy',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: SpatialDesignSystem.textSecondaryColor,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            // Update status to MAINTENANCE (19)
+            context.read<MaintenanceBloc>().add(
+                  UpdateMaintenanceRequest(
+                    driverId: 0, // Not used in our updated service
+                    maintenanceId: request.id,
+                    updateDto: CreateMaintenanceRequestDto(
+                      vehicleId: request.vehicle?.id ?? 0,
+                      description: request.description,
+                      maintenanceType: request.maintenanceType,
+                      statusId: 19, // MAINTENANCE status
+                      notes: notesController.text.trim().isNotEmpty
+                          ? notesController.text.trim()
+                          : null,
+                    ),
+                  ),
+                );
+
+            Navigator.of(dialogContext).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Confirmed vehicle taken to garage'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: SpatialDesignSystem.primaryColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Confirm',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Dialog for showing maintenance details
+void _showMaintenanceDetailDialog(
+    BuildContext context, MaintenanceRequest request) {
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: SpatialDesignSystem.surfaceColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: Text(
+        'Maintenance details',
+        style: SpatialDesignSystem.headingSmall.copyWith(
+          color: SpatialDesignSystem.textPrimaryColor,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Vehicle info
+          Row(
+            children: [
+              const Icon(Icons.directions_car, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Vehicle: ${request.vehicle?.licensePlate ?? "N/A"}',
+                style: SpatialDesignSystem.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Maintenance type
+          Row(
+            children: [
+              const Icon(Icons.category, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Type: ${request.maintenanceType}',
+                style: SpatialDesignSystem.bodyMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Date info
+          Row(
+            children: [
+              const Icon(Icons.calendar_today, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Date: ${request.formattedMaintenanceDate}',
+                style: SpatialDesignSystem.bodyMedium,
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+
+          // Description
+          Text(
+            'Description:',
+            style: SpatialDesignSystem.captionText.copyWith(
+              color: SpatialDesignSystem.textSecondaryColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            request.description,
+            style: SpatialDesignSystem.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+
+          // Notes if available
+          if (request.notes != null && request.notes!.isNotEmpty) ...[
+            Text(
+              'Notes:',
+              style: SpatialDesignSystem.captionText.copyWith(
+                color: SpatialDesignSystem.textSecondaryColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              request.notes!,
+              style: SpatialDesignSystem.bodyMedium,
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(
+            'Close',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: SpatialDesignSystem.primaryColor,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Dialog for driver to pick up vehicle after maintenance (Step 7)
+void _showPickUpVehicleDialog(
+    BuildContext context, MaintenanceRequest request) {
+  final notesController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: SpatialDesignSystem.surfaceColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: Text(
+        'Pick up vehicle',
+        style: SpatialDesignSystem.headingSmall.copyWith(
+          color: SpatialDesignSystem.textPrimaryColor,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Confirm picking up vehicle ${request.vehicle?.licensePlate ?? "N/A"} after maintenance is completed.',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: SpatialDesignSystem.textPrimaryColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Notes (optional)',
+            style: SpatialDesignSystem.captionText.copyWith(
+              color: SpatialDesignSystem.textSecondaryColor,
+            ),
+          ),
+          TextField(
+            controller: notesController,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: SpatialDesignSystem.backgroundColor,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+              ),
+              hintText: 'Add notes when picking up the vehicle...',
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            maxLines: 3,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(
+            'Hủy',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: SpatialDesignSystem.textSecondaryColor,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            // Update status to IN_USE (18)
+            context.read<MaintenanceBloc>().add(
+                  UpdateMaintenanceRequest(
+                    driverId: 0, // Not used in our updated service
+                    maintenanceId: request.id,
+                    updateDto: CreateMaintenanceRequestDto(
+                      vehicleId: request.vehicle?.id ?? 0,
+                      description: request.description,
+                      maintenanceType: request.maintenanceType,
+                      statusId: 18, // IN_USE status
+                      notes: notesController.text.trim().isNotEmpty
+                          ? notesController.text.trim()
+                          : null,
+                    ),
+                  ),
+                );
+
+            Navigator.of(dialogContext).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Confirmed vehicle picked up'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: SpatialDesignSystem.successColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Confirm',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Dialog for canceling a maintenance request
+void _showCancelMaintenanceDialog(
+    BuildContext context, MaintenanceRequest request) {
+  final reasonController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: SpatialDesignSystem.surfaceColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: Text(
+        'Cancel maintenance request',
+        style: SpatialDesignSystem.headingSmall.copyWith(
+          color: SpatialDesignSystem.textPrimaryColor,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Are you sure you want to cancel the maintenance request for vehicle ${request.vehicle?.licensePlate ?? "N/A"}?',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: SpatialDesignSystem.textPrimaryColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Reason for cancellation',
+            style: SpatialDesignSystem.captionText.copyWith(
+              color: SpatialDesignSystem.textSecondaryColor,
+            ),
+          ),
+          TextField(
+            controller: reasonController,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: SpatialDesignSystem.backgroundColor,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+              ),
+              hintText: 'Enter reason for cancellation...',
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            maxLines: 2,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(
+            'Close',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: SpatialDesignSystem.textSecondaryColor,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (reasonController.text.trim().isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Please enter reason for cancellation')),
+              );
+              return;
+            }
+
+            // Delete/Cancel the request
+            context.read<MaintenanceBloc>().add(
+                  DeleteMaintenanceRequest(
+                    driverId: 0, // Not used in our updated service
+                    maintenanceId: request.id,
+                  ),
+                );
+
+            Navigator.of(dialogContext).pop();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: SpatialDesignSystem.errorColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Cancel request',
+            style: SpatialDesignSystem.bodyMedium.copyWith(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

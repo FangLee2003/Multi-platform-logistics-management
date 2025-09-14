@@ -71,7 +71,7 @@ public class DriverController {
 	}
 	
 	// New endpoint to update order status
-	@PutMapping("/{driverId}/orders/{orderId}/status")
+	@PatchMapping("/{driverId}/orders/{orderId}/status")
 	public ResponseEntity<?> updateOrderStatus(
 		@PathVariable Long driverId,
 		@PathVariable Long orderId,

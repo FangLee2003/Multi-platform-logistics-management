@@ -56,6 +56,29 @@ class _DeliveriesScreenState extends State<DeliveriesScreen>
         centerTitle: true,
         elevation: 0,
         automaticallyImplyLeading: false, // Remove back button
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.refresh,
+              color: isDark
+                  ? SpatialDesignSystem.textDarkPrimaryColor
+                  : SpatialDesignSystem.textPrimaryColor,
+            ),
+            onPressed: () {
+              // Reload deliveries from API
+              context.read<DeliveryBloc>().add(LoadDeliveriesEvent());
+              
+              // Show loading indicator
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Refreshing deliveries...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            tooltip: 'Reload',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: SpatialDesignSystem.primaryColor,

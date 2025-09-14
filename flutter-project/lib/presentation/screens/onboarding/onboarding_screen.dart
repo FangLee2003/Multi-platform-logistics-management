@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 import 'package:ktc_logistics_driver/presentation/screens/environment/environment_selection_screen.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_background.dart';
@@ -55,25 +56,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
   
-  void _onNextTap() {
+  Future<void> _onNextTap() async {
     if (_currentPage < _onboardingData.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
-      // Navigate to environment selection screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const EnvironmentSelectionScreen()),
-      );
+      // Lưu trạng thái onboarding đã hoàn thành
+      const storage = FlutterSecureStorage();
+      await storage.write(key: 'onboarding_completed', value: 'true');
+      
+      // Chuyển đến màn hình lựa chọn môi trường
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/environment');
+      }
     }
   }
   
-  void _onSkipTap() {
+  Future<void> _onSkipTap() async {
+    // Lưu trạng thái onboarding đã hoàn thành
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'onboarding_completed', value: 'true');
+    
     // Navigate to environment selection screen
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const EnvironmentSelectionScreen()),
-    );
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/environment');
+    }
   }
   
   @override
@@ -491,6 +500,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
     );
   }
+  
+
   
   Widget _buildPageIndicator(int index) {
     final Color color = _onboardingData[index]['color'];

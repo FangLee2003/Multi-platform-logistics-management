@@ -10,9 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geocoding/geocoding.dart';
 import '../data/env/environment.dart';
 import '../data/local_secure/secure_storage.dart';
-import '../data/network/http_client.dart';
+// Removed unused import
 import '../domain/models/tracking/driver_location.dart';
-import '../presentation/helpers/performance_monitor.dart';
+// Removed unused import
 
 /// LocationService - Optimized for performance and battery efficiency
 /// Manages background tracking, location updates, and server communication
@@ -23,33 +23,19 @@ class LocationService {
 
   // Private constructor
   LocationService._internal() {
-    _httpClient = HttpClient(baseUrl: baseUrl, secureStorage: secureStorage);
-    _initializeOptimizations();
+    // Initialize necessary components
   }
 
   // Dependencies
   final Environment _env = Environment.getInstance();
   final SecureStorageFrave secureStorage = SecureStorageFrave();
-  late final HttpClient _httpClient;
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // Tracking state - optimized
+  // Tracking state
   StreamSubscription<Position>? _positionStreamSubscription;
   Timer? _locationUpdateTimer;
-  Timer? _batchUploadTimer;
   bool _isTracking = false;
-  
-  // Performance optimizations
-  final List<DriverLocation> _locationBuffer = [];
-  Position? _lastKnownPosition;
-  DateTime? _lastUploadTime;
-  
-  // Configuration
-  static const int _maxBufferSize = 50;
-  static const Duration _batchUploadInterval = Duration(minutes: 2);
-  static const double _minimumDistanceFilter = 10.0; // meters
-  static const Duration _minimumTimeFilter = Duration(seconds: 30);
   
   // Key cho SharedPreferences để lưu thông tin tracking
   final String _lastTrackingTimeKey = 'last_tracking_time';
@@ -61,84 +47,6 @@ class LocationService {
   // Getters
   String get baseUrl => _env.apiBaseUrl;
   bool get isTracking => _isTracking;
-
-  /// Initialize performance optimizations
-  void _initializeOptimizations() {
-    // Start batch upload timer
-    _batchUploadTimer = Timer.periodic(_batchUploadInterval, (_) {
-      _uploadLocationBatch();
-    });
-  }
-
-  /// Upload buffered locations in batch for efficiency
-  Future<void> _uploadLocationBatch() async {
-    if (_locationBuffer.isEmpty) return;
-    
-    performanceMonitor.startTimer('location_batch_upload');
-    
-    try {
-      final locations = List<DriverLocation>.from(_locationBuffer);
-      _locationBuffer.clear();
-      
-      final token = await secureStorage.readToken();
-      final driverId = await secureStorage.readDriverId();
-      
-      if (token == null || driverId == null) return;
-      
-      final requestBody = {
-        'driverId': driverId,
-        'locations': locations.map((loc) => {
-          'latitude': loc.latitude,
-          'longitude': loc.longitude,
-          'timestamp': loc.timestamp,
-          'speed': loc.speed,
-          'heading': loc.heading,
-          'vehicleStatus': loc.vehicleStatus,
-        }).toList(),
-      };
-      
-      await _httpClient.post<bool>(
-        '/tracking/locations/batch',
-        body: requestBody,
-        timeout: const Duration(seconds: 10),
-      );
-      
-      _lastUploadTime = DateTime.now();
-      performanceMonitor.stopTimer('location_batch_upload');
-      
-    } catch (e) {
-      performanceMonitor.stopTimer('location_batch_upload');
-      debugPrint('Batch upload failed: $e');
-    }
-  }
-
-  /// Check if location should be filtered (too close/frequent)
-  bool _shouldFilterLocation(Position position) {
-    if (_lastKnownPosition == null) return false;
-    
-    final distance = Geolocator.distanceBetween(
-      _lastKnownPosition!.latitude,
-      _lastKnownPosition!.longitude,
-      position.latitude,
-      position.longitude,
-    );
-    
-    final timeDiff = DateTime.now().difference(
-      DateTime.fromMillisecondsSinceEpoch(_lastKnownPosition!.timestamp.millisecondsSinceEpoch)
-    );
-    
-    return distance < _minimumDistanceFilter && timeDiff < _minimumTimeFilter;
-  }
-
-  /// Add location to buffer for batch processing
-  void _bufferLocation(DriverLocation location) {
-    _locationBuffer.add(location);
-    
-    // Force upload if buffer is full
-    if (_locationBuffer.length >= _maxBufferSize) {
-      _uploadLocationBatch();
-    }
-  }
 
   /// Initialize the location service
   Future<void> initialize() async {
@@ -269,25 +177,47 @@ class LocationService {
       return false;
     }
 
-    final requestBody = {
-      'driverId': driverId,
+    // Prepare payload for direct tracking endpoint
+    final prefs = await SharedPreferences.getInstance();
+    final deliveryId = prefs.getInt(_activeDeliveryIdKey);
+    
+    if (deliveryId == null) {
+      debugPrint('No active delivery found for tracking update');
+      return false;
+    }
+    
+    final token = await secureStorage.readToken();
+    if (token == null) {
+      debugPrint('Token not found - cannot update location');
+      return false;
+    }
+    
+    // Get saved status ID, default to 2 (in progress)
+    final statusId = prefs.getInt(_activeStatusIdKey) ?? 2;
+    
+    final data = {
       'latitude': location.latitude,
       'longitude': location.longitude,
-      'timestamp': location.timestamp,
-      'speed': location.speed,
-      'heading': location.heading,
-      'vehicleStatus': location.vehicleStatus,
+      'location': 'Đang giao hàng',
+      'notes': 'Đang giao hàng',
+      'statusId': statusId,
+      'vehicleId': await getSavedVehicleId() ?? 10
     };
-
+    
     try {
-      return await _httpClient.post<bool>(
-        '/tracking/location',
-        body: requestBody,
-      );
+      final resp = await http.post(
+          Uri.parse('$baseUrl/driver/$driverId/deliveries/$deliveryId/tracking'),
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json'
+          },
+          body: json.encode(data));
+          
+      return resp.statusCode == 200 || resp.statusCode == 201;
     } catch (e) {
-      debugPrint('Error using new API, falling back to legacy: $e');
-      // Fallback to legacy API
-      return _updateDriverLocationLegacy(location);
+      debugPrint('Error updating driver location: $e');
+      return false;
     }
   }
 
@@ -304,6 +234,10 @@ class LocationService {
       {String? notes, int? statusId}) async {
     final token = await secureStorage.readToken();
     final driverId = await secureStorage.readDriverId();
+    
+    // Lấy vehicle ID đã lưu, fallback về 10 nếu không có
+    final savedVehicleId = await getSavedVehicleId();
+    final vehicleId = savedVehicleId ?? 10; // Default vehicle ID
 
     if (token == null || driverId == null) {
       debugPrint(
@@ -314,16 +248,18 @@ class LocationService {
     final data = {
       'latitude': location.latitude,
       'longitude': location.longitude,
-      'location': notes ?? 'Updating location',
+      'location': '',  // Empty location as requested
       'statusId': statusId ?? 2, // Default status (in progress)
-      'notes': notes ?? 'Location update',
-      'vehicleId': 10 // Default vehicle ID
+      'notes': notes ?? 'Đang giao hàng',
+      'vehicleId': vehicleId
     };
+
+    debugPrint('🚛 Using vehicle ID: $vehicleId for tracking update');
 
     try {
       final resp = await http.post(
           Uri.parse(
-              '$baseUrl/api/driver/$driverId/deliveries/$deliveryId/tracking'),
+              '$baseUrl/driver/$driverId/deliveries/$deliveryId/tracking'),
           headers: {
             'Accept': 'application/json',
             'Authorization': 'Bearer $token',
@@ -371,39 +307,7 @@ class LocationService {
     }
   }
 
-  /// Legacy method for API compatibility
-  /// Used as a fallback when the new API endpoint fails
-  Future<bool> _updateDriverLocationLegacy(DriverLocation location) async {
-    final token = await secureStorage.readToken();
-    final driverId = await secureStorage.readDriverId();
-
-    if (token == null || driverId == null) {
-      debugPrint('Token or driver ID not found - cannot use legacy update');
-      return false;
-    }
-
-    final data = {
-      'driverId': driverId,
-      'latitude': location.latitude,
-      'longitude': location.longitude,
-      'timestamp': location.timestamp
-    };
-
-    try {
-      final resp = await http.post(Uri.parse('$baseUrl/tracking/update'),
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: json.encode(data));
-
-      return resp.statusCode == 200;
-    } catch (e) {
-      debugPrint('Legacy location update failed: $e');
-      return false;
-    }
-  }
+  // Legacy method removed to streamline code
 
   /// Get driver ID from secure storage
   Future<int?> _getDriverId() async {
@@ -604,6 +508,14 @@ class LocationService {
       
       debugPrint('♻️ Restored driver location tracking for Delivery #$deliveryId');
     }
+  }
+  
+  /// Lấy vehicle ID đã lưu từ SharedPreferences
+  /// 
+  /// Returns saved vehicle ID or null if not found
+  Future<int?> getSavedVehicleId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_activeVehicleIdKey);
   }
   
   /// Lấy địa chỉ từ vị trí (từ location_service)
