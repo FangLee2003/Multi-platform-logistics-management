@@ -46,8 +46,16 @@ android {
     applicationVariants.all {
         val variant = this
         variant.outputs.all {
+            // Tùy chỉnh tên file APK
+            val versionName = variant.versionName
+            val buildType = variant.buildType.name
+            val fileName = "FastRoute_v${versionName}_${buildType}.apk"
+            
+            // Đặt tên cho output file
+            this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            outputFileName = fileName
+            
             // Chuyển APK đến thư mục Flutter tìm kiếm
-            val outputFileName = "app-${variant.buildType.name}.apk"
             val flutterOutputDir = "$rootDir/../build/app/outputs/flutter-apk"
             val debugOutputDir = "$rootDir/app/build/outputs/apk/${variant.buildType.name}"
 
