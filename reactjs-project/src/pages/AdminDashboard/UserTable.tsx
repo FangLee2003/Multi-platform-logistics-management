@@ -30,15 +30,28 @@ function getRoleDisplay(roleName: string) {
   }
 }
 
-<<<<<<< HEAD
-export default function UserTable({ users, setUsers }: { users: any[]; setUsers: (users: any[]) => void }) {
-=======
 interface UserTableProps {
   onUserCountUpdate?: () => void;
 }
 
+// Định nghĩa interface cho user để dùng cho state
+interface DashboardUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  roleValue?: string;
+  roleIcon: any;
+  status: string;
+  lastLogin: string;
+  phone?: string;
+  password?: string;
+  notes?: string | null;
+  googleId?: string | null;
+}
+
 export default function UserTable({ onUserCountUpdate }: UserTableProps) {
->>>>>>> dd820b7dec040ef3e189b718e7431eec3e2d3d00
+  const [users, setUsers] = useState<DashboardUser[]>([]);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState<{
@@ -240,13 +253,8 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       ...user,
       roleValue: user.roleValue,
       status: user.status === "active" ? "active" : "inactive",
-<<<<<<< HEAD
-      phone: user.phone || "",
-      password: user.password || ""
-    }); // Đảm bảo có trường roleValue, status, phone, password đúng cho form
-=======
+
     }); // Đảm bảo có trường roleValue và status đúng cho form
->>>>>>> dd820b7dec040ef3e189b718e7431eec3e2d3d00
     setShowForm(true);
   };
 
@@ -387,18 +395,6 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data.map((u: any) => {
             const roleInfo = getRoleDisplay(u.role?.roleName || "");
-<<<<<<< HEAD
-            const status = u.status?.name?.toLowerCase() === "active" ? "active" : "inactive";
-            const lastLogin = u.updatedAt ? new Date(u.updatedAt).toLocaleString() : "-";
-            // Map roleName từ backend về đúng value của select
-            let roleValue = "";
-            const rawRole = (u.role?.roleName || "").replace(/[\s_]+/g, '').toLowerCase();
-            if (rawRole === "admin") roleValue = "Admin";
-            else if (rawRole === "dispatcher") roleValue = "Dispatcher";
-            else if (rawRole === "fleetmanager" || rawRole === "fleet") roleValue = "Fleet Manager";
-            else if (rawRole === "driver") roleValue = "Driver";
-            else if (rawRole === "operationsmanager" || rawRole === "operations") roleValue = "Operations Manager";
-=======
             const status =
               u.status?.name?.toLowerCase() === "active"
                 ? "active"
@@ -422,7 +418,6 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
               rawRole === "operations"
             )
               roleValue = "Operations Manager";
->>>>>>> dd820b7dec040ef3e189b718e7431eec3e2d3d00
             else roleValue = u.role?.roleName || "";
             return {
               id: u.id,

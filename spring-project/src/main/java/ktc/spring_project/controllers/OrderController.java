@@ -1,9 +1,8 @@
 package ktc.spring_project.controllers;
 
-import ktc.spring_project.dtos.common.ApiResponse;
 import ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO;
 import ktc.spring_project.dtos.order.DeliveryOrderResponseDTO;
-import ktc.spring_project.dtos.order.OrderByStoreResponseDTO;
+import ktc.spring_project.dtos.order.OrderSummaryDTO;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Vehicle;
@@ -76,19 +75,35 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<Order> createOrder(@Valid @RequestBody CreateDeliveryOrderRequestDTO dto) {
         try {
-            Order order = new Order();
-            order.setDescription(dto.getDescription());
-            order.setNotes(dto.getNotes());
-            order.setTotalAmount(dto.getTotalAmount());
-            order.setBenefitPerOrder(BigDecimal.ZERO); // hoặc tính toán nếu cần
-            order.setOrderProfitPerOrder(BigDecimal.ZERO); // hoặc tính toán nếu cần
-            // Map các trường khác nếu cần
-            // Ví dụ: set address, vehicle, status, store, createdBy nếu có logic
-            Order createdOrder = orderService.createOrder(order);
+            // Log thông tin tạo đơn hàng nếu cần
+            System.out.println("Creating order with DTO: " + dto.getOrderCode());
+            if (dto.getStore() != null) System.out.println("Store ID: " + dto.getStore().getId());
+            if (dto.getCreatedBy() != null) System.out.println("CreatedBy ID: " + dto.getCreatedBy().getId());
+            if (dto.getStatus() != null) System.out.println("Status ID: " + dto.getStatus().getId());
+            if (dto.getAddress() != null) System.out.println("Address ID: " + dto.getAddress().getId());
+
+            Order createdOrder = orderService.createOrderFromDTO(dto);
+
+            // Log thông tin đơn hàng đã tạo
+            System.out.println("Order created successfully:");
+            System.out.println("- Order ID: " + createdOrder.getId());
+            System.out.println("- Store ID: " + (createdOrder.getStore() != null ? createdOrder.getStore().getId() : "null"));
+            System.out.println("- Status ID: " + (createdOrder.getStatus() != null ? createdOrder.getStatus().getId() : "null"));
+            System.out.println("- Created By ID: " + (createdOrder.getCreatedBy() != null ? createdOrder.getCreatedBy().getId() : "null"));
+            System.out.println("- Address ID: " + (createdOrder.getAddress() != null ? createdOrder.getAddress().getId() : "null"));
+
             return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
+            System.err.println("Bad request: " + e.getMessage());
+            e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            System.err.println("===== DETAILED ERROR =====");
+            System.err.println("Error creating order: " + e.getMessage());
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
+            e.printStackTrace();
+            System.err.println("===========================");
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -215,7 +230,7 @@ public class OrderController {
     @PatchMapping("/{id}")
     public ResponseEntity<Order> patchOrder(
             @PathVariable Long id,
-            @RequestBody Order orderDetails) {
+            @Valid @RequestBody Order orderDetails) {
         try {
             Order updatedOrder = orderService.updateOrder(id, orderDetails);
             return ResponseEntity.ok(updatedOrder);
@@ -227,7 +242,7 @@ public class OrderController {
     @PutMapping("/{id}")
 public ResponseEntity<Order> putOrder(
         @PathVariable Long id,
-        @RequestBody Order orderDetails) {
+    @Valid @RequestBody Order orderDetails) {
     try {
         Order updatedOrder = orderService.updateOrder(id, orderDetails);
         return ResponseEntity.ok(updatedOrder);
@@ -251,7 +266,7 @@ public ResponseEntity<Order> putOrder(
     @PatchMapping("/{id}/status")
     public ResponseEntity<Order> updateOrderStatus(
             @PathVariable Long id,
-            @RequestBody UpdateOrderStatusDTO dto) {
+            @Valid @RequestBody UpdateOrderStatusDTO dto) {
         try {
             Order order = orderService.getOrderById(id);
             if (dto.statusId != null) {
@@ -270,7 +285,7 @@ public ResponseEntity<Order> putOrder(
     @PatchMapping("/{id}/vehicle")
     public ResponseEntity<Order> updateOrderVehicle(
             @PathVariable Long id,
-            @RequestBody UpdateOrderVehicleDTO dto) {
+            @Valid @RequestBody UpdateOrderVehicleDTO dto) {
         try {
             Order order = orderService.getOrderById(id);
             if (dto.vehicleId != null && dto.vehicleId > 0) {
@@ -303,4 +318,60 @@ public ResponseEntity<Order> putOrder(
         }
     }
 
+    /**
+     * Lấy danh sách đơn hàng theo store ID
+     */
+    @GetMapping("/store/{storeId}")
+    public ResponseEntity<List<Order>> getOrdersByStore(@PathVariable Long storeId) {
+        try {
+            List<Order> orders = orderService.getOrdersByStoreId(storeId);
+            if (orders.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
+
+    /**
+     * Lấy thông tin tóm tắt của đơn hàng theo store ID, bao gồm:
+     * - Store ID
+     * - Ngày tạo
+     * - Địa chỉ nhận hàng
+     * - Số lượng sản phẩm
+     * - Phí vận chuyển
+     * - Trạng thái đơn hàng
+     */
+    @GetMapping("/store/{storeId}/summary")
+    public ResponseEntity<List<OrderSummaryDTO>> getOrderSummariesByStore(@PathVariable Long storeId) {
+        try {
+            List<OrderSummaryDTO> orderSummaries = orderService.getOrderSummariesByStoreId(storeId);
+            if (orderSummaries.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(orderSummaries);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Lấy thông tin tóm tắt của tất cả đơn hàng theo user ID
+     * User ID sẽ được dùng để tìm các store mà user đó tạo
+     * Sau đó lấy tất cả order của các store đó
+     */
+    @GetMapping("/user/{userId}/summary")
+    public ResponseEntity<List<OrderSummaryDTO>> getOrderSummariesByUser(@PathVariable Long userId) {
+        try {
+            List<OrderSummaryDTO> orderSummaries = orderService.getOrderSummariesByUserId(userId);
+            if (orderSummaries.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(orderSummaries);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+}

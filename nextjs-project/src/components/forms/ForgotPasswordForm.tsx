@@ -1,5 +1,6 @@
 import { forgotPasswordApi } from "../../server/user.api";
 import { useState } from "react";
+import { MdKeyboardArrowLeft } from "react-icons/md";
 import Link from "next/link";
 
 export default function ForgotPasswordForm({ onBack }: { onBack?: () => void }) {
@@ -57,17 +58,20 @@ export default function ForgotPasswordForm({ onBack }: { onBack?: () => void }) 
           {loading ? "Sending..." : "Send Request"}
         </button>
       </form>
+
       <div className="text-center mt-4">
         {onBack ? (
           <button
             type="button"
-            className="text-blue-300 underline hover:text-blue-500 text-sm font-medium"
+            className="!text-black hover:!text-white/50 text-xs font-medium ml-auto transition-all duration-200 inline-flex items-center gap-1"
+            style={{ fontSize: '13px' }}
             onClick={onBack}
           >
-            Back to Sign In
+            <MdKeyboardArrowLeft className="w-5 h-5" />
+            <span className="align-middle">Back to Sign In</span>
           </button>
         ) : (
-          <Link href="/login" className="text-blue-300 underline hover:text-blue-500 text-sm font-medium">Back to Login</Link>
+          <Link href="/login" className="!text-black hover:!text-white/50 text-xs font-medium ml-auto transition-all duration-200" style={{ fontSize: '13px' }}>Back to Login</Link>
         )}
       </div>
     </div>

@@ -1,4 +1,7 @@
+
 package ktc.spring_project.entities;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 import ktc.spring_project.enums.VehicleType;
@@ -10,6 +13,7 @@ import java.sql.Timestamp;
 
 @Entity
 @Table(name = "vehicles")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Vehicle {
 
     @Id
