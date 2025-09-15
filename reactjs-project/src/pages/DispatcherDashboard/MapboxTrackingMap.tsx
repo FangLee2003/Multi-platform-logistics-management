@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
@@ -28,6 +27,8 @@ export default function MapboxTrackingMap() {
           };
         }>;
       }>;
+      distance: number;
+      duration: number;
       // ...other Mapbox route fields
     };
     const [route, setRoute] = useState<Route | null>(null);
@@ -38,6 +39,7 @@ export default function MapboxTrackingMap() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
   const waypointMarkers = useRef<mapboxgl.Marker[]>([]);
 
   // Đoạn đường đã đi qua: từ start đến vị trí xe hiện tại, lấy theo các waypoint
@@ -173,7 +175,10 @@ export default function MapboxTrackingMap() {
     // Draw route line
     const routeFeature: GeoJSON.Feature<GeoJSON.LineString> = {
       type: 'Feature',
-      geometry: route.geometry,
+      geometry: {
+        type: 'LineString',
+        coordinates: route.geometry.coordinates,
+      },
       properties: {}
     };
     if (map.current.getSource('route')) {
@@ -250,7 +255,6 @@ export default function MapboxTrackingMap() {
       setIsLoaded(false);
     };
   }, [MAPBOX_TOKEN]);
-
   // Handle manual route input (when no order selected)
   const handleGetRoute = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,7 +289,7 @@ export default function MapboxTrackingMap() {
               <span><strong>Đến:</strong> {selectedOrder.address?.address}</span>
             </div>
           </div>
-          {route && (
+          {route && typeof route.distance === 'number' && typeof route.duration === 'number' && (
             <div className="mt-2 text-xs text-blue-600">
               <strong>Khoảng cách:</strong> {(route.distance / 1000).toFixed(1)} km | 
               <strong> Thời gian:</strong> {Math.round(route.duration / 60)} phút
@@ -330,8 +334,9 @@ export default function MapboxTrackingMap() {
           </div>
         )}
       </div>
+
  {/* Hiển thị danh sách waypoint nếu có */}
-      {/* {waypoints.length > 0 && (
+       {waypoints.length > 0 && (
         <div className="mt-2 p-2 bg-gray-50 rounded">
           <div className="font-bold">Danh sách waypoint:</div>
           <ul className="text-xs">
@@ -340,7 +345,7 @@ export default function MapboxTrackingMap() {
             ))}
           </ul>
         </div>
-      )} */}
+      )}
       </div>
   );
 }

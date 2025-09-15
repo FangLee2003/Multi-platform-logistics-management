@@ -34,7 +34,24 @@ interface UserTableProps {
   onUserCountUpdate?: () => void;
 }
 
+// Định nghĩa interface cho user để dùng cho state
+interface DashboardUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  roleValue?: string;
+  roleIcon: any;
+  status: string;
+  lastLogin: string;
+  phone?: string;
+  password?: string;
+  notes?: string | null;
+  googleId?: string | null;
+}
+
 export default function UserTable({ onUserCountUpdate }: UserTableProps) {
+  const [users, setUsers] = useState<DashboardUser[]>([]);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState<{
@@ -236,6 +253,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       ...user,
       roleValue: user.roleValue,
       status: user.status === "active" ? "active" : "inactive",
+
     }); // Đảm bảo có trường roleValue và status đúng cho form
     setShowForm(true);
   };

@@ -18,36 +18,38 @@ export default function PublicHome() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Check if user is logged in
-      const token = localStorage.getItem("token");
-      setIsLoggedIn(!!token);
+    // Mark that we're on the client side
+    setIsClient(true);
+    
+    // Check if user is logged in
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
 
-      // Check if redirected from ReactJS login with token
-      const urlToken = searchParams.get("token");
-      const urlUser = searchParams.get("user");
-      
-      if (urlToken && urlUser) {
-        try {
-          // Store authentication data
-          localStorage.setItem("token", urlToken);
-          localStorage.setItem("user", decodeURIComponent(urlUser));
-          setIsLoggedIn(true);
-          // Clean URL and redirect to account dashboard
-          window.history.replaceState({}, document.title, "/");
-          router.push("/account");
-        } catch (error) {
-          console.error("Error processing authentication:", error);
-        }
+    // Check if redirected from ReactJS login with token
+    const urlToken = searchParams.get("token");
+    const urlUser = searchParams.get("user");
+    
+    if (urlToken && urlUser) {
+      try {
+        // Store authentication data
+        localStorage.setItem("token", urlToken);
+        localStorage.setItem("user", decodeURIComponent(urlUser));
+        setIsLoggedIn(true);
+        // Clean URL and redirect to account dashboard
+        window.history.replaceState({}, document.title, "/");
+        router.push("/account");
+      } catch (error) {
+        console.error("Error processing authentication:", error);
       }
+    }
 
-      // Auto-fill tracking code if provided in URL
-      const urlTrackingCode = searchParams.get("trackingCode");
-      if (urlTrackingCode) {
-        setTrackingCode(urlTrackingCode);
-      }
+    // Auto-fill tracking code if provided in URL
+    const urlTrackingCode = searchParams.get("trackingCode");
+    if (urlTrackingCode) {
+      setTrackingCode(urlTrackingCode);
     }
   }, [searchParams, router]);
 
@@ -102,7 +104,7 @@ export default function PublicHome() {
   };
 
   const handleLogout = () => {
-    if (typeof window !== "undefined") {
+    if (isClient) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
     }

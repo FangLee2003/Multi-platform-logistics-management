@@ -1,3 +1,5 @@
+
+
 package ktc.spring_project.exceptions;
 
 import org.springframework.http.HttpStatus;

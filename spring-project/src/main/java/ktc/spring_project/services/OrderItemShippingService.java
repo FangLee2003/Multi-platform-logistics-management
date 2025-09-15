@@ -1,4 +1,6 @@
 package ktc.spring_project.services;
+import jakarta.persistence.EntityNotFoundException;
+import ktc.spring_project.exceptions.HttpException;
 
 import ktc.spring_project.dtos.DistanceCalculationRequest;
 import ktc.spring_project.dtos.ShippingCalculationRequest;
@@ -90,7 +92,7 @@ public class OrderItemShippingService {
      */
     private BigDecimal calculateDistanceBetweenStoreAndDelivery(Store store, Address deliveryAddress) {
         if (store.getLatitude() == null || store.getLongitude() == null) {
-            throw new IllegalArgumentException("Không tìm thấy tọa độ của Store");
+            throw new HttpException("Không tìm thấy tọa độ của Store", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
 
         DistanceCalculationRequest distanceRequest = new DistanceCalculationRequest(
@@ -108,13 +110,11 @@ public class OrderItemShippingService {
      */
     private ShippingCalculationRequest buildShippingRequest(OrderItem orderItem, Product product, 
                                                           BigDecimal distance, ServiceType serviceType) {
-        // Chuyển đổi volume từ m³ sang cm³ và nhân với số lượng
+        // Chuyển đổi volume từ m³ sang cm³ (KHÔNG nhân với quantity, chỉ tính cho 1 sản phẩm)
         BigDecimal volumeInCm3 = BigDecimal.ZERO;
         if (product.getVolume() != null && product.getVolume().compareTo(BigDecimal.ZERO) > 0) {
-            // Chuyển từ m³ sang cm³: nhân với 1,000,000, rồi nhân với quantity
-            volumeInCm3 = product.getVolume()
-                .multiply(new BigDecimal("1000000"))
-                .multiply(new BigDecimal(orderItem.getQuantity()));
+            // Chuyển từ m³ sang cm³: nhân với 1,000,000
+            volumeInCm3 = product.getVolume().multiply(new BigDecimal("1000000"));
         }
 
         ShippingCalculationRequest request = new ShippingCalculationRequest();
@@ -136,29 +136,29 @@ public class OrderItemShippingService {
     private void validateOrderItemForShipping(OrderItem orderItem, Store store, 
                                             Address deliveryAddress, Product product) {
         if (orderItem == null) {
-            throw new IllegalArgumentException("OrderItem không được null");
+            throw new HttpException("OrderItem không được null", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
         
         if (store == null) {
-            throw new IllegalArgumentException("Không tìm thấy Store cho Order này");
+            throw new HttpException("Không tìm thấy Store cho Order này", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
         
         if (deliveryAddress == null) {
-            throw new IllegalArgumentException("Không tìm thấy địa chỉ giao hàng cho Order này");
+            throw new HttpException("Không tìm thấy địa chỉ giao hàng cho Order này", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
         
         if (product == null) {
-            throw new IllegalArgumentException("Không tìm thấy Product cho OrderItem này");
+            throw new HttpException("Không tìm thấy Product cho OrderItem này", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
 
         // Kiểm tra tọa độ của Store
         if (store.getLatitude() == null || store.getLongitude() == null) {
-            throw new IllegalArgumentException("Store thiếu thông tin tọa độ (latitude/longitude)");
+            throw new HttpException("Store thiếu thông tin tọa độ (latitude/longitude)", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
 
         // Kiểm tra tọa độ của địa chỉ giao hàng
         if (deliveryAddress.getLatitude() == null || deliveryAddress.getLongitude() == null) {
-            throw new IllegalArgumentException("Địa chỉ giao hàng thiếu thông tin tọa độ (latitude/longitude)");
+            throw new HttpException("Địa chỉ giao hàng thiếu thông tin tọa độ (latitude/longitude)", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -232,7 +232,7 @@ public class OrderItemShippingService {
         
         Product product = orderItem.getProduct();
         if (product == null) {
-            throw new RuntimeException("Product not found for OrderItem ID: " + orderItemId);
+            throw new EntityNotFoundException("Product not found for OrderItem ID: " + orderItemId);
         }
         
         // Tạo request với thông tin cơ bản
