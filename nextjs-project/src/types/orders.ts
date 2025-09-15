@@ -43,10 +43,16 @@ export interface OrderForm {
   notes?: string;
   items: OrderItem[];
   is_fragile: boolean;
-  service_type: "SECOND_CLASS" | "STANDARD" | "FIRST_CLASS" | "EXPRESS" | "PRIORITY";
+  service_type:
+    | "SECOND_CLASS"
+    | "STANDARD"
+    | "FIRST_CLASS"
+    | "EXPRESS"
+    | "PRIORITY";
   delivery_fee?: number;
+  pickup_time_slot?: "MORNING" | "AFTERNOON" | "ALL_DAY";
+  pickup_date?: string;
 }
-
 
 export type OrderStatus =
   | "pending"
