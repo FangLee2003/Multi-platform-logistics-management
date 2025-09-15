@@ -1,52 +1,96 @@
-# 📱 KTC Logistics Driver Mobile App 2025
+# 📱 FastRoute Logistics Driver Mobile App 2025
 
-**FastRoute** là ứng dụng di động dành cho tài xế giao hàng, phát triển bằng Flutter với giao diện **Spatial UI** hiện đại. Được xây dựng theo nguyên tắc **Clean Architecture**, ứng dụng dễ bảo trì, mở rộng và test, với sự phân tách rõ ràng giữa UI, business logic và data layers.
+**FastRoute** is a mobile application for delivery drivers, developed with Flutter and featuring a modern **Spatial UI**. Built on **Clean Architecture** principles, the app is easy to maintain, extend, and test, with clear separation between UI, business logic, and data layers.
 
-## 🚀 Tính năng chính
+## ⚡ Quick Start Guide for Testers
 
-### 📦 Quản lý đơn hàng
-- Nhận đơn hàng mới theo thời gian thực
-- Xem chi tiết thông tin giao hàng
-- Cập nhật trạng thái đơn hàng (đang giao, hoàn thành)
-- Lịch sử các chuyến giao hàng
+Follow these steps to quickly test the app with a local backend:
+
+### 1. Setup Environment
+- Ensure your phone and computer are connected to the **same WiFi network**
+- Download the latest APK from [this](https://drive.google.com/drive/folders/1xaxwYYIBaBgO1-hCYK8MLx2tlR_SYVew?usp=sharing).
+
+### 2. Find Computer's IP Address
+- On the computer running the backend, open Command Prompt/PowerShell
+- Run `ipconfig` and look for the IPv4 address (e.g., 192.168.1.5)
+- Note this IP address as you'll need it for configuration
+
+### 3. Start Backend Server
+```bash
+cd PROJECT_KTC_2025/spring-project
+./gradlew bootRun
+```
+- Wait until you see "Started Application" message
+
+### 4. Install and Configure the App
+- Install the APK on your Android device
+- Launch the app
+- Select "Test Environment"
+- Enter the API URL: `http://[YOUR_COMPUTER_IP]:8080/api` (e.g., `http://192.168.1.5:8080/api`)
+- Save the configuration
+
+### 5. Test the App
+- Use the test credentials:
+  - Email: `driver@gmail.com`
+  - Password: `123456`
+- Verify basic features work correctly:
+  - Dashboard loads with test data
+  - Map displays correctly
+  - Delivery list shows test orders
+  - Driver can update delivery status
+
+### 6. Troubleshooting
+
+- If login fails, ensure the backend is running and IP is correct
+- Check if the device can reach the backend by opening `http://[YOUR_COMPUTER_IP]:8080/actuator/health` in the phone browser
+- If connection fails, try using port forwarding with: `adb reverse tcp:8080 tcp:8080`
+- If needed, disable firewall or add exception for port 8080
+
+## 🚀 Main Features
+
+### 📦 Order Management
+- Receive new orders in real time
+- View detailed delivery information
+- Update order status (in progress, completed)
+- Delivery history
 
 ### 🗺️ Navigation & Maps
-- Tích hợp MapBox với GPS tracking và tối ưu tuyến đường
-- Hiển thị vị trí pickup, delivery và hướng dẫn chi tiết (turn-by-turn)
-- Google Maps Integration với đa điểm dừng
-- Background Location Tracking
+- Integrated MapBox with GPS tracking and route optimization
+- Display pickup, delivery locations and turn-by-turn navigation
+- Google Maps integration with multiple stops
+- Background location tracking
 
 ### 📊 Data Visualization & Analytics
-- Dashboard Analytics với tổng quan hiệu suất giao hàng
-- Đa dạng biểu đồ: Area, Bar, Pie, Scatter, Bubble và Radar Chart
-- Chế độ sáng/tối cho tất cả biểu đồ
+- Dashboard analytics with delivery performance overview
+- Multiple chart types: Area, Bar, Pie, Scatter, Bubble, and Radar Chart
+- Light/Dark mode for all charts
 
-## Các màn hình chính
+## Main Screens
 
 ### 🏠 Dashboard Screen
-- Overview hiệu suất tài xế và key metrics
-- Danh sách đơn hàng sắp tới
-- Biểu đồ phân tích xu hướng giao hàng
+- Driver performance overview and key metrics
+- Upcoming orders list
+- Trend analysis charts
 
 ### 🗺️ Route Map Screen
-- MapBox Integration với nhiều lớp dữ liệu
-- Route Optimization và hướng dẫn chi tiết
-- Hỗ trợ đa điểm giao hàng và tích hợp Google Maps
+- MapBox integration with multiple data layers
+- Route optimization and detailed navigation
+- Support for multi-stop delivery and Google Maps integration
 
 ### 📊 Analytics Screen
-- Đa dạng biểu đồ phân tích hiệu suất
-- Phân tích theo thời gian, khu vực và loại dịch vụ
-- Tương thích Dark/Light Mode
+- Various charts for performance analysis
+- Analysis by time, region, and service type
+- Compatible with Dark/Light Mode
 
 ### 📦 Delivery Detail Screen
-- Chi tiết đơn hàng và quản lý trạng thái
-- Tương tác với khách hàng (gọi điện, nhắn tin)
-- Proof of Delivery (chụp ảnh, chữ ký xác nhận)
+- Order details and status management
+- Interact with customers (call, message)
+- Proof of Delivery (photo capture, signature)
 
 ### 👤 Profile & Settings
-- Thông tin cá nhân tài xế và phương tiện
-- Thống kê hiệu suất làm việc
-- Cài đặt ứng dụng
+- Driver and vehicle information
+- Work performance statistics
+- App settings
 
 ## 🛠️ Tech Stack
 
@@ -74,56 +118,61 @@
 
 ## 🏛️ Clean Architecture Implementation
 
-Ứng dụng được xây dựng theo **Clean Architecture** với 3 tầng chính:
+The app is built following **Clean Architecture** with 3 main layers:
 
 ### 🎯 Domain Layer
-- Models, Repository Interfaces, Use Cases và BLoC
+- Models, Repository Interfaces, Use Cases, and BLoC
 
 ### 📊 Data Layer
-- Repository Implementations, Data Sources và DTOs
+- Repository Implementations, Data Sources, and DTOs
 
 ### 🎨 Presentation Layer
-- Screens, Widgets, State Management và Chart Components
+- Screens, Widgets, State Management, and Chart Components
 
 ### ⚙️ Data Flow & Dependency Injection
 - UI → BLoC → Domain → Data → External Sources
-- GetIt service locator cho dependency inversion
+- GetIt service locator for dependency inversion
 
-## Cấu hình dự án
+## Project Configuration
 
 ### Prerequisites
 - **Flutter SDK**: 3.32.8 
 - **Dart**: 3.8.1
-- **Android Studio**: Bản mới nhất
+- **Android Studio**: Latest version
 - **Gradle**: 8.14.3
 - **Android SDK**: API 35 (Android 14)
 
-### Setup và chạy project
+### Setup and Run Project
 
 ```bash
-# Clone và cài đặt dependencies
+# Clone and install dependencies
 cd PROJECT_KTC_2025/driver-app
 flutter pub get
 
-# Run app
+# Run app on emulator with baseUrl = "http://10.0.2.2:8000"
 flutter run
+
+# Run app on real device with baseUrl = "http://localhost:8000"
+adb reverse tcp:8080 tcp:8080  # Port forwarding for localhost
+cd ../spring-project && ./gradlew bootRun  # Start backend (in another terminal)
+cd ../flutter-project && flutter run  # Run app
 
 # Build release APK
 flutter build apk --release
 flutter install
 ```
 
-### Tài khoản test
+### Test Accounts
 
-#### 🚛 **Tài xế 1 - Xe tải**
-- **Email**: `driver@ktc.com`
-- **Mật khẩu**: `123456`
+#### 🔒 **Real backend account**
+- **Email**: `driver_01@fr.com`
+- **Password**: `123456`
 
-#### 🏍️ **Tài xế 2 - Xe máy**
-- **Email**: `driver2@ktc.com`
-- **Mật khẩu**: `123456`
+#### 🔌 **Offline mode account**
+- **Email**: `driver_offline@ktc.com`
+- **Password**: `123456`
 
-> **Lưu ý**: App đang sử dụng mock data để demo tính năng.
+> **Note**: The app is currently using mock data to demo features.
 
 ## 🧪 Testing & Debugging
 
@@ -132,16 +181,37 @@ flutter install
 flutter test
 flutter test integration_test/
 
-# Debug trên device
+# Debug on device
 flutter run --debug
 
-# Hot reload trong development
+# Hot reload during development
 r    # Hot reload
 R    # Hot restart
 q    # Quit
 ```
 
 ## 🔧 Troubleshooting
+
+### Connect real device
+
+If you get `adb: command not found` error:
+
+1. **Install Android SDK Platform-tools**:
+   - Install via Android Studio > SDK Manager > SDK Tools
+   - Or download directly from: https://developer.android.com/tools/releases/platform-tools
+
+2. **Add to PATH**:
+   ```
+   setx PATH "%PATH%;C:\Users\<username>\AppData\Local\Android\Sdk\platform-tools" /M
+   ```
+
+3. **Check device connection**:
+   ```
+   adb devices
+   ```
+
+4. **Check backend connection**:
+   Open browser on device and go to: `http://localhost:8080/actuator/health`
 
 ### Common Issues
 
@@ -150,8 +220,8 @@ q    # Quit
 cd android && ./gradlew clean
 cd .. && flutter clean && flutter pub get
 
-# Maps không hiển thị
-flutter run -v  # để xem lỗi chi tiết
+# Maps not showing
+flutter run -v  # to see detailed error
 ```
 
 ---
@@ -162,6 +232,6 @@ Copyright © 2025 KTC Logistics. All rights reserved.
 
 ---
 
-## Liên hệ & Hỗ trợ
+## Contact & Support
 
-Nếu gặp vấn đề khi cài đặt hoặc chạy, hãy mở issue trong repository để được hỗ trợ nhanh chóng.
+If you encounter issues during setup or running, please open an issue in the repository for quick support.

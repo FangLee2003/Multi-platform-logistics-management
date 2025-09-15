@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:ui';
 
 // Extension for Color to make it easier to create transparent colors
 extension ColorExtension on Color {

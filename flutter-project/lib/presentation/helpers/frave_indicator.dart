@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class FraveIndicatorTabBar extends Decoration {
   

@@ -10,28 +10,65 @@ part 'user_state.dart';
 
 class UserBloc extends Bloc<UserEvent, UserState> {
   final UserServices userServices;
+  Timer? _debouncer;
 
   UserBloc({required this.userServices}) : super(UserState()){
 
-    on<OnGetUserEvent>(_onGetUser );
+    on<OnGetUserEvent>(_onGetUser);
+    on<OnFetchUserEvent>(_onFetchUser);
     on<OnSelectPictureEvent>(_onSelectPicture);
     on<OnClearPicturePathEvent>(_onClearPicturePath);
-    on<OnChangeImageProfileEvent>( _onChangePictureProfile );
-    on<OnEditUserEvent>( _onEditProfileUser );
-    on<OnChangePasswordEvent>( _onChangePassword );
-    on<OnRegisterClientEvent>( _onRegisterClient );
-    on<OnRegisterDeliveryEvent>( _onRegisterDelivery );
-    on<OnUpdateDeliveryToClientEvent>( _onUpdateDeliveryToClient );
-    on<OnDeleteStreetAddressEvent>( _onDeleteStreetAddress );
-    on<OnSelectAddressButtonEvent>( _onSelectAddressButton );
-    on<OnAddNewAddressEvent>( _onAddNewStreetAddress );
+    on<OnChangeImageProfileEvent>(_onChangePictureProfile);
+    on<OnEditUserEvent>(_onEditProfileUserDebounced); // Use debounced version
+    on<OnChangePasswordEvent>(_onChangePassword);
+    on<OnRegisterClientEvent>(_onRegisterClient);
+    on<OnRegisterDeliveryEvent>(_onRegisterDelivery);
+    on<OnUpdateDeliveryToClientEvent>(_onUpdateDeliveryToClient);
+    on<OnDeleteStreetAddressEvent>(_onDeleteStreetAddress);
+    on<OnSelectAddressButtonEvent>(_onSelectAddressButton);
+    on<OnAddNewAddressEvent>(_onAddNewStreetAddress);
   }
 
+  @override
+  Future<void> close() {
+    _debouncer?.cancel();
+    return super.close();
+  }
 
   Future<void> _onGetUser(OnGetUserEvent event, Emitter<UserState> emit) async {
+    // Only emit if user actually changed
+    if (state.user != event.user) {
+      emit(state.copyWith(user: event.user));
+    }
+  }
 
-    emit( state.copyWith( user: event.user ));
+  Future<void> _onFetchUser(OnFetchUserEvent event, Emitter<UserState> emit) async {
+    // Prevent multiple simultaneous fetch requests
+    if (state is LoadingUserState) return;
+    
+    try {
+      emit(LoadingUserState());
+      
+      final user = await userServices.getUserById();
+      
+      // Only emit if user data actually changed
+      if (state.user != user) {
+        emit(SuccessUserState(user: user));
+        emit(state.copyWith(user: user));
+      } else {
+        emit(state.copyWith()); // Just remove loading state
+      }
+    } catch (e) {
+      emit(FailureUserState(e.toString()));
+    }
+  }
 
+  /// Debounced version of edit profile to prevent rapid submissions
+  Future<void> _onEditProfileUserDebounced(OnEditUserEvent event, Emitter<UserState> emit) async {
+    _debouncer?.cancel();
+    _debouncer = Timer(const Duration(milliseconds: 300), () {
+      _onEditProfileUser(event, emit);
+    });
   }
 
   Future<void> _onSelectPicture( OnSelectPictureEvent event, Emitter<UserState> emit) async {
@@ -58,10 +95,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith(user: user as User?));
+        // Update state with user data
+        emit( state.copyWith( user: user ));
 
       }else{
         emit( FailureUserState(data.msg) );
@@ -85,12 +122,12 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith( user: user as User? ));
+        // Update state with user data
+        emit( state.copyWith( user: user ));
 
-      } else {
+      }else{
         emit( FailureUserState(data.msg) );
       }
       
@@ -112,10 +149,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith( user: user as User? ));
+        // Update state with user data
+        emit( state.copyWith( user: user ));
 
       }else{
         emit( FailureUserState(data.msg) );
@@ -177,10 +214,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith( user: user as User? ));
+        // Update state with user data
+        emit( state.copyWith( user: user ));
 
       } else {
         emit( FailureUserState(data.msg));
@@ -204,10 +241,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
         final user = await userServices.getUserById();
 
-        emit( SuccessUserState() );
+        emit( SuccessUserState(user: user) );
 
-        // Fix: Cast User to User? for copyWith compatibility
-        emit( state.copyWith(user: user as User?) );
+        // Update state with user data
+        emit( state.copyWith(user: user) );
 
       }else{
         emit( FailureUserState(data.msg) );

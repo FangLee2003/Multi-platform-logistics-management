@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:ui';
 import 'package:ktc_logistics_driver/presentation/design/spatial_design_system.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_components.dart';
 import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_login_screen.dart';
-import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_check_email_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class SpatialForgotPasswordScreen extends StatefulWidget {
@@ -32,10 +30,9 @@ class _SpatialForgotPasswordScreenState extends State<SpatialForgotPasswordScree
       // Simulate API call
       Future.delayed(const Duration(seconds: 2), () {
         setState(() => _isLoading = false);
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => SpatialCheckEmailScreen(email: _emailController.text.trim()),
-          ),
+        Navigator.of(context).pushReplacementNamed(
+          '/check-email',
+          arguments: _emailController.text.trim(),
         );
       });
     }
