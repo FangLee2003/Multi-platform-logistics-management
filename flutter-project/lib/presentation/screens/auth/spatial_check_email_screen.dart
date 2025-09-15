@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:ui';
 import 'package:ktc_logistics_driver/presentation/design/spatial_design_system.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_components.dart';
 import 'package:ktc_logistics_driver/presentation/screens/auth/spatial_login_screen.dart';

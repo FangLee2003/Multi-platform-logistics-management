@@ -42,6 +42,7 @@ class User {
   final String role;       // Vai trò (DRIVER)
   final bool isActive;     // Trạng thái tài khoản
   final List<String> permissions; // Danh sách quyền
+  final String username;   // Tên người dùng
 
   // Constructor với các tham số bắt buộc
   User({
@@ -53,6 +54,7 @@ class User {
     required this.role,
     required this.isActive,
     required this.permissions,
+    this.username = '',
   });
 
   // Factory constructor để parse JSON thành object
@@ -72,6 +74,7 @@ class User {
       role: json['role'] ?? '',
       isActive: json['isActive'] ?? false,
       permissions: permissionsList,
+      username: json['username'] ?? '',
     );
   }
 
@@ -86,6 +89,7 @@ class User {
       'role': role,
       'isActive': isActive,
       'permissions': permissions,
+      'username': username,
     };
   }
 }

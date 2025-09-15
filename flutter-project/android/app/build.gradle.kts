@@ -12,13 +12,13 @@ android {
     compileSdk = 35
     // compileSdk = 36
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_21.toString()
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
 
     defaultConfig {
@@ -47,8 +47,16 @@ android {
     applicationVariants.all {
         val variant = this
         variant.outputs.all {
+            // Tùy chỉnh tên file APK
+            val versionName = variant.versionName
+            val buildType = variant.buildType.name
+            val fileName = "FastRoute_v${versionName}_${buildType}.apk"
+            
+            // Đặt tên cho output file
+            this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            outputFileName = fileName
+            
             // Chuyển APK đến thư mục Flutter tìm kiếm
-            val outputFileName = "app-${variant.buildType.name}.apk"
             val flutterOutputDir = "$rootDir/../build/app/outputs/flutter-apk"
             val debugOutputDir = "$rootDir/app/build/outputs/apk/${variant.buildType.name}"
 

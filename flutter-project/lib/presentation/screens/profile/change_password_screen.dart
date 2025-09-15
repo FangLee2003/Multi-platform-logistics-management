@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
 import 'package:ktc_logistics_driver/presentation/helpers/helpers.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -61,7 +62,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         } else if ( state is SuccessUserState ){
 
           Navigator.pop(context);
-          modalSuccess(context, 'Password changed', () => Navigator.pop(context));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Password changed successfully',
+                style: TextStyle(
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+              backgroundColor: SpatialDesignSystem.successColor,
+              duration: Duration(seconds: 2),
+            ),
+          );
           clearTextEditingController();
         
         } else if ( state is FailureUserState ){
