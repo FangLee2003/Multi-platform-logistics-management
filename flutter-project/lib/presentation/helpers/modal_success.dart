@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 void modalSuccess(BuildContext context, String text, VoidCallback onPressed ){
 

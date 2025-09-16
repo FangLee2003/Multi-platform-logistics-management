@@ -5,7 +5,7 @@ import '../../domain/models/delivery/tracking_model.dart' hide RoutesResponse, R
 import '../../domain/models/map/backend_route_models.dart';
 import '../../services/mock_auth_service.dart';
 import '../../services/mock_data_service.dart';
-import '../../services/notification_service.dart';
+import '../../services/notification_services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// AuthRepository Implementation using Mock Service
@@ -296,12 +296,55 @@ class DeliveryRepositoryImpl implements DeliveryRepository {
 
   @override
   Future<List<Map<String, dynamic>>> getActiveDeliveries() async {
-    return await _mockDataService.getActiveOrders();
+    // Lấy danh sách đơn hàng đang hoạt động từ mock service
+    final deliveries = await _mockDataService.getMockDriverDeliveries();
+    
+    // Chuyển đổi từ DriverDelivery sang Map<String, dynamic>
+    return deliveries.map((delivery) => {
+      'id': delivery.id.toString(),
+      'orderNumber': delivery.orderNumber,
+      'customerName': delivery.orderDescription?.split(' ').first ?? 'Khách hàng',
+      'description': delivery.orderDescription ?? 'Không có mô tả',
+      'status': delivery.deliveryStatus,
+      'statusId': delivery.statusId,
+      'address': delivery.deliveryAddress,
+      'pickupDate': delivery.pickupDate,
+      'deliveryDate': delivery.scheduleDeliveryTime,
+      'fee': delivery.deliveryFee,
+      'lateRisk': delivery.lateDeliveryRisk != null ? int.tryParse(delivery.lateDeliveryRisk!) ?? 0 : 0,
+      'vehicleInfo': delivery.vehicleDisplay,
+    }).toList();
   }
 
   @override
   Future<Map<String, dynamic>> getDeliveryById(String deliveryId) async {
-    return await _mockDataService.getOrderById(deliveryId);
+    try {
+      // Chuyển đổi deliveryId từ String sang int
+      final id = int.tryParse(deliveryId);
+      if (id == null) throw Exception('ID không hợp lệ');
+      
+      // Lấy thông tin giao hàng từ mock service
+      final delivery = await _mockDataService.getDriverDeliveryById(id);
+      
+      // Chuyển đổi từ DriverDelivery sang Map<String, dynamic>
+      return {
+        'id': delivery.id.toString(),
+        'orderNumber': delivery.orderNumber,
+        'orderDescription': delivery.orderDescription,
+        'status': delivery.deliveryStatus,
+        'statusId': delivery.statusId,
+        'deliveryAddress': delivery.deliveryAddress,
+        'pickupDate': delivery.pickupDate,
+        'scheduleDeliveryTime': delivery.scheduleDeliveryTime,
+        'deliveryFee': delivery.deliveryFee,
+        'lateDeliveryRisk': delivery.lateDeliveryRisk,
+        'vehicleInfo': delivery.vehicleDisplay,
+        'driverInfo': delivery.driverDisplay,
+      };
+    } catch (e) {
+      // Nếu không tìm thấy, thử gọi getOrderById
+      return await _mockDataService.getOrderById(deliveryId);
+    }
   }
 
   @override
@@ -313,9 +356,8 @@ class DeliveryRepositoryImpl implements DeliveryRepository {
   Future<void> confirmDelivery(String deliveryId, Map<String, dynamic> deliveryData) async {
     await _mockDataService.confirmDelivery(
       deliveryId,
-      signature: deliveryData['signature'],
-      photo: deliveryData['photo'],
-      notes: deliveryData['notes'],
+      signature: deliveryData['signature'] as String?,
+      photo: deliveryData['photo'] as String?,
     );
   }
 

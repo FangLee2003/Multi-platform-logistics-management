@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
-import 'package:ktc_logistics_driver/presentation/screens/client/cart_client_screen.dart';
-import 'package:ktc_logistics_driver/presentation/screens/client/client_home_screen.dart';
-import 'package:ktc_logistics_driver/presentation/screens/client/profile_client_screen.dart';
-import 'package:ktc_logistics_driver/presentation/screens/client/search_client_screen.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+// import 'package:ktc_logistics_driver/presentation/screens/client/cart_client_screen.dart';
+// import 'package:ktc_logistics_driver/presentation/screens/client/client_home_screen.dart';
+// import 'package:ktc_logistics_driver/presentation/screens/client/profile_client_screen.dart';
+// import 'package:ktc_logistics_driver/presentation/screens/client/search_client_screen.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class BottomNavigationFrave extends StatelessWidget {
 
@@ -32,29 +32,32 @@ class BottomNavigationFrave extends StatelessWidget {
             index: index, 
             iconData: Icons.home_outlined, 
             text: 'Home',
-            onPressed: () => Navigator.pushReplacement(context, routeFrave(page: ClientHomeScreen())),
-            ),
-          _ItemButton(
-            i: 1, 
-            index: index, 
-            iconData: Icons.search, 
-            text: 'Search',
-            onPressed: () => Navigator.pushReplacement(context, routeFrave(page: SearchClientScreen())),
-            ),
-          _ItemButton(
-            i: 2, 
-            index: index, 
-            iconData: Icons.local_mall_outlined, 
-            text: 'Cart',
-            onPressed: () => Navigator.pushReplacement(context, routeFrave(page: CartClientScreen())),
+            onPressed: () {
+              // Navigator.pushReplacement(context, routeFrave(page: ClientHomeScreen()));
+              print('Home pressed');
+            },
           ),
-          _ItemButton(
-            i: 3, 
-            index: index, 
-            iconData: Icons.person_outline_outlined, 
-            text: 'Profile',
-            onPressed: () => Navigator.pushReplacement(context, routeFrave(page: ProfileClientScreen())),
-            ),
+          // _ItemButton(
+          //   i: 1, 
+          //   index: index, 
+          //   iconData: Icons.search, 
+          //   text: 'Search',
+          //   onPressed: () => Navigator.pushReplacement(context, routeFrave(page: SearchClientScreen())),
+          //   ),
+          // _ItemButton(
+          //   i: 2, 
+          //   index: index, 
+          //   iconData: Icons.local_mall_outlined, 
+          //   text: 'Cart',
+          //   onPressed: () => Navigator.pushReplacement(context, routeFrave(page: CartClientScreen())),
+          // ),
+          // _ItemButton(
+          //   i: 3, 
+          //   index: index, 
+          //   iconData: Icons.person_outline_outlined, 
+          //   text: 'Profile',
+          //   onPressed: () => Navigator.pushReplacement(context, routeFrave(page: ProfileClientScreen())),
+          //   ),
         ],
       )
     );
@@ -69,7 +72,13 @@ class _ItemButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
 
-  const _ItemButton({ required this.i, required this.index, required this.iconData, required this.text, this.onPressed });
+  const _ItemButton({ 
+    required this.i, 
+    required this.index, 
+    required this.iconData, 
+    required this.text,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {

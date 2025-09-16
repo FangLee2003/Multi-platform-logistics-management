@@ -23,7 +23,7 @@ import {
   EditOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
-import { Store } from "@/types/Store";
+import { Store, UpdateStoreInfoDto } from "@/types/Store";
 import { storeService } from "@/services/storeService";
 
 const { Title } = Typography;
@@ -89,23 +89,32 @@ export default function StorePage() {
       storeName: store?.storeName,
       phone: store?.phone,
       email: store?.email,
-      address: store?.address,
       notes: store?.notes,
       isActive: store?.isActive,
     });
     setIsEditModalVisible(true);
   };
 
-  const handleUpdate = async (values: Partial<Store>) => {
+  const handleUpdate = async (values: UpdateStoreInfoDto) => {
     try {
       if (!store?.id) return;
 
       message.loading({ content: "Đang cập nhật...", key: "updateStore" });
-      const updatedStore = await storeService.updateStore(
+      const updatedStoreInfo = await storeService.updateStoreInfo(
         store.id.toString(),
         values
       );
-      setStore(updatedStore);
+
+      // Convert StoreInfoResponseDto back to Store for state update
+      setStore({
+        ...store,
+        storeName: updatedStoreInfo.storeName,
+        email: updatedStoreInfo.email,
+        phone: updatedStoreInfo.phone,
+        isActive: updatedStoreInfo.isActive,
+        notes: updatedStoreInfo.notes,
+        updatedAt: updatedStoreInfo.updatedAt,
+      });
 
       message.success({
         content: "Cập nhật thông tin thành công!",
@@ -211,6 +220,13 @@ export default function StorePage() {
         footer={null}
         width={800}
       >
+        <div style={{ marginBottom: 16 }}>
+          <Typography.Text type="secondary">
+            <strong>Lưu ý:</strong> Chỉ có thể cập nhật tên cửa hàng, email, số
+            điện thoại, trạng thái và ghi chú. Địa chỉ chỉ được hiển thị và
+            không thể chỉnh sửa.
+          </Typography.Text>
+        </div>
         <Form
           form={form}
           layout="vertical"
@@ -264,14 +280,14 @@ export default function StorePage() {
           </Form.Item>
 
           <Form.Item
-            name="address"
-            label="Địa chỉ"
-            rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}
+            label="Địa chỉ (chỉ xem)"
+            extra="Địa chỉ không thể cập nhật qua form này. Vui lòng liên hệ quản trị viên để thay đổi địa chỉ."
           >
-            <TextArea
-              placeholder="Nhập địa chỉ đầy đủ"
+            <Input.TextArea
+              value={store?.address}
+              disabled
               rows={3}
-              style={{ paddingLeft: 30 }}
+              style={{ backgroundColor: "#f5f5f5", color: "#666" }}
             />
           </Form.Item>
 

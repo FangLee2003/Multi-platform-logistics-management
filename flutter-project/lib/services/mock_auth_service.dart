@@ -1,17 +1,18 @@
-/// Mock Authentication Service to replace Firebase Auth
+/// Mock Authentication Service
+/// Cung cấp dữ liệu giả lập cho chức năng xác thực và thông tin tài xế
 class MockAuthService {
   static final MockAuthService _instance = MockAuthService._internal();
   factory MockAuthService() => _instance;
   MockAuthService._internal();
 
-  // Fake user accounts for testing
+  // Dữ liệu tài khoản giả lập
   final Map<String, Map<String, dynamic>> _mockUsers = {
-    'driver@ktc.com': {
+    'driver_01@fr.com': {
       'id': 'DRV001',
-      'email': 'driver@ktc.com',
+      'email': 'driver_01@fr.com',
       'password': '123456',
-      'name': 'Nguyễn Văn An',
-      'phone': '+84 901 234 567',
+      'name': 'Nguyễn Văn Tài',
+      'phone': '0912345678',
       'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
       'license': 'B2',
       'vehicle': {
@@ -26,11 +27,11 @@ class MockAuthService {
       'totalDeliveries': 1247,
       'joinDate': '2023-01-15',
     },
-    'driver2@ktc.com': {
-      'id': 'DRV002',
-      'email': 'driver2@ktc.com',
+    'driver_offline@ktc.com': {
+      'id': 'DRV999',
+      'email': 'driver_offline@ktc.com',
       'password': '123456',
-      'name': 'Trần Thị Lan',
+      'name': 'Driver Offline Mode',
       'phone': '+84 902 345 678',
       'avatar': 'https://images.unsplash.com/photo-1494790108755-2616b332c108?w=150&h=150&fit=crop&crop=face',
       'license': 'B2',
@@ -53,71 +54,58 @@ class MockAuthService {
   Map<String, dynamic>? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
 
+  // Đăng nhập
   Future<Map<String, dynamic>> login(String email, String password) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 2));
-
+    await Future.delayed(const Duration(seconds: 1));
     final user = _mockUsers[email];
     if (user == null || user['password'] != password) {
       throw Exception('Email hoặc mật khẩu không đúng');
     }
-
     _currentUser = Map<String, dynamic>.from(user);
-    _currentUser!.remove('password'); // Don't store password
-
+    _currentUser!.remove('password');
     return _currentUser!;
   }
 
+  // Đăng xuất
   Future<void> logout() async {
     await Future.delayed(const Duration(milliseconds: 500));
     _currentUser = null;
   }
 
+  // Kiểm tra trạng thái đăng nhập
   Future<Map<String, dynamic>?> checkLoginStatus() async {
     await Future.delayed(const Duration(milliseconds: 500));
     return _currentUser;
   }
 
+  // Cập nhật thông tin tài xế
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> updates) async {
     await Future.delayed(const Duration(seconds: 1));
-    
-    if (_currentUser == null) {
-      throw Exception('Chưa đăng nhập');
-    }
-
+    if (_currentUser == null) throw Exception('Chưa đăng nhập');
     _currentUser!.addAll(updates);
     return _currentUser!;
   }
 
+  // Đổi mật khẩu
   Future<void> changePassword(String oldPassword, String newPassword) async {
     await Future.delayed(const Duration(seconds: 1));
-    
-    if (_currentUser == null) {
-      throw Exception('Chưa đăng nhập');
-    }
-
+    if (_currentUser == null) throw Exception('Chưa đăng nhập');
     final email = _currentUser!['email'];
     final storedUser = _mockUsers[email];
-    
     if (storedUser == null || storedUser['password'] != oldPassword) {
       throw Exception('Mật khẩu cũ không đúng');
     }
-
     storedUser['password'] = newPassword;
   }
 
-  // Mock method to get driver statistics
+  // Thống kê tài xế
   Future<Map<String, dynamic>> getDriverStats() async {
     await Future.delayed(const Duration(milliseconds: 800));
-    
-    if (_currentUser == null) {
-      throw Exception('Chưa đăng nhập');
-    }
-
+    if (_currentUser == null) throw Exception('Chưa đăng nhập');
     return {
       'totalDeliveries': _currentUser!['totalDeliveries'] ?? 0,
       'completedToday': 12,
-      'totalEarnings': 45600000, // VND
+      'totalEarnings': 45600000,
       'earningsThisMonth': 8900000,
       'rating': _currentUser!['rating'] ?? 5.0,
       'onTimeDeliveryRate': 98.5,
@@ -125,14 +113,10 @@ class MockAuthService {
     };
   }
 
-  // Mock method to get vehicle info
+  // Thông tin phương tiện
   Future<Map<String, dynamic>> getVehicleInfo() async {
     await Future.delayed(const Duration(milliseconds: 500));
-    
-    if (_currentUser == null) {
-      throw Exception('Chưa đăng nhập');
-    }
-
+    if (_currentUser == null) throw Exception('Chưa đăng nhập');
     return _currentUser!['vehicle'] ?? {};
   }
 }

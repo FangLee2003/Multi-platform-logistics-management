@@ -50,7 +50,7 @@ class NavigationStep {
 class RouteMapScreen extends StatefulWidget {
   final String routeId;
 
-  const RouteMapScreen({Key? key, required this.routeId}) : super(key: key);
+  const RouteMapScreen({super.key, required this.routeId});
 
   @override
   _RouteMapScreenState createState() => _RouteMapScreenState();
@@ -73,7 +73,7 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
   Timer? _locationUpdateTimer;
 
   // Camera move tracking
-  bool _isMapMoving = false;
+  final bool _isMapMoving = false;
   Timer? _mapIdleTimer;
   bool _autoRecalculateRoute = false;
 
@@ -82,14 +82,14 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
   CustomPosition? _currentLocation;
   CustomPosition? _pickupLocation;
   CustomPosition? _deliveryLocation;
-  List<CustomPosition> _waypointLocations = [];
+  final List<CustomPosition> _waypointLocations = [];
 
   // Route instructions
-  List<NavigationStep> _routeSteps = [];
+  final List<NavigationStep> _routeSteps = [];
   String _currentInstruction = "Loading route...";
   double _totalDistance = 0.0;
   int _estimatedDuration = 0;
-  int _currentStepIndex = 0;
+  final int _currentStepIndex = 0;
 
   @override
   void initState() {
@@ -967,16 +967,16 @@ class _RouteMapScreenState extends State<RouteMapScreen> {
             heroTag: 'recalculate',
             onPressed: _loadRouteDataSafely,
             backgroundColor: SpatialDesignSystem.primaryColor,
-            child: Icon(Icons.refresh),
             tooltip: 'Recalculate route',
+            child: Icon(Icons.refresh),
           ),
           SizedBox(height: 16),
           FloatingActionButton(
             heroTag: 'mylocation',
             onPressed: _updateCameraToCurrentLocation,
             backgroundColor: SpatialDesignSystem.primaryColor,
-            child: Icon(Icons.my_location),
             tooltip: 'Go to my location',
+            child: Icon(Icons.my_location),
           ),
         ],
       ),

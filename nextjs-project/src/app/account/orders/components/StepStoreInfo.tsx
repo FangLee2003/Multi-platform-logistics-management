@@ -1,20 +1,29 @@
-import { Row, Col, Form, Input, Button, Select, InputNumber } from "antd";
-import { Card } from "antd";
+import {
+  Row,
+  Col,
+  Form,
+  Input,
+  Button,
+  Select,
+  InputNumber,
+} from "antd";
 import { CloseCircleOutlined } from "@ant-design/icons";
 import { Store } from "@/types/Store";
 import { useState, useEffect } from "react";
 
-import { addressService, Province, District, Ward } from "@/services/addressService";
+import {
+  addressService,
+  Province,
+  District,
+  Ward,
+} from "@/services/addressService";
 import { getCoordinatesFromAddress } from "@/server/geocode.api";
-
-const { TextArea } = Input;
 
 interface Props {
   store: Store | null;
 }
 
 export default function StepStoreInfo({ store }: Props) {
-  const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
   const form = Form.useFormInstance();
 
   // States cho địa chỉ
@@ -22,15 +31,28 @@ export default function StepStoreInfo({ store }: Props) {
   const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
   // Khởi tạo state từ form nếu có dữ liệu, nếu không thì để rỗng
-  const [addressValue, setAddressValue] = useState<string>(() => form.getFieldValue("shipping_address") || "");
-  const [selectedProvince, setSelectedProvince] = useState<string>(() => form.getFieldValue("provinceCode") || "");
-  const [selectedDistrict, setSelectedDistrict] = useState<string>(() => form.getFieldValue("districtCode") || "");
-  const [selectedWard, setSelectedWard] = useState<string>(() => form.getFieldValue("wardCode") || "");
-  const [streetAddress, setStreetAddress] = useState<string>(() => form.getFieldValue("streetAddress") || "");
+  const [addressValue, setAddressValue] = useState<string>(
+    () => form.getFieldValue("shipping_address") || ""
+  );
+  const [selectedProvince, setSelectedProvince] = useState<string>(
+    () => form.getFieldValue("provinceCode") || ""
+  );
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(
+    () => form.getFieldValue("districtCode") || ""
+  );
+  const [selectedWard, setSelectedWard] = useState<string>(
+    () => form.getFieldValue("wardCode") || ""
+  );
+  const [streetAddress, setStreetAddress] = useState<string>(
+    () => form.getFieldValue("streetAddress") || ""
+  );
   // TODO: Uncomment khi cần dùng geocoding
-  const [coordinates, setCoordinates] = useState<{ latitude: number | null; longitude: number | null }>(() => ({
+  const [coordinates, setCoordinates] = useState<{
+    latitude: number | null;
+    longitude: number | null;
+  }>(() => ({
     latitude: form.getFieldValue("latitude") ?? null,
-    longitude: form.getFieldValue("longitude") ?? null
+    longitude: form.getFieldValue("longitude") ?? null,
   })); // State cho tọa độ
   const [isGeocodingLoading, setIsGeocodingLoading] = useState(false); // State cho loading geocoding
 
@@ -76,10 +98,10 @@ export default function StepStoreInfo({ store }: Props) {
     setSelectedWard("");
     setDistricts([]);
     setWards([]);
-    
+
     // Cập nhật địa chỉ ngay khi chọn tỉnh
     await updateAddressDisplay(value, "", "", streetAddress);
-    
+
     try {
       const districtsData = await addressService.getDistricts(value);
       setDistricts(districtsData);
@@ -93,10 +115,10 @@ export default function StepStoreInfo({ store }: Props) {
     setSelectedDistrict(value);
     setSelectedWard("");
     setWards([]);
-    
+
     // Cập nhật địa chỉ khi chọn huyện
     await updateAddressDisplay(selectedProvince, value, "", streetAddress);
-    
+
     try {
       const wardsData = await addressService.getWards(value);
       setWards(wardsData);
@@ -108,28 +130,52 @@ export default function StepStoreInfo({ store }: Props) {
   // Xử lý khi chọn xã/phường
   const handleWardChange = async (value: string) => {
     setSelectedWard(value);
-    await updateAddressDisplay(selectedProvince, selectedDistrict, value, streetAddress);
+    await updateAddressDisplay(
+      selectedProvince,
+      selectedDistrict,
+      value,
+      streetAddress
+    );
   };
 
   // Xử lý khi nhập số nhà/đường
-  const handleStreetAddressChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStreetAddressChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const value = e.target.value;
     setStreetAddress(value);
-    await updateAddressDisplay(selectedProvince, selectedDistrict, selectedWard, value);
+    await updateAddressDisplay(
+      selectedProvince,
+      selectedDistrict,
+      selectedWard,
+      value
+    );
   };
 
   // Cập nhật hiển thị địa chỉ đầy đủ
-  const updateAddressDisplay = async (provinceCode: string, districtCode: string, wardCode: string, street: string) => {
-    console.log('updateAddressDisplay called with:', { provinceCode, districtCode, wardCode, street });
-    
-    const provinceName = provinces.find(p => p.code === provinceCode)?.name || "";
-    const districtName = districts.find(d => d.code === districtCode)?.name || "";
-    const wardName = wards.find(w => w.code === wardCode)?.name || "";
-    
-    console.log('Found names:', { provinceName, districtName, wardName });
-    
+  const updateAddressDisplay = async (
+    provinceCode: string,
+    districtCode: string,
+    wardCode: string,
+    street: string
+  ) => {
+    console.log("updateAddressDisplay called with:", {
+      provinceCode,
+      districtCode,
+      wardCode,
+      street,
+    });
+
+    const provinceName =
+      provinces.find((p) => p.code === provinceCode)?.name || "";
+    const districtName =
+      districts.find((d) => d.code === districtCode)?.name || "";
+    const wardName = wards.find((w) => w.code === wardCode)?.name || "";
+
+    console.log("Found names:", { provinceName, districtName, wardName });
+
     // Địa chỉ lưu backend chỉ gồm số nhà, xã/phường, quận/huyện
-    let addressParts = [];
+    const addressParts = [];
     if (street.trim()) {
       addressParts.push(street.trim());
     }
@@ -157,14 +203,14 @@ export default function StepStoreInfo({ store }: Props) {
       if (!displayAddress.toLowerCase().includes(provinceName.toLowerCase())) {
         geocodeAddress += `, ${provinceName}`;
       }
-      if (!displayAddress.toLowerCase().includes('việt nam')) {
-        geocodeAddress += ', Việt Nam';
+      if (!displayAddress.toLowerCase().includes("việt nam")) {
+        geocodeAddress += ", Việt Nam";
       }
-      console.log('Getting coordinates for:', geocodeAddress);
+      console.log("Getting coordinates for:", geocodeAddress);
       try {
         const coords = await getCoordinatesFromAddress(geocodeAddress);
         setCoordinates(coords);
-        console.log('Coordinates received:', coords);
+        console.log("Coordinates received:", coords);
         // Cập nhật form với cả địa chỉ và tọa độ
         const formValues = {
           shipping_address: displayAddress, // Hiển thị cho user
@@ -174,19 +220,23 @@ export default function StepStoreInfo({ store }: Props) {
           longitude: coords.longitude, // Thêm longitude
         };
         form.setFieldsValue(formValues);
-        console.log('Form values set with coordinates:', formValues);
+        console.log("Form values set with coordinates:", formValues);
         // Kiểm tra lại form values sau khi set
         setTimeout(() => {
           const currentFormValues = form.getFieldsValue();
-          console.log('Current form values after set:', currentFormValues);
+          console.log("Current form values after set:", currentFormValues);
         }, 100);
       } catch (error) {
-        console.error('Error in geocoding process:', error);
+        console.error("Error in geocoding process:", error);
         setCoordinates({ latitude: null, longitude: null });
       }
     } else {
       // Reset tọa độ nếu không có đủ thông tin
-      console.log('Not enough address info for geocoding:', { provinceName, districtName, displayAddress });
+      console.log("Not enough address info for geocoding:", {
+        provinceName,
+        districtName,
+        displayAddress,
+      });
       setCoordinates({ latitude: null, longitude: null });
       if (addressForBackend && provinceName) {
         form.setFieldsValue({
@@ -211,7 +261,7 @@ export default function StepStoreInfo({ store }: Props) {
     setIsGeocodingLoading(false); // Reset loading state
     setDistricts([]);
     setWards([]);
-    
+
     form.setFieldsValue({
       shipping_address: "",
       city: "",
@@ -229,19 +279,19 @@ export default function StepStoreInfo({ store }: Props) {
   return (
     <>
       {/* Hidden fields for backend */}
-      <Form.Item name="city" style={{ display: 'none' }}>
+      <Form.Item name="city" style={{ display: "none" }}>
         <Input />
       </Form.Item>
-      <Form.Item name="address" style={{ display: 'none' }}>
+      <Form.Item name="address" style={{ display: "none" }}>
         <Input />
       </Form.Item>
-      <Form.Item name="latitude" style={{ display: 'none' }}>
-        <InputNumber style={{ width: '100%' }} />
+      <Form.Item name="latitude" style={{ display: "none" }}>
+        <InputNumber style={{ width: "100%" }} />
       </Form.Item>
-      <Form.Item name="longitude" style={{ display: 'none' }}>
-        <InputNumber style={{ width: '100%' }} />
+      <Form.Item name="longitude" style={{ display: "none" }}>
+        <InputNumber style={{ width: "100%" }} />
       </Form.Item>
-      
+
       <Row gutter={[24, 16]}>
         {/* Phần thông tin cửa hàng - Full width */}
         <Col xs={24}>
@@ -250,7 +300,7 @@ export default function StepStoreInfo({ store }: Props) {
               value={store?.address || "Đang tải..."}
               disabled
               placeholder="Địa chỉ cửa hàng"
-              style={{ backgroundColor: '#f5f5f5' }}
+              style={{ backgroundColor: "#f5f5f5" }}
             />
           </Form.Item>
         </Col>
@@ -308,66 +358,72 @@ export default function StepStoreInfo({ store }: Props) {
 
         {/* Phần địa chỉ giao hàng - Full width */}
         <Col xs={24}>
-          <Form.Item
-            label="Địa chỉ giao hàng"
-            required
-          >
+          <Form.Item label="Địa chỉ giao hàng" required>
             <Input
               placeholder="Địa chỉ sẽ hiển thị sau khi chọn tỉnh/huyện/xã"
               value={addressValue}
               readOnly
-              style={{ 
-                marginBottom: 16, 
+              style={{
+                marginBottom: 16,
                 borderRadius: 6,
-                backgroundColor: addressValue ? '#f5f5f5' : '#fff',
-                cursor: 'default'
+                backgroundColor: addressValue ? "#f5f5f5" : "#fff",
+                cursor: "default",
               }}
               suffix={
                 addressValue ? (
-                  <CloseCircleOutlined 
+                  <CloseCircleOutlined
                     onClick={handleClearAddress}
-                    style={{ cursor: 'pointer', color: '#999' }}
+                    style={{ cursor: "pointer", color: "#999" }}
                   />
                 ) : null
               }
             />
             {/* Hiển thị tọa độ nếu có */}
             {isGeocodingLoading && (
-              <div style={{ 
-                fontSize: '12px', 
-                color: '#1890ff', 
-                marginBottom: 12,
-                padding: '4px 8px',
-                background: '#f0f8ff',
-                borderRadius: 4,
-                border: '1px solid #91d5ff'
-              }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#1890ff",
+                  marginBottom: 12,
+                  padding: "4px 8px",
+                  background: "#f0f8ff",
+                  borderRadius: 4,
+                  border: "1px solid #91d5ff",
+                }}
+              >
                 🔄 Đang lấy tọa độ...
               </div>
             )}
-            {!isGeocodingLoading && coordinates.latitude && coordinates.longitude && (
-              <div style={{ 
-                fontSize: '12px', 
-                color: '#52c41a', 
-                marginBottom: 12,
-                padding: '4px 8px',
-                background: '#f6ffed',
-                borderRadius: 4,
-                border: '1px solid #b7eb8f'
-              }}>
-                📍 Tọa độ: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
-              </div>
-            )}
+            {!isGeocodingLoading &&
+              coordinates.latitude &&
+              coordinates.longitude && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#52c41a",
+                    marginBottom: 12,
+                    padding: "4px 8px",
+                    background: "#f6ffed",
+                    borderRadius: 4,
+                    border: "1px solid #b7eb8f",
+                  }}
+                >
+                  📍 Tọa độ: {coordinates.latitude.toFixed(6)},{" "}
+                  {coordinates.longitude.toFixed(6)}
+                </div>
+              )}
             {!isGeocodingLoading && addressValue && !coordinates.latitude && (
-              <div style={{ 
-                fontSize: '12px', 
-                color: '#ff4d4f', 
-                marginBottom: 12,
-                padding: '4px 8px',
-                background: '#fff2f0',
-                borderRadius: 4,
-                border: '1px solid #ffccc7'
-              }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#ff4d4f",
+                  marginBottom: 12,
+                  padding: "4px 8px",
+                  background: "#fff2f0",
+                  borderRadius: 4,
+                  border: "1px solid #ffccc7",
+                }}
+              >
                 ⚠️ Không tìm thấy tọa độ cho địa chỉ này
               </div>
             )}
@@ -389,65 +445,86 @@ export default function StepStoreInfo({ store }: Props) {
             */}
             <Row gutter={[12, 12]}>
               <Col xs={24} sm={12} md={6}>
-                <Select 
-                  placeholder="Tỉnh/Thành phố" 
-                  style={{ width: '100%' }}
+                <Select
+                  placeholder="Tỉnh/Thành phố"
+                  style={{ width: "100%" }}
                   value={selectedProvince || undefined}
                   onChange={handleProvinceChange}
                   showSearch
                   filterOption={(input, option) =>
-                    option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+                    option?.label
+                      ?.toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase()) ?? false
                   }
                 >
                   {provinces.map((province) => (
-                    <Select.Option key={province.code} value={province.code} label={province.name}>
+                    <Select.Option
+                      key={province.code}
+                      value={province.code}
+                      label={province.name}
+                    >
                       {province.name}
                     </Select.Option>
                   ))}
                 </Select>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Select 
-                  placeholder="Huyện/Quận" 
-                  style={{ width: '100%' }}
+                <Select
+                  placeholder="Huyện/Quận"
+                  style={{ width: "100%" }}
                   value={selectedDistrict || undefined}
                   onChange={handleDistrictChange}
                   disabled={!selectedProvince}
                   showSearch
                   filterOption={(input, option) =>
-                    option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+                    option?.label
+                      ?.toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase()) ?? false
                   }
                 >
                   {districts.map((district) => (
-                    <Select.Option key={district.code} value={district.code} label={district.name}>
+                    <Select.Option
+                      key={district.code}
+                      value={district.code}
+                      label={district.name}
+                    >
                       {district.name}
                     </Select.Option>
                   ))}
                 </Select>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Select 
-                  placeholder="Xã/Phường" 
-                  style={{ width: '100%' }}
+                <Select
+                  placeholder="Xã/Phường"
+                  style={{ width: "100%" }}
                   value={selectedWard || undefined}
                   onChange={handleWardChange}
                   disabled={!selectedDistrict}
                   showSearch
                   filterOption={(input, option) =>
-                    option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+                    option?.label
+                      ?.toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase()) ?? false
                   }
                 >
                   {wards.map((ward) => (
-                    <Select.Option key={ward.code} value={ward.code} label={ward.name}>
+                    <Select.Option
+                      key={ward.code}
+                      value={ward.code}
+                      label={ward.name}
+                    >
                       {ward.name}
                     </Select.Option>
                   ))}
                 </Select>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Input 
-                  placeholder="Đường/Thôn/Xóm/Số nhà" 
-                  style={{ width: '100%' }}
+                <Input
+                  placeholder="Đường/Thôn/Xóm/Số nhà"
+                  style={{ width: "100%" }}
                   value={streetAddress}
                   onChange={handleStreetAddressChange}
                 />
@@ -467,10 +544,7 @@ export default function StepStoreInfo({ store }: Props) {
         </Col>
         <Col xs={24} lg={12}>
           <Form.Item name="notes" label="Ghi chú">
-            <Input.TextArea 
-              rows={4} 
-              placeholder="Ghi chú bổ sung (nếu có)" 
-            />
+            <Input.TextArea rows={4} placeholder="Ghi chú bổ sung (nếu có)" />
           </Form.Item>
         </Col>
       </Row>

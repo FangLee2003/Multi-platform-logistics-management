@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ktc_logistics_driver/domain/models/order/orders_by_status_response.dart';
 import 'package:ktc_logistics_driver/presentation/components/components.dart';
 import 'package:ktc_logistics_driver/presentation/helpers/date_custom.dart';
-import 'package:ktc_logistics_driver/presentation/themes/colors_frave.dart';
+import 'package:ktc_logistics_driver/presentation/design/colors_frave.dart';
 
 class CardOrdersDelivery extends StatelessWidget {
 
