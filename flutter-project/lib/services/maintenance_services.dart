@@ -24,10 +24,28 @@ class MaintenanceServices {
   /// Returns null if driver ID is not found
   Future<int?> _getDriverId() async {
     final driverId = await secureStorage.readDriverId();
-    if (driverId == null) {
+    
+    if (driverId == null || driverId.isEmpty) {
+      // Fallback: Try to use userId if available
+      final userId = await secureStorage.readUserId();
+      if (userId != null && userId.isNotEmpty) {
+        try {
+          final parsedId = int.parse(userId);
+          // Save it as driverId for future use
+          await secureStorage.persistentDriverId(userId);
+          return parsedId;
+        } catch (e) {
+          return null;
+        }
+      }
       return null;
     }
-    return int.parse(driverId);
+    
+    try {
+      return int.parse(driverId);
+    } catch (e) {
+      return null;
+    }
   }
 
   /// Step 1: Driver creates a maintenance request
@@ -85,17 +103,12 @@ class MaintenanceServices {
     int size = 10,
     String? status,
     String? maintenanceType,
-    bool useCache = true, // Thêm tham số useCache
+    bool useCache = true,
   }) async {
-    print('🌐 MaintenanceServices: getDriverMaintenanceRequests called');
-    print('🌐 MaintenanceServices: useCache = $useCache');
-    
     final driverId = await _getDriverId();
     if (driverId == null) {
-      print('❌ MaintenanceServices: Driver ID not found');
       throw Exception('Driver ID not found');
     }
-    print('✅ MaintenanceServices: Driver ID found: $driverId');
 
     try {
       final Map<String, String> queryParams = {
@@ -110,29 +123,19 @@ class MaintenanceServices {
         queryParams['maintenanceType'] = maintenanceType;
       }
 
-      final endpoint = '/drivers/$driverId/maintenance-requests';
-      print('🌐 MaintenanceServices: Making API call to: $baseUrl$endpoint');
-      print('🌐 MaintenanceServices: Query params: $queryParams');
-
       final response = await _httpClient.get(
-        endpoint,
+        '/drivers/$driverId/maintenance-requests',
         queryParams: queryParams,
-        useCache: useCache, // Sử dụng giá trị useCache
+        useCache: useCache,
       );
 
-      print('✅ MaintenanceServices: API response received');
-      
       final data = response['data'] as Map<String, dynamic>;
       final content = data['content'] as List<dynamic>;
       
-      final requests = content
+      return content
           .map((json) => MaintenanceRequest.fromJson(json as Map<String, dynamic>))
           .toList();
-      
-      print('✅ MaintenanceServices: Parsed ${requests.length} maintenance requests');
-      return requests;
     } catch (e) {
-      print('❌ MaintenanceServices: Error during API call: $e');
       throw Exception('Failed to fetch driver maintenance requests: $e');
     }
   }

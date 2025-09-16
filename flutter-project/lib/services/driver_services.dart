@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../data/env/environment.dart';
 import '../data/local_secure/secure_storage.dart';
 import '../data/network/http_client.dart';
@@ -72,25 +70,28 @@ class DriverServices {
   Future<DriverAnalytics> _getDriverAnalyticsLegacy() async {
     final token = await secureStorage.readToken();
     
-    if (token == null) {
-      throw Exception('Token not found');
-    }
-    
-    final resp = await http.get(
-      Uri.parse('$baseUrl/dashboard/driver-analytics'),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}
-    );
-    
-    if (resp.statusCode == 200) {
-      final data = json.decode(resp.body);
-      if (data is Map<String, dynamic>) {
-        return DriverAnalytics.fromJson(data);
-      } else if (data is Map && data.containsKey('data')) {
-        return DriverAnalytics.fromJson(data['data']);
+    try {
+      print('🚛 DriverService: Getting analytics via HttpClient...');
+
+      final response = await _httpClient.get<Map<String, dynamic>>(
+        '/dashboard/driver-analytics',
+        useCache: false,
+        timeout: const Duration(seconds: 45),
+      );
+
+      print('🚛 DriverService: Analytics response received');
+      
+      if (response is Map<String, dynamic>) {
+        return DriverAnalytics.fromJson(response);
+      } else if (response is Map && response.containsKey('data')) {
+        return DriverAnalytics.fromJson(response['data']);
       }
+      
+      throw Exception('Invalid analytics response format');
+    } catch (e) {
+      print('❌ DriverService: Error getting analytics: $e');
+      throw Exception('Failed to load driver analytics: $e');
     }
-    
-    throw Exception('Failed to load driver analytics: ${resp.statusCode}');
   }
 
   /// Retrieves the driver's profile information
@@ -174,22 +175,17 @@ class DriverServices {
       return {'success': false, 'message': 'Token or driver ID not found'};
     }
     
-    final data = {
-      'statusId': statusId
-    };
-    
     try {
-      final resp = await http.patch(
-        Uri.parse('$baseUrl/driver/status'),
-        headers: {
-          'Accept': 'application/json', 
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: json.encode(data)
+      print('🚛 DriverService: Updating status via HttpClient...');
+
+      final response = await _httpClient.patch<Map<String, dynamic>>(
+        '/driver/status',
+        body: {'statusId': statusId},
+        fromJson: (json) => json,
       );
-      
-      return json.decode(resp.body);
+
+      print('🚛 DriverService: Status update response received');
+      return response;
     } catch (e) {
       return {'success': false, 'message': 'Error updating status: $e'};
     }

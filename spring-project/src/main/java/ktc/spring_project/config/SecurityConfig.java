@@ -200,8 +200,8 @@ public class SecurityConfig {
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
 
-        // Cho phép frontend từ các domain này truy cập API
-        configuration.setAllowedOriginPatterns(java.util.List.of("http://localhost:3000", "http://localhost:3001", "http://localhost:5173"));
+        // Cho phép tất cả các origin truy cập API (thích hợp cho môi trường development)
+        configuration.setAllowedOriginPatterns(java.util.List.of("*"));
 
         // Cho phép các HTTP methods
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
