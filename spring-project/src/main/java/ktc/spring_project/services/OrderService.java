@@ -136,6 +136,26 @@ public class OrderService {
         }
     }
 
+    /**
+     * Đếm số lượng orders theo ngày (tối ưu cho dashboard)
+     */
+    public long countOrdersByDate(java.time.LocalDate date) {
+        try {
+            validateNotNull(date, "Date");
+            log.debug("Counting orders by date: {}", date);
+            
+            java.time.LocalDateTime startOfDay = date.atStartOfDay();
+            java.time.LocalDateTime endOfDay = date.atTime(23, 59, 59, 999999999);
+            
+            return orderRepository.countByCreatedAtBetween(startOfDay, endOfDay);
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to count orders by date: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     public Order updateOrder(Long id, Order orderDetails) {
         try {
             validateId(id, "Order ID");

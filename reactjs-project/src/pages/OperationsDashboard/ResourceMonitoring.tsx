@@ -4,10 +4,12 @@ import StatCard from '../../components/StatCard';
 import DataTable, { TableRow, TableCell } from '../../components/DataTable';
 import GlassButton from '../../components/GlassButton';
 import { operationsAPI, type Vehicle } from '../../services/operationsAPI';
+import { fetchVehicleStats } from '../../services/VehicleListAPI';
 
 export default function ResourceMonitoring() {
   const [timeFilter, setTimeFilter] = useState('24h');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [totalVehiclesFromDB, setTotalVehiclesFromDB] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -18,6 +20,15 @@ export default function ResourceMonitoring() {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
+      
+      // Lấy tổng số xe thật từ database
+      try {
+        const { totalRecords } = await fetchVehicleStats();
+        setTotalVehiclesFromDB(totalRecords);
+      } catch {
+        console.warn('Không thể lấy tổng số xe từ database');
+      }
+      
       const data = await operationsAPI.getVehicles();
       setVehicles(data);
       setError('');
@@ -122,7 +133,7 @@ export default function ResourceMonitoring() {
   };
 
   // Calculate stats from vehicles data
-  const totalVehicles = vehicles.length;
+  const totalVehicles = totalVehiclesFromDB > 0 ? totalVehiclesFromDB : vehicles.length;
   const activeVehicles = vehicles.filter(v => v.status === 'ACTIVE').length;
   const maintenanceVehicles = vehicles.filter(v => v.status === 'MAINTENANCE').length;
   const avgFuel = vehicles.length > 0 ? Math.round(vehicles.reduce((sum, v) => sum + v.fuel, 0) / vehicles.length) : 0;

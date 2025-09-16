@@ -84,6 +84,53 @@ public class OrderController {
     }
 
     /**
+     * Lấy số lượng đơn hàng theo ngày (tối ưu cho dashboard)
+     */
+    @GetMapping("/count-by-date")
+    public ResponseEntity<Map<String, Object>> getOrderCountByDate(
+            @RequestParam(required = false) String date) {
+        try {
+            // Nếu không có date parameter, tính cho hôm nay và hôm qua
+            java.time.LocalDate targetDate = date != null ? 
+                java.time.LocalDate.parse(date) : java.time.LocalDate.now();
+            java.time.LocalDate yesterday = targetDate.minusDays(1);
+            
+            // Sử dụng database query trực tiếp thay vì load toàn bộ data
+            long todayCount = orderService.countOrdersByDate(targetDate);
+            long yesterdayCount = orderService.countOrdersByDate(yesterday);
+            
+            // Tính phần trăm thay đổi
+            double changePercent = 0;
+            String trend = "stable";
+            
+            if (yesterdayCount > 0) {
+                changePercent = ((double)(todayCount - yesterdayCount) / yesterdayCount) * 100;
+            } else if (todayCount > 0) {
+                changePercent = 100;
+            }
+            
+            if (changePercent > 0) {
+                trend = "increase";
+            } else if (changePercent < 0) {
+                trend = "decrease";
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("date", targetDate.toString());
+            result.put("count", todayCount);
+            result.put("previousCount", yesterdayCount);
+            result.put("changePercent", Math.round(changePercent * 10.0) / 10.0);
+            result.put("trend", trend);
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            System.err.println("Error getting order count by date: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * Lấy tất cả đơn hàng (có phân trang)
      */
     @GetMapping

@@ -28,6 +28,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.status.name = 'AVAILABLE'")
     List<Order> findAvailableOrders();
 
+    // Đếm orders theo khoảng thời gian (tối ưu cho dashboard)
+    long countByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
+
     // Query các đơn hàng theo tên trạng thái, mới nhất lên đầu
     // @Query("SELECT o FROM Order o WHERE o.status.name = :statusName ORDER BY o.createdAt DESC")
     // Đã có @Query bên dưới, không cần hàm này nữa

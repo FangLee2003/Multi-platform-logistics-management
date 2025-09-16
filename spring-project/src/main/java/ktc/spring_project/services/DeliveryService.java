@@ -37,7 +37,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.util.List;
@@ -441,5 +445,156 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
             delivery.setRoute(routeService.getRouteById(dto.getRouteId()));
         }
         return delivery;
+    }
+
+    /**
+     * Tính tổng doanh thu cho ngày cụ thể từ các delivery đã hoàn thành
+     * @param date Ngày theo định dạng YYYY-MM-DD
+     * @return Tổng doanh thu (VND)
+     */
+    public Long calculateRevenueByDate(String date) {
+        try {
+            return deliveryRepository.findCompletedDeliveriesByDate(date)
+                .stream()
+                .mapToLong(delivery -> delivery.getDeliveryFee() != null ? delivery.getDeliveryFee().longValue() : 0L)
+                .sum();
+        } catch (Exception e) {
+            log.error("Error calculating revenue for date {}: {}", date, e.getMessage());
+            return 0L;
+        }
+    }
+
+    /**
+     * Tính performance statistics tối ưu chỉ trả về kết quả cuối cùng
+     */
+    public Map<String, Object> calculatePerformanceStats() {
+        try {
+            // Tính ngày bắt đầu và kết thúc cho 2 tuần
+            LocalDate today = LocalDate.now();
+            LocalDate thisWeekStart = today.minusDays(7);
+            LocalDate lastWeekStart = today.minusDays(14);
+            LocalDate lastWeekEnd = today.minusDays(7);
+
+            // Đếm số lượng thay vì lấy toàn bộ records
+            long thisWeekTotal = deliveryRepository.countDeliveriesByDateRange(
+                thisWeekStart.toString(), today.toString());
+            long thisWeekCompleted = deliveryRepository.countCompletedDeliveriesByDateRange(
+                thisWeekStart.toString(), today.toString());
+
+            long lastWeekTotal = deliveryRepository.countDeliveriesByDateRange(
+                lastWeekStart.toString(), lastWeekEnd.toString());
+            long lastWeekCompleted = deliveryRepository.countCompletedDeliveriesByDateRange(
+                lastWeekStart.toString(), lastWeekEnd.toString());
+
+            // Tính completion rate
+            int thisWeekPercentage = thisWeekTotal > 0 ? (int) Math.round((double) thisWeekCompleted / thisWeekTotal * 100) : 0;
+            int lastWeekPercentage = lastWeekTotal > 0 ? (int) Math.round((double) lastWeekCompleted / lastWeekTotal * 100) : 0;
+
+            // Tính phần trăm thay đổi
+            double changePercent = 0.0;
+            String trend = "stable";
+
+            if (lastWeekPercentage > 0) {
+                changePercent = ((double) (thisWeekPercentage - lastWeekPercentage) / lastWeekPercentage) * 100;
+            } else if (thisWeekPercentage > 0) {
+                changePercent = 100.0; // 100% increase
+            }
+
+            if (changePercent > 0) {
+                trend = "increase";
+            } else if (changePercent < 0) {
+                trend = "decrease";
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("percentage", thisWeekPercentage);
+            result.put("changePercent", Math.abs(changePercent));
+            result.put("trend", trend);
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("Error calculating performance stats: {}", e.getMessage());
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("percentage", 0);
+            fallback.put("changePercent", 0.0);
+            fallback.put("trend", "stable");
+            return fallback;
+        }
+    }
+
+    /**
+     * Tính doanh thu theo tháng trong 12 tháng gần nhất
+     */
+    public Map<String, Object> calculateMonthlyRevenue() {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            
+            // Lấy doanh thu 12 tháng gần nhất
+            List<Map<String, Object>> monthlyRevenue = deliveryRepository.getMonthlyRevenueLast12Months();
+            
+            // Tính tổng doanh thu
+            long totalRevenue = monthlyRevenue.stream()
+                .mapToLong(m -> ((Number) m.getOrDefault("revenue", 0)).longValue())
+                .sum();
+            
+            // Tính trung bình: chỉ lấy doanh thu của năm hiện tại (2025) để chia cho tháng hiện tại
+            int currentMonth = java.time.LocalDate.now().getMonthValue();
+            int currentYear = java.time.LocalDate.now().getYear();
+            
+            long currentYearRevenue = monthlyRevenue.stream()
+                .filter(m -> ((Number) m.get("year")).intValue() == currentYear)
+                .mapToLong(m -> ((Number) m.getOrDefault("revenue", 0)).longValue())
+                .sum();
+            
+            long averageRevenue = currentMonth > 0 ? currentYearRevenue / currentMonth : 0;
+            
+            // Tính tỷ lệ tăng trưởng (so sánh tháng hiện tại với tháng trước trong năm hiện tại)
+            double growthPercent = 0.0;
+            
+            // Tìm doanh thu tháng hiện tại và tháng trước trong năm hiện tại
+            long currentMonthRevenue = monthlyRevenue.stream()
+                .filter(m -> ((Number) m.get("year")).intValue() == currentYear && 
+                           ((Number) m.get("month")).intValue() == currentMonth)
+                .mapToLong(m -> ((Number) m.getOrDefault("revenue", 0)).longValue())
+                .findFirst().orElse(0L);
+                
+            long previousMonthRevenue = 0L;
+            if (currentMonth > 1) {
+                // Tháng trước trong cùng năm
+                previousMonthRevenue = monthlyRevenue.stream()
+                    .filter(m -> ((Number) m.get("year")).intValue() == currentYear && 
+                               ((Number) m.get("month")).intValue() == (currentMonth - 1))
+                    .mapToLong(m -> ((Number) m.getOrDefault("revenue", 0)).longValue())
+                    .findFirst().orElse(0L);
+            } else {
+                // Nếu là tháng 1, so sánh với tháng 12 năm trước
+                previousMonthRevenue = monthlyRevenue.stream()
+                    .filter(m -> ((Number) m.get("year")).intValue() == (currentYear - 1) && 
+                               ((Number) m.get("month")).intValue() == 12)
+                    .mapToLong(m -> ((Number) m.getOrDefault("revenue", 0)).longValue())
+                    .findFirst().orElse(0L);
+            }
+            
+            if (previousMonthRevenue > 0) {
+                growthPercent = ((double) (currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100;
+            }
+            
+            result.put("monthlyRevenue", monthlyRevenue);
+            result.put("totalRevenue", totalRevenue);
+            result.put("averageRevenue", averageRevenue);
+            result.put("growthPercent", growthPercent);
+            
+            return result;
+            
+        } catch (Exception e) {
+            log.error("Error calculating monthly revenue: {}", e.getMessage());
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("monthlyRevenue", new ArrayList<>());
+            fallback.put("totalRevenue", 0L);
+            fallback.put("averageRevenue", 0L);
+            fallback.put("growthPercent", 0.0);
+            return fallback;
+        }
     }
 }

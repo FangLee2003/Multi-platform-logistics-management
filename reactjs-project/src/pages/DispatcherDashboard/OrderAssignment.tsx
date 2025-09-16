@@ -6,6 +6,7 @@ import { fetchOrdersRaw, updateOrderVehicle } from "../../services/OrderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
 import { FaUserCog, FaCheck, FaTimes, FaCar } from "react-icons/fa";
+import { triggerOrderUpdated, triggerVehicleStatusUpdate } from "../../utils/dashboardTriggers";
 
 type OrderType = {
   id: number;
@@ -176,6 +177,10 @@ export default function OrdersAssignment(_props: OrdersAssignmentProps) {
       // Update order with assigned vehicle using the new API endpoint
       await updateOrderVehicle(orderId, Number(selectedVehicle.id));
       
+      // Trigger dashboard update immediately
+      triggerOrderUpdated();
+      triggerVehicleStatusUpdate();
+      
       // Invalidate queries để refetch dữ liệu mới
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['orders', currentPage, PAGE_SIZE] }),
@@ -235,6 +240,10 @@ export default function OrdersAssignment(_props: OrdersAssignmentProps) {
     try {
       // Gọi API để gỡ bỏ vehicle (gán vehicleId = null hoặc 0)
       await updateOrderVehicle(orderId, 0);
+      
+      // Trigger dashboard update immediately
+      triggerOrderUpdated();
+      triggerVehicleStatusUpdate();
       
       // Invalidate queries để refetch dữ liệu mới
       await Promise.all([
