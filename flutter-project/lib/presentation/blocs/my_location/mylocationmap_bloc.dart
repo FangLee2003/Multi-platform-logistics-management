@@ -6,7 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:meta/meta.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:ktc_logistics_driver/presentation/themes/theme_maps.dart';
+import 'package:ktc_logistics_driver/presentation/design/theme_maps.dart';
 
 part 'mylocationmap_event.dart';
 part 'mylocationmap_state.dart';

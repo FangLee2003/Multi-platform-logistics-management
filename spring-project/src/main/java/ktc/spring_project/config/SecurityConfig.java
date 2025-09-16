@@ -153,6 +153,7 @@ public class SecurityConfig {
 .requestMatchers("/api/categories/**").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/stores", "/api/stores/**").permitAll()
 .requestMatchers(HttpMethod.PATCH, "/api/stores/**").permitAll()
+.requestMatchers(HttpMethod.PUT, "/api/stores/**").permitAll()
 .requestMatchers(HttpMethod.POST, "/api/orders", "/api/orders/**").permitAll()
 .requestMatchers(HttpMethod.PUT, "/api/orders/**").permitAll()
     .requestMatchers(HttpMethod.PATCH, "/api/orders/**").permitAll()
@@ -167,8 +168,12 @@ public class SecurityConfig {
 .requestMatchers("/api/products/**").permitAll()
 .requestMatchers("/api/orders/**").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/**").permitAll()
-    // .anyRequest().authenticated()
- .anyRequest().permitAll()
+    // Maintenance APIs require authentication
+    .requestMatchers("/api/drivers/*/maintenance-requests/**").hasAnyRole("ADMIN", "DRIVER")
+    .requestMatchers("/api/fleet/maintenance-requests/**").hasAnyRole("ADMIN", "FLEET")
+    .requestMatchers("/api/maintenance-requests/**").hasAnyRole("ADMIN", "DRIVER", "FLEET")
+    // All other requests require authentication
+    .anyRequest().authenticated()
 )
 
 

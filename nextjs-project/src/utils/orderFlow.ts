@@ -1,6 +1,10 @@
 import { FormInstance } from "antd";
 import { Store } from "@/types/Store";
-import { calculateShippingFee, getServiceMultiplier, calculateBaseShippingFee } from "./shipping";
+import {
+  calculateShippingFee,
+  getServiceMultiplier,
+  calculateBaseShippingFee,
+} from "./shipping";
 import { calculateDistanceFee, calculateTotalDistance } from "./distance";
 import { getMapboxRoute } from "./mapbox";
 import { isValidItem, calculateVolume } from "./orderItems";
@@ -91,14 +95,14 @@ export interface DeliveryPayload {
  */
 export const createAddressPayload = (values: any): AddressPayload => {
   return {
-    addressType: values.addressType || 'DELIVERY',
+    addressType: values.addressType || "DELIVERY",
     address: values.address,
     city: values.city,
     contactName: values.receiver_name,
     contactPhone: values.receiver_phone,
     contactEmail: values.receiver_email || null,
     state: null,
-    country: 'Vietnam',
+    country: "Vietnam",
     region: null,
     postalCode: null,
     floorNumber: null,
@@ -110,9 +114,12 @@ export const createAddressPayload = (values: any): AddressPayload => {
 /**
  * Tạo product payload từ item
  */
-export const createProductPayload = (item: any, storeId: number): ProductPayload => {
+export const createProductPayload = (
+  item: any,
+  storeId: number
+): ProductPayload => {
   const volume = calculateVolume(item);
-  
+
   return {
     name: item.product_name,
     weight: item.weight,
@@ -126,7 +133,7 @@ export const createProductPayload = (item: any, storeId: number): ProductPayload
     stockQuantity: 0,
     temporary: false,
     notes: null,
-    warehouseId: null
+    warehouseId: null,
   };
 };
 
@@ -163,13 +170,13 @@ export const createOrderItemPayload = (
   const itemFragile = item.is_fragile || false;
   // Lưu phí cơ bản (chưa áp dụng hệ số dịch vụ) để đồng nhất với UI
   const calculatedShippingFee = calculateBaseShippingFee([item], itemFragile);
-  
+
   return {
     orderId,
     productId,
     quantity: item.quantity,
     shippingFee: Math.round(calculatedShippingFee),
-    notes: item.notes || null
+    notes: item.notes || null,
   };
 };
 
@@ -182,7 +189,12 @@ export const calculateTotalDeliveryFee = async (
   store: Store,
   targetLatitude?: number,
   targetLongitude?: number
-): Promise<{ totalFee: number; baseShippingFee: number; distanceFee: number; serviceFeeMultiplier: number }> => {
+): Promise<{
+  totalFee: number;
+  baseShippingFee: number;
+  distanceFee: number;
+  serviceFeeMultiplier: number;
+}> => {
   // Tính phí sản phẩm cơ bản
   let baseShippingFee = 0;
   items.forEach((item) => {
@@ -198,8 +210,13 @@ export const calculateTotalDeliveryFee = async (
 
   // Tính phí khoảng cách từ Mapbox
   let distanceFee = 0;
-  
-  if (store?.longitude && store?.latitude && targetLatitude && targetLongitude) {
+
+  if (
+    store?.longitude &&
+    store?.latitude &&
+    targetLatitude &&
+    targetLongitude
+  ) {
     try {
       const coordinates = await getMapboxRoute(
         store.longitude,
@@ -207,24 +224,26 @@ export const calculateTotalDeliveryFee = async (
         targetLongitude,
         targetLatitude
       );
-      
+
       if (coordinates.length >= 2) {
         const distance = calculateTotalDistance(coordinates);
         const feeResult = calculateDistanceFee(distance);
         distanceFee = feeResult.fee;
       }
     } catch (error) {
-      console.warn('Failed to get Mapbox route, distanceFee = 0:', error);
+      console.warn("Failed to get Mapbox route, distanceFee = 0:", error);
     }
   }
 
-  const totalFee = Math.round(baseShippingFee * serviceFeeMultiplier + distanceFee);
+  const totalFee = Math.round(
+    baseShippingFee * serviceFeeMultiplier + distanceFee
+  );
 
   return {
     totalFee,
     baseShippingFee,
     distanceFee,
-    serviceFeeMultiplier
+    serviceFeeMultiplier,
   };
 };
 
@@ -237,19 +256,47 @@ export const createDeliveryPayload = (
   serviceType: string,
   notes?: string
 ): DeliveryPayload => {
+  // Lấy thông tin thời gian lấy hàng từ form
+  const pickupDate = form.getFieldValue("pickup_date");
+  const pickupTimeSlot = form.getFieldValue("pickup_time_slot");
+
+  // Format pickup date nếu có
+  let formattedPickupDate = null;
+  if (pickupDate) {
+    formattedPickupDate = pickupDate.format("YYYY-MM-DD");
+  }
+
+  // Tạo schedule delivery time dựa trên pickup date và time slot
+  let scheduleDeliveryTime = null;
+  if (formattedPickupDate && pickupTimeSlot) {
+    switch (pickupTimeSlot) {
+      case "MORNING":
+        scheduleDeliveryTime = `${formattedPickupDate} 10:00:00`;
+        break;
+      case "AFTERNOON":
+        scheduleDeliveryTime = `${formattedPickupDate} 15:00:00`;
+        break;
+      case "ALL_DAY":
+        scheduleDeliveryTime = `${formattedPickupDate} 12:00:00`;
+        break;
+      default:
+        scheduleDeliveryTime = `${formattedPickupDate} 10:00:00`;
+    }
+  }
+
   return {
     orderId,
     deliveryFee: form.getFieldValue("delivery_fee") || 0,
     serviceType,
-    transportMode: 'ROAD',
-    pickupDate: null,
-    scheduleDeliveryTime: null,
-    orderDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
+    transportMode: "ROAD",
+    pickupDate: formattedPickupDate,
+    scheduleDeliveryTime,
+    orderDate: new Date().toISOString().replace("T", " ").substring(0, 19),
     vehicleId: null,
     driverId: null,
     routeId: null,
     lateDeliveryRisk: false,
-    deliveryNotes: notes || null
+    deliveryNotes: notes || null,
   };
 };
 
@@ -264,7 +311,7 @@ export const getCurrentUserId = (): number => {
       return user.id || 1;
     }
   } catch (e) {
-    console.warn('Cannot parse user from localStorage, using default ID: 1');
+    console.warn("Cannot parse user from localStorage, using default ID: 1");
   }
   return 1;
 };

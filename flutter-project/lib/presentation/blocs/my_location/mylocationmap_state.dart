@@ -37,7 +37,7 @@ class SuccessMyLocationState extends MylocationmapState {}
 class FailureMyLocationState extends MylocationmapState {
   final String error;
 
-  FailureMyLocationState(this.error);
+  const FailureMyLocationState(this.error);
 }
 
 
