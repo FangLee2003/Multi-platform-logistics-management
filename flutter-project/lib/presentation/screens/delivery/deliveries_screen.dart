@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:ktc_logistics_driver/domain/models/order/orders_by_status_response.dart';
-import 'package:ktc_logistics_driver/presentation/blocs/blocs.dart';
-import 'package:ktc_logistics_driver/presentation/components/card_orders_delivery.dart';
-import 'package:ktc_logistics_driver/presentation/components/components.dart';
+import 'package:ktc_logistics_driver/domain/models/delivery/delivery.dart';
+import 'package:ktc_logistics_driver/presentation/blocs/delivery/delivery_bloc.dart';
 import 'package:ktc_logistics_driver/presentation/components/spatial_glass_card.dart';
 import 'package:ktc_logistics_driver/presentation/design/spatial_ui.dart';
-import 'package:ktc_logistics_driver/presentation/screens/delivery/order_details_delivery_screen.dart';
+import 'package:ktc_logistics_driver/presentation/screens/delivery/delivery_detail_screen.dart';
+import 'package:intl/intl.dart';
 
 class DeliveriesScreen extends StatefulWidget {
   const DeliveriesScreen({super.key});
@@ -16,13 +14,17 @@ class DeliveriesScreen extends StatefulWidget {
   State<DeliveriesScreen> createState() => _DeliveriesScreenState();
 }
 
-class _DeliveriesScreenState extends State<DeliveriesScreen> with SingleTickerProviderStateMixin {
+class _DeliveriesScreenState extends State<DeliveriesScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // Load deliveries using DeliveryBloc
+    context.read<DeliveryBloc>().add(LoadDeliveriesEvent());
   }
 
   @override
@@ -36,21 +38,49 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> with SingleTickerPr
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark 
-          ? SpatialDesignSystem.darkBackgroundColor 
+      backgroundColor: isDark
+          ? SpatialDesignSystem.darkBackgroundColor
           : SpatialDesignSystem.backgroundColor,
       appBar: AppBar(
-        backgroundColor: isDark 
-          ? SpatialDesignSystem.darkBackgroundColor 
-          : SpatialDesignSystem.backgroundColor,
-        title: TextCustom(
-          text: 'Deliveries', 
-          color: isDark
-            ? SpatialDesignSystem.textDarkPrimaryColor
-            : SpatialDesignSystem.textPrimaryColor,
+        backgroundColor: isDark
+            ? SpatialDesignSystem.darkBackgroundColor
+            : SpatialDesignSystem.backgroundColor,
+        title: Text(
+          'Deliveries',
+          style: SpatialDesignSystem.headingMedium.copyWith(
+            color: isDark
+                ? SpatialDesignSystem.textDarkPrimaryColor
+                : SpatialDesignSystem.textPrimaryColor,
+          ),
         ),
         centerTitle: true,
         elevation: 0,
+        automaticallyImplyLeading: false, // Remove back button
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.refresh,
+              color: isDark
+                  ? SpatialDesignSystem.textDarkPrimaryColor
+                  : SpatialDesignSystem.textPrimaryColor,
+            ),
+            onPressed: () {
+              print('🔄 UI: Delivery refresh button pressed!');
+              // Reload deliveries from API
+              context.read<DeliveryBloc>().add(LoadDeliveriesEvent());
+              print('🔄 UI: LoadDeliveriesEvent dispatched');
+              
+              // Show loading indicator
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Refreshing deliveries...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            tooltip: 'Reload',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: SpatialDesignSystem.primaryColor,
@@ -80,122 +110,175 @@ class UpcomingDeliveriesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildNextDeliveriesCard(context),
-          // const SizedBox(height: 24),
-          // Text(
-          //   "All Upcoming Deliveries",
-          //   style: SpatialDesignSystem.subtitleLarge.copyWith(
-          //     color: isDark
-          //         ? SpatialDesignSystem.textDarkPrimaryColor
-          //         : SpatialDesignSystem.textPrimaryColor,
-          //   ),
-          // ),
-          // const SizedBox(height: 16),
-          // BlocBuilder<DeliveryBloc, DeliveryState>(
-          //   builder: (context, state) {
-          //     // TODO: Replace with proper delivery orders loading from DeliveryBloc
-          //     // For now, return empty list to avoid deliveryServices error
-          //     return SizedBox(
-          //       height: 500,
-          //       child: _ListOrdersForDelivery(listOrdersDelivery: [])
-          //     );
-          //   }
-          // ),
-        ],
+      child: BlocBuilder<DeliveryBloc, DeliveryState>(
+        builder: (context, state) {
+          if (state is DeliveryLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is DeliveriesLoadedState) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildNextDeliveriesCard(context, state.deliveries),
+              ],
+            );
+          } else if (state is DeliveriesEmptyState) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.inbox_outlined,
+                      size: 80, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No deliveries found',
+                    style: SpatialDesignSystem.subtitleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'There are no deliveries assigned to you yet',
+                    style: SpatialDesignSystem.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          } else if (state is DeliveryError) {
+            return Center(child: Text(state.message));
+          } else {
+            // Initial state or unhandled state
+            return const Center(child: Text('No deliveries available'));
+          }
+        },
       ),
     );
   }
 
-  Widget _buildNextDeliveriesCard(BuildContext context) {
+  Widget _buildNextDeliveriesCard(
+      BuildContext context, List<Delivery> deliveries) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
+    // Filter upcoming deliveries - kiểm tra theo statusDisplay thay vì status
+    final upcomingDeliveries = deliveries
+        .where((delivery) =>
+            delivery.statusDisplay != 'Completed' &&
+            delivery.statusDisplay != 'Failed' &&
+            delivery.statusDisplay != 'Cancelled')
+        .toList();
+
+    // Debug để kiểm tra dữ liệu
+    debugPrint('Total deliveries: ${deliveries.length}');
+    debugPrint('Upcoming deliveries: ${upcomingDeliveries.length}');
+
+    // Sort by scheduled time if available
+    upcomingDeliveries.sort((a, b) {
+      // Ưu tiên sử dụng scheduledTime, nếu không có thì dùng scheduleDeliveryTime
+      final aTime = a.scheduledTime ?? a.scheduleDeliveryTime;
+      final bTime = b.scheduledTime ?? b.scheduleDeliveryTime;
+
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+      return aTime.compareTo(bTime);
+    });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          "Upcoming Deliveries",
+          style: SpatialDesignSystem.subtitleLarge.copyWith(
+            color: isDark
+                ? SpatialDesignSystem.textDarkPrimaryColor
+                : SpatialDesignSystem.textPrimaryColor,
+          ),
+        ),
+        const SizedBox(height: 16),
         GlassCard(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //   children: [
-              //     Text(
-              //       "Upcoming Deliveries",
-              //       style: SpatialDesignSystem.subtitleMedium.copyWith(
-              //         color: isDark
-              //             ? SpatialDesignSystem.textDarkPrimaryColor
-              //             : SpatialDesignSystem.textPrimaryColor,
-              //       ),
-              //     ),
-              //     Text(
-              //       "3 Remaining",
-              //       style: SpatialDesignSystem.captionText.copyWith(
-              //         color: SpatialDesignSystem.warningColor,
-              //         fontWeight: FontWeight.w600,
-              //       ),
-              //     ),
-              //   ],
-              // ),
-              // const SizedBox(height: 16),
-              _buildDeliveryItem(
-                context,
-                "ORD-2025-08-14-042",
-                "123 Nguyen Hue St, District 1",
-                "12:30 PM",
-                "Next",
-              ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "ORD-2025-08-14-055",
-                "456 Le Loi St, District 1",
-                "1:15 PM",
-                "Pending",
-              ),
-              const Divider(),
-              _buildDeliveryItem(
-                context,
-                "ORD-2025-08-14-063",
-                "789 Vo Van Tan St, District 3",
-                "2:00 PM",
-                "Pending",
-              ),
-            ],
-          ),
+          child: upcomingDeliveries.isEmpty
+              ? const Center(child: Text('No upcoming deliveries'))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (int i = 0; i < upcomingDeliveries.length; i++) ...[
+                      if (i > 0) const Divider(),
+                      _buildDeliveryItem(
+                        context,
+                        "DEL-${upcomingDeliveries[i].id}",
+                        _getDeliveryAddress(upcomingDeliveries[i]),
+                        _formatDeliveryTime(
+                            upcomingDeliveries[i].scheduledTime ??
+                                upcomingDeliveries[i].scheduleDeliveryTime),
+                        i == 0 ? "Next" : "Pending",
+                      ),
+                    ],
+                  ],
+                ),
         ),
       ],
     );
   }
 
+  String _getDeliveryAddress(Delivery delivery) {
+    // Sử dụng deliveryAddress field từ API response mới
+    if (delivery.deliveryAddress != null &&
+        delivery.deliveryAddress!.isNotEmpty) {
+      return delivery.deliveryAddress!;
+    }
+    return 'No address available';
+  }
+
+  // Phương thức định dạng thời gian giao hàng
+  String _formatDeliveryTime(String? timeString) {
+    if (timeString == null) return 'No time';
+
+    try {
+      final dateTime = DateTime.parse(timeString);
+      final format = DateFormat('h:mm a');
+      return format.format(dateTime);
+    } catch (e) {
+      return timeString;
+    }
+  }
+
   Widget _buildDeliveryItem(
     BuildContext context,
-    String orderId,
+    String deliveryId,
     String address,
     String time,
     String status,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isNext = status == "Next";
-    
+
+    // Only "Next" deliveries have colored borders and icons
+    final bool hasBorder = isNext;
+    final Color iconColor = isNext 
+        ? SpatialDesignSystem.primaryColor 
+        : (isDark
+            ? SpatialDesignSystem.textDarkSecondaryColor
+            : SpatialDesignSystem.textSecondaryColor);
+
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, '/order-detail', arguments: orderId);
+        // Navigate to delivery details with mock data
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DeliveryDetailScreen(
+              deliveryId: deliveryId,
+            ),
+          ),
+        );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10), // Tăng padding
         child: Row(
           children: [
             Container(
               width: 50,
-              height: 50,
+              height: 70, // Tăng chiều cao để phù hợp với 3 dòng
               decoration: BoxDecoration(
                 color: isNext
                     ? SpatialDesignSystem.primaryColor.withOpacity(0.1)
@@ -203,21 +286,18 @@ class UpcomingDeliveriesTab extends StatelessWidget {
                         ? Colors.white.withOpacity(0.05)
                         : Colors.black.withOpacity(0.05)),
                 borderRadius: BorderRadius.circular(8),
-                border: isNext
+                border: hasBorder 
                     ? Border.all(
                         color: SpatialDesignSystem.primaryColor,
-                        width: 1,
+                        width: 2,
                       )
                     : null,
               ),
               child: Center(
                 child: Icon(
-                  Icons.shopping_bag_outlined,
-                  color: isNext
-                      ? SpatialDesignSystem.primaryColor
-                      : (isDark
-                          ? SpatialDesignSystem.textDarkSecondaryColor
-                          : SpatialDesignSystem.textSecondaryColor),
+                  Icons.local_shipping_outlined,
+                  size: 30, // Tăng kích thước icon
+                  color: iconColor,
                 ),
               ),
             ),
@@ -227,14 +307,14 @@ class UpcomingDeliveriesTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    orderId,
+                    deliveryId,
                     style: SpatialDesignSystem.subtitleSmall.copyWith(
                       color: isDark
                           ? SpatialDesignSystem.textDarkPrimaryColor
                           : SpatialDesignSystem.textPrimaryColor,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6), // Tăng khoảng cách
                   Text(
                     address,
                     style: SpatialDesignSystem.bodySmall.copyWith(
@@ -245,7 +325,7 @@ class UpcomingDeliveriesTab extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6), // Tăng khoảng cách
                   Row(
                     children: [
                       Icon(
@@ -270,11 +350,14 @@ class UpcomingDeliveriesTab extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: isNext
-                              ? SpatialDesignSystem.primaryColor.withOpacity(0.1)
-                              : SpatialDesignSystem.warningColor.withOpacity(0.1),
+                              ? SpatialDesignSystem.primaryColor
+                                  .withOpacity(0.1)
+                              : SpatialDesignSystem.warningColor
+                                  .withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -312,109 +395,176 @@ class DeliveryHistoryTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildDoneOrdersSection(context),
-        ],
+      child: BlocBuilder<DeliveryBloc, DeliveryState>(
+        builder: (context, state) {
+          if (state is DeliveryLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is DeliveriesLoadedState) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCompletedDeliveriesSection(context, state.deliveries),
+              ],
+            );
+          } else if (state is DeliveryError) {
+            return Center(child: Text(state.message));
+          } else {
+            // Initial state or unhandled state
+            return const Center(child: Text('No delivery history available'));
+          }
+        },
       ),
     );
   }
 
-  Widget _buildDoneOrdersSection(BuildContext context) {
+  Widget _buildCompletedDeliveriesSection(
+      BuildContext context, List<Delivery> deliveries) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
+    // Filter completed deliveries
+    final completedDeliveries = deliveries
+        .where((delivery) =>
+            delivery.statusDisplay == 'Completed' ||
+            delivery.statusDisplay == 'Failed' ||
+            delivery.statusDisplay == 'Cancelled')
+        .toList();
+
+    // Sort by actual delivery time if available
+    completedDeliveries.sort((a, b) {
+      if (a.actualDeliveryTime == null) return 1;
+      if (b.actualDeliveryTime == null) return -1;
+      return b.actualDeliveryTime!.compareTo(a.actualDeliveryTime!);
+    });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          "Completed Deliveries",
+          style: SpatialDesignSystem.subtitleLarge.copyWith(
+            color: isDark
+                ? SpatialDesignSystem.textDarkPrimaryColor
+                : SpatialDesignSystem.textPrimaryColor,
+          ),
+        ),
+        const SizedBox(height: 16),
         GlassCard(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              _buildOrderItem(
-                context,
-                "ORD-2025-08-14-034",
-                "123 Le Loi Street, District 1",
-                "Today, 11:45 AM",
-                "Done",
-                SpatialDesignSystem.successColor,
-              ),
-              const Divider(),
-              _buildOrderItem(
-                context,
-                "ORD-2025-08-14-029",
-                "456 Nguyen Hue Street, District 1",
-                "Today, 09:30 AM",
-                "Done",
-                SpatialDesignSystem.successColor,
-              ),
-              const Divider(),
-              _buildOrderItem(
-                context,
-                "ORD-2025-08-14-018",
-                "789 Pasteur Street, District 3",
-                "Today, 08:15 AM",
-                "Done",
-                SpatialDesignSystem.successColor,
-              ),
-              const Divider(),
-              _buildOrderItem(
-                context,
-                "ORD-2025-08-13-095",
-                "321 Nam Ky Khoi Nghia Street, District 3",
-                "Yesterday, 03:20 PM",
-                "Failed",
-                SpatialDesignSystem.errorColor,
-              ),
-              const Divider(),
-              _buildOrderItem(
-                context,
-                "ORD-2025-08-13-078",
-                "654 Hai Ba Trung Street, District 1",
-                "Yesterday, 01:45 PM",
-                "Done",
-                SpatialDesignSystem.successColor,
-              ),
-            ],
-          ),
+          child: completedDeliveries.isEmpty
+              ? const Center(child: Text('No completed deliveries'))
+              : Column(
+                  children: [
+                    for (int i = 0; i < completedDeliveries.length; i++) ...[
+                      if (i > 0) const Divider(),
+                      _buildDeliveryItem(
+                        context,
+                        "DEL-${completedDeliveries[i].id}",
+                        _getDeliveryAddress(completedDeliveries[i]),
+                        _formatDeliveryTimeWithDay(
+                            completedDeliveries[i].actualDeliveryTime),
+                        completedDeliveries[i].statusDisplay == 'Completed'
+                            ? "Done"
+                            : completedDeliveries[i].statusDisplay == 'Failed'
+                                ? "Failed"
+                                : "Cancelled",
+                        completedDeliveries[i].statusDisplay == 'Completed'
+                            ? SpatialDesignSystem.successColor
+                            : SpatialDesignSystem.errorColor,
+                      ),
+                    ],
+                  ],
+                ),
         ),
       ],
     );
   }
 
-  Widget _buildOrderItem(
+  String _formatDeliveryTimeWithDay(String? timeString) {
+    if (timeString == null) return 'No time';
+
+    try {
+      final dateTime = DateTime.parse(timeString);
+      final now = DateTime.now();
+
+      if (dateTime.year == now.year && dateTime.month == now.month) {
+        if (dateTime.day == now.day) {
+          return 'Today, ${DateFormat('h:mm a').format(dateTime)}';
+        } else if (dateTime.day == now.day - 1) {
+          return 'Yesterday, ${DateFormat('h:mm a').format(dateTime)}';
+        }
+      }
+
+      return DateFormat('MMM dd, h:mm a').format(dateTime);
+    } catch (e) {
+      return timeString;
+    }
+  }
+
+  Widget _buildDeliveryItem(
     BuildContext context,
-    String orderId,
-    String address,
-    String time,
+    String deliveryId,
+    String destination,
+    String timestamp,
     String status,
     Color statusColor,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Only show colored borders for completed or failed/cancelled items
+    Border? border;
+    Color iconColor;
     
+    if (status == "Done") {
+      // Green border for completed
+      border = Border.all(
+        color: SpatialDesignSystem.successColor,
+        width: 2,
+      );
+      iconColor = SpatialDesignSystem.successColor;
+    } else if (status == "Failed" || status == "Cancelled") {
+      // Red border for failed or cancelled
+      border = Border.all(
+        color: SpatialDesignSystem.errorColor,
+        width: 2,
+      );
+      iconColor = SpatialDesignSystem.errorColor;
+    } else {
+      // No border for pending items
+      border = null;
+      iconColor = isDark
+          ? SpatialDesignSystem.textDarkSecondaryColor
+          : SpatialDesignSystem.textSecondaryColor;
+    }
+
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, '/order-detail', arguments: orderId);
+        // Navigate to delivery details with mock data
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DeliveryDetailScreen(
+              deliveryId: deliveryId,
+            ),
+          ),
+        );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10), // Tăng padding
         child: Row(
           children: [
             Container(
               width: 50,
-              height: 50,
+              height: 70, // Tăng chiều cao để phù hợp với 3 dòng
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: statusColor.withOpacity(0.3),
-                  width: 1,
-                ),
+                border: border,
               ),
               child: Center(
                 child: Icon(
-                  status == "Done" ? Icons.check_circle_outline : Icons.error_outline,
-                  color: statusColor,
+                  Icons.local_shipping_outlined,
+                  size: 26, // Tăng kích thước icon
+                  color: iconColor,
                 ),
               ),
             ),
@@ -424,16 +574,17 @@ class DeliveryHistoryTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    orderId,
-                    style: SpatialDesignSystem.subtitleSmall.copyWith(
+                    deliveryId,
+                    style: SpatialDesignSystem.bodyMedium.copyWith(
                       color: isDark
                           ? SpatialDesignSystem.textDarkPrimaryColor
                           : SpatialDesignSystem.textPrimaryColor,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6), // Tăng khoảng cách
                   Text(
-                    address,
+                    destination,
                     style: SpatialDesignSystem.bodySmall.copyWith(
                       color: isDark
                           ? SpatialDesignSystem.textDarkSecondaryColor
@@ -442,7 +593,7 @@ class DeliveryHistoryTab extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6), // Tăng khoảng cách
                   Row(
                     children: [
                       Icon(
@@ -454,16 +605,19 @@ class DeliveryHistoryTab extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        time,
+                        timestamp,
                         style: SpatialDesignSystem.captionText.copyWith(
                           color: isDark
-                              ? SpatialDesignSystem.textDarkSecondaryColor
-                              : SpatialDesignSystem.textSecondaryColor,
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: statusColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
@@ -483,47 +637,20 @@ class DeliveryHistoryTab extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right,
-              color: isDark
-                  ? SpatialDesignSystem.textDarkSecondaryColor
-                  : SpatialDesignSystem.textSecondaryColor,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _ListOrdersForDelivery extends StatelessWidget {
-  
-  final List<OrdersResponse> listOrdersDelivery;
-
-  const _ListOrdersForDelivery({ required this.listOrdersDelivery});
-
-  @override
-  Widget build(BuildContext context) {
-    return ( listOrdersDelivery.isNotEmpty ) 
-      ? ListView.builder(
-          itemCount: listOrdersDelivery.length,
-          itemBuilder: (_, i) 
-            => CardOrdersDelivery(
-                orderResponse: listOrdersDelivery[i],
-                onPressed: () => Navigator.push(context, routeFrave(page: OrdersDetailsDeliveryScreen(order: listOrdersDelivery[i]))),
-               )
-        )
-      : Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Center(child: SvgPicture.asset('assets/svg/no-data.svg', height: 300)),
-          const SizedBox(height: 15.0),
-          TextCustom(
-            text: 'No Orders Available', 
-            color: SpatialDesignSystem.primaryColor, 
-            fontWeight: FontWeight.w500, 
-            fontSize: 21
-          )
-        ],
-      );
+  String _getDeliveryAddress(Delivery delivery) {
+    // Sử dụng deliveryAddress field từ API response mới
+    if (delivery.deliveryAddress != null &&
+        delivery.deliveryAddress!.isNotEmpty) {
+      return delivery.deliveryAddress!;
+    }
+    return 'No address available';
   }
 }

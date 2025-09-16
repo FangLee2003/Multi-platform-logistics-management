@@ -8,10 +8,12 @@ import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Vehicle;
 import ktc.spring_project.entities.Status;
 import ktc.spring_project.entities.Route;
+import ktc.spring_project.entities.Delivery;
 import ktc.spring_project.services.OrderService;
 import ktc.spring_project.services.UserService;
 import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.DeliveryTrackingService;
+import ktc.spring_project.services.DeliveryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -43,6 +45,34 @@ public class OrderController {
 
     @Autowired
     private DeliveryTrackingService deliveryTrackingService;
+
+    @Autowired
+    private DeliveryService deliveryService;
+
+    /**
+     * Get order by ID with items included
+     */
+    @GetMapping("/{orderId}")
+    public ResponseEntity<Order> getOrder(@PathVariable Long orderId) {
+        Order order = orderService.getOrderById(orderId);
+        return ResponseEntity.ok(order);
+    }
+    
+    /**
+     * Get all orders with pagination (simple version)
+     * @deprecated Use the detailed version with more filters instead
+     */
+    // Commented out to fix duplicate mapping
+    /*
+    @GetMapping
+    public ResponseEntity<Page<Order>> getAllOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<Order> orders = orderService.getAllOrders(
+                org.springframework.data.domain.PageRequest.of(page, size));
+        return ResponseEntity.ok(orders);
+    }
+    */
 
     /**
      * Tạo đơn hàng mới
@@ -160,7 +190,7 @@ public class OrderController {
                 // Status info
                 if (order.getStatus() != null) {
                     Map<String, Object> statusDTO = new HashMap<>();
-                    statusDTO.put("id", order.getStatus().getId());
+                    statusDTO.put("id", order.getStatus().getId().longValue());
                     statusDTO.put("name", order.getStatus().getName());
                     statusDTO.put("statusType", order.getStatus().getStatusType());
                     orderDTO.put("status", statusDTO);
@@ -232,7 +262,9 @@ public class OrderController {
 
     /**
      * Lấy đơn hàng theo ID
+     * Note: This is a duplicate of the method above. The original method has been kept.
      */
+    /*
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
         try {
@@ -242,6 +274,7 @@ public class OrderController {
             return ResponseEntity.notFound().build();
         }
     }
+    */
 
     /**
      * Cập nhật đơn hàng
@@ -307,19 +340,76 @@ public ResponseEntity<Order> putOrder(
             @Valid @RequestBody UpdateOrderVehicleDTO dto) {
         try {
             Order order = orderService.getOrderById(id);
+            
             if (dto.vehicleId != null && dto.vehicleId > 0) {
-                // Assign vehicle
-                Vehicle vehicle = new Vehicle();
-                vehicle.setId(dto.vehicleId);
+                // Assign vehicle - lấy vehicle đầy đủ từ database
+                Vehicle vehicle = vehicleService.getVehicleById(dto.vehicleId);
+                if (vehicle == null) {
+                    return ResponseEntity.badRequest().build();
+                }
                 order.setVehicle(vehicle);
+                System.out.println("Assigning vehicle " + vehicle.getLicensePlate() + " to order " + id);
+                
+                // Tìm hoặc tạo delivery record để lưu driver
+                try {
+                    List<Delivery> deliveries = deliveryService.findByOrderId(id);
+                    Delivery delivery = null;
+                    if (deliveries != null && !deliveries.isEmpty()) {
+                        delivery = deliveries.get(0); // Lấy delivery đầu tiên
+                    }
+                    
+                    if (delivery == null) {
+                        // Tạo delivery mới
+                        delivery = new Delivery();
+                        delivery.setOrder(order);
+                        delivery.setVehicle(vehicle);
+                        if (vehicle.getCurrentDriver() != null) {
+                            delivery.setDriver(vehicle.getCurrentDriver());
+                            System.out.println("Creating new delivery with driver: " + vehicle.getCurrentDriver().getFullName());
+                        }
+                        delivery.setOrderDate(new java.sql.Timestamp(System.currentTimeMillis()));
+                        delivery.setLateDeliveryRisk(0);
+                        deliveryService.save(delivery);
+                    } else {
+                        // Cập nhật delivery hiện có
+                        delivery.setVehicle(vehicle);
+                        if (vehicle.getCurrentDriver() != null) {
+                            delivery.setDriver(vehicle.getCurrentDriver());
+                            System.out.println("Updating delivery with driver: " + vehicle.getCurrentDriver().getFullName());
+                        }
+                        deliveryService.save(delivery);
+                    }
+                } catch (Exception deliveryException) {
+                    System.err.println("Error managing delivery: " + deliveryException.getMessage());
+                    // Vẫn tiếp tục cập nhật order ngay cả khi delivery bị lỗi
+                }
+                
             } else {
                 // Unassign vehicle (vehicleId is null or 0)
                 order.setVehicle(null);
+                System.out.println("Unassigning vehicle from order " + id);
+                
+                // Cũng cần unassign driver từ delivery
+                try {
+                    List<Delivery> deliveries = deliveryService.findByOrderId(id);
+                    if (deliveries != null && !deliveries.isEmpty()) {
+                        Delivery delivery = deliveries.get(0);
+                        delivery.setVehicle(null);
+                        delivery.setDriver(null);
+                        deliveryService.save(delivery);
+                        System.out.println("Unassigned vehicle and driver from delivery");
+                    }
+                } catch (Exception deliveryException) {
+                    System.err.println("Error unassigning delivery: " + deliveryException.getMessage());
+                }
             }
-            Order updatedOrder = orderService.createOrder(order);
+            
+            Order updatedOrder = orderService.updateOrder(id, order);
             return ResponseEntity.ok(updatedOrder);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            System.err.println("Error updating order vehicle: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

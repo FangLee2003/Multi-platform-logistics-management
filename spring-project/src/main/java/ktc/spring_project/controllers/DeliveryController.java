@@ -121,39 +121,43 @@ public class DeliveryController {
     /**
      * Get delivery by ID
      */
-    // @GetMapping("/{id}")
-    // public ResponseEntity<Map<String, Object>> getDeliveryById(@PathVariable Long id) {
-    //     // Lấy thông tin giao hàng
-    //     Delivery delivery = deliveryService.getDeliveryById(id);
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> getDeliveryById(@PathVariable Long id) {
+        Delivery delivery = deliveryService.getDeliveryById(id);
+        // Sử dụng ObjectMapper để convert entity sang Map
+        Map<String, Object> deliveryMap = new com.fasterxml.jackson.databind.ObjectMapper()
+                .convertValue(delivery, Map.class);
+        return ResponseEntity.ok(deliveryMap);
+    }
 
-    //     // Chuyển đổi thành Map
-    //     Map<String, Object> deliveryMap = new HashMap<>();
-    //     deliveryMap.put("id", delivery.getId());
-    //     deliveryMap.put("orderId", delivery.getOrder() != null ? delivery.getOrder().getId() : null);
-    //     deliveryMap.put("deliveryFee", delivery.getDeliveryFee());
-    //     deliveryMap.put("transportMode", delivery.getTransportMode());
-    //     deliveryMap.put("serviceType", delivery.getServiceType());
-    //     deliveryMap.put("orderDate", delivery.getOrderDate());
-    //     deliveryMap.put("pickupDate", delivery.getPickupDate());
-    //     deliveryMap.put("scheduleDeliveryTime", delivery.getScheduleDeliveryTime());
-    //     deliveryMap.put("actualDeliveryTime", delivery.getActualDeliveryTime());
-    //     deliveryMap.put("orderStatus", delivery.getOrder() != null && delivery.getOrder().getStatus() != null ?
-    //         delivery.getOrder().getStatus().getName() : null);
-    //     deliveryMap.put("driverId", delivery.getDriver() != null ? delivery.getDriver().getId() : null);
-    //     deliveryMap.put("vehicleId", delivery.getVehicle() != null ? delivery.getVehicle().getId() : null);
-    //     deliveryMap.put("deliveryAttempts", delivery.getDeliveryAttempts());
-    //     deliveryMap.put("deliveryNotes", delivery.getDeliveryNotes());
-
-    //     return ResponseEntity.ok(deliveryMap);
-    // }
-@GetMapping("/{id}")
-public ResponseEntity<Map<String, Object>> getDeliveryById(@PathVariable Long id) {
-    Delivery delivery = deliveryService.getDeliveryById(id);
-    // Sử dụng ObjectMapper để convert entity sang Map
-    Map<String, Object> deliveryMap = new com.fasterxml.jackson.databind.ObjectMapper()
-            .convertValue(delivery, Map.class);
-    return ResponseEntity.ok(deliveryMap);
-}
+    /**
+     * Get deliveries by order ID
+     */
+    @GetMapping("/order/{orderId}")
+    public ResponseEntity<List<Map<String, Object>>> getDeliveriesByOrderId(@PathVariable Long orderId) {
+        List<Delivery> deliveries = deliveryService.findByOrderId(orderId);
+        
+        List<Map<String, Object>> deliveriesMap = new ArrayList<>();
+        for (Delivery delivery : deliveries) {
+            Map<String, Object> deliveryMap = new HashMap<>();
+            deliveryMap.put("id", delivery.getId());
+            deliveryMap.put("orderId", delivery.getOrder() != null ? delivery.getOrder().getId() : null);
+            deliveryMap.put("deliveryFee", delivery.getDeliveryFee());
+            deliveryMap.put("transportMode", delivery.getTransportMode());
+            deliveryMap.put("serviceType", delivery.getServiceType());
+            deliveryMap.put("orderDate", delivery.getOrderDate());
+            deliveryMap.put("pickupDate", delivery.getPickupDate());
+            deliveryMap.put("scheduleDeliveryTime", delivery.getScheduleDeliveryTime());
+            deliveryMap.put("actualDeliveryTime", delivery.getActualDeliveryTime());
+            deliveryMap.put("driverId", delivery.getDriver() != null ? delivery.getDriver().getId() : null);
+            deliveryMap.put("vehicleId", delivery.getVehicle() != null ? delivery.getVehicle().getId() : null);
+            deliveryMap.put("deliveryAttempts", delivery.getDeliveryAttempts());
+            deliveryMap.put("deliveryNotes", delivery.getDeliveryNotes());
+            deliveriesMap.add(deliveryMap);
+        }
+        
+        return ResponseEntity.ok(deliveriesMap);
+    }
 
 @DeleteMapping("/{id}")
 public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id) {

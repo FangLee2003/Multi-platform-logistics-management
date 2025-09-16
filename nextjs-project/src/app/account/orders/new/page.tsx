@@ -18,7 +18,7 @@ import {
   createOrderPayload,
   createOrderItemPayload,
   createDeliveryPayload,
-  getCurrentUserId
+  getCurrentUserId,
 } from "@/utils/orderFlow";
 import { OrderFlowService } from "@/services/orderFlowService";
 import { isValidItem } from "@/utils/orderItems";
@@ -59,12 +59,7 @@ export default function CreateOrder() {
     {
       title: "Hoá đơn",
       icon: <DollarOutlined />,
-      content: (
-        <StepInvoice
-          form={form}
-          store={store}
-        />
-      ),
+      content: <StepInvoice form={form} store={store} />,
     },
   ];
 
@@ -90,29 +85,36 @@ export default function CreateOrder() {
 
       // Kiểm tra dữ liệu bắt buộc
       if (!store) {
-        message.error('Không tìm thấy thông tin cửa hàng!');
+        message.error("Không tìm thấy thông tin cửa hàng!");
         return;
       }
 
       if (!mergedValues.address || !mergedValues.city) {
-        message.error('Vui lòng chọn đầy đủ địa chỉ giao hàng!');
+        message.error("Vui lòng chọn đầy đủ địa chỉ giao hàng!");
         return;
       }
 
       if (!mergedValues.items || mergedValues.items.length === 0) {
-        message.error('Vui lòng thêm ít nhất một sản phẩm!');
+        message.error("Vui lòng thêm ít nhất một sản phẩm!");
         return;
       }
 
-      const loadingMessage = message.loading('Đang tạo đơn hàng...', 0);
+      if (!mergedValues.pickup_date || !mergedValues.pickup_time_slot) {
+        message.error("Vui lòng chọn thời gian lấy hàng!");
+        return;
+      }
+
+      const loadingMessage = message.loading("Đang tạo đơn hàng...", 0);
 
       try {
         // BƯỚC 1: Lưu Address
         const addressPayload = createAddressPayload(mergedValues);
-        const addressResult = await OrderFlowService.createAddress(addressPayload);
-        
+        const addressResult = await OrderFlowService.createAddress(
+          addressPayload
+        );
+
         if (!addressResult.id) {
-          throw new Error('Không lấy được ID địa chỉ vừa tạo!');
+          throw new Error("Không lấy được ID địa chỉ vừa tạo!");
         }
 
         // BƯỚC 2: Lưu Products
@@ -121,28 +123,45 @@ export default function CreateOrder() {
           if (isValidItem(item)) {
             try {
               const productPayload = createProductPayload(item, store.id);
-              const productResult = await OrderFlowService.createProduct(productPayload);
-              productResults.push({ name: item.product_name, result: productResult });
+              const productResult = await OrderFlowService.createProduct(
+                productPayload
+              );
+              productResults.push({
+                name: item.product_name,
+                result: productResult,
+              });
             } catch (error: any) {
-              productResults.push({ name: item.product_name, error: error.message });
+              productResults.push({
+                name: item.product_name,
+                error: error.message,
+              });
             }
           }
         }
 
         // BƯỚC 3: Tạo Order
         const currentUserId = getCurrentUserId();
-        const orderPayload = createOrderPayload(store, addressResult.id, mergedValues, currentUserId);
+        const orderPayload = createOrderPayload(
+          store,
+          addressResult.id,
+          mergedValues,
+          currentUserId
+        );
         const orderResult = await OrderFlowService.createOrder(orderPayload);
 
         // BƯỚC 4: Tạo Order Items
         const orderItemResults = [];
-        const serviceType = mergedValues.service_type || 'STANDARD';
-        
+        const serviceType = mergedValues.service_type || "STANDARD";
+
         for (let i = 0; i < productResults.length; i++) {
           const productResult = productResults[i];
           const originalItem = mergedValues.items[i];
-          
-          if (productResult.result && originalItem && isValidItem(originalItem)) {
+
+          if (
+            productResult.result &&
+            originalItem &&
+            isValidItem(originalItem)
+          ) {
             try {
               const orderItemPayload = createOrderItemPayload(
                 orderResult.id,
@@ -150,11 +169,19 @@ export default function CreateOrder() {
                 originalItem,
                 serviceType
               );
-              
-              const orderItemResult = await OrderFlowService.createOrderItem(orderItemPayload);
-              orderItemResults.push({ productName: productResult.name, result: orderItemResult });
+
+              const orderItemResult = await OrderFlowService.createOrderItem(
+                orderItemPayload
+              );
+              orderItemResults.push({
+                productName: productResult.name,
+                result: orderItemResult,
+              });
             } catch (error: any) {
-              orderItemResults.push({ productName: productResult.name, error: error.message });
+              orderItemResults.push({
+                productName: productResult.name,
+                error: error.message,
+              });
             }
           }
         }
@@ -168,40 +195,46 @@ export default function CreateOrder() {
             serviceType,
             mergedValues.notes
           );
-          
-          deliveryResult = await OrderFlowService.createDelivery(deliveryPayload);
+
+          deliveryResult = await OrderFlowService.createDelivery(
+            deliveryPayload
+          );
         } catch (error: any) {
-          console.error('❌ Delivery creation failed:', error);
+          console.error("❌ Delivery creation failed:", error);
         }
 
         loadingMessage();
-        
-        const successfulProducts = productResults.filter(p => p.result).length;
-        const successfulOrderItems = orderItemResults.filter(oi => oi.result).length;
-        const deliveryStatus = deliveryResult ? 'Thành công' : 'Lỗi';
-        
+
+        const successfulProducts = productResults.filter(
+          (p) => p.result
+        ).length;
+        const successfulOrderItems = orderItemResults.filter(
+          (oi) => oi.result
+        ).length;
+        const deliveryStatus = deliveryResult ? "Thành công" : "Lỗi";
+
         // Log tổng kết chi tiết
-        console.log('🎯 COMPLETE FLOW SUMMARY:');
-        console.log('📍 Address:', addressResult);
-        console.log('📦 Products:', productResults);
-        console.log('📋 Order:', orderResult);
-        console.log('📄 Order Items:', orderItemResults);
-        console.log('🚚 Delivery:', deliveryResult);
-        
-        message.success(`Tạo đơn hàng thành công!\n✅ Mã đơn hàng: ${orderResult.id}\n✅ ${successfulProducts} sản phẩm\n✅ ${successfulOrderItems} order items\n✅ Delivery: ${deliveryStatus}`);
-        
+        console.log("🎯 COMPLETE FLOW SUMMARY:");
+        console.log("📍 Address:", addressResult);
+        console.log("📦 Products:", productResults);
+        console.log("📋 Order:", orderResult);
+        console.log("📄 Order Items:", orderItemResults);
+        console.log("🚚 Delivery:", deliveryResult);
+
+        message.success(
+          `Tạo đơn hàng thành công!\n✅ Mã đơn hàng: ${orderResult.id}\n✅ ${successfulProducts} sản phẩm\n✅ ${successfulOrderItems} order items\n✅ Delivery: ${deliveryStatus}`
+        );
+
         // Reset form sau khi tạo thành công
         form.resetFields();
         setCurrentStep(0);
-        
       } catch (error: any) {
         loadingMessage();
         throw error;
       }
-
     } catch (error: any) {
-      console.error('💥 Complete flow error:', error);
-      message.error(error.message || 'Lỗi khi tạo đơn hàng');
+      console.error("💥 Complete flow error:", error);
+      message.error(error.message || "Lỗi khi tạo đơn hàng");
     }
   };
 
@@ -226,10 +259,14 @@ export default function CreateOrder() {
             </Button>
           )}
           {currentStep === steps.length - 1 && (
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              style={{ marginRight: 8, backgroundColor: '#722ed1', borderColor: '#722ed1' }}
+            <Button
+              type="primary"
+              htmlType="submit"
+              style={{
+                marginRight: 8,
+                backgroundColor: "#722ed1",
+                borderColor: "#722ed1",
+              }}
             >
               Tạo đơn hàng
             </Button>

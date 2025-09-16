@@ -3,7 +3,7 @@ import 'dart:io';
 /// Class giúp đọc token từ file .env
 class SecretLoader {
   static final SecretLoader _singleton = SecretLoader._internal();
-  Map<String, String> _secrets = {};
+  final Map<String, String> _secrets = {};
   bool _loaded = false;
 
   factory SecretLoader() {

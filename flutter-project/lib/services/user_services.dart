@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import '../data/env/environment.dart';
 import '../data/local_secure/secure_storage.dart';
 import '../domain/models/auth/auth_response.dart';
@@ -11,13 +12,64 @@ class UserServices {
   /// Get current user by ID from secure token
   Future<User> getUserById() async {
     final token = await secureStorage.readToken();
+    final userId = await secureStorage.readUserId(); // Đọc userId từ secure storage
+    final driverId = await secureStorage.readDriverId(); // Thử đọc driverId nếu không có userId
     
-    final response = await http.get(
-      Uri.parse('${_env.endpointApi}/get-user-by-id'),
-      headers: {'Accept': 'application/json', 'xx-token': token!}
-    );
-
-    return AuthResponse.fromJson(jsonDecode(response.body)).user;
+    // Sử dụng driverId nếu không có userId
+    final finalId = (userId == null || userId.isEmpty) ? driverId : userId;
+    
+    if (finalId == null || finalId.isEmpty) {
+      // Trả về user mặc định thay vì throw exception
+      return User(
+        uid: '0',
+        name: 'Guest User',
+        email: '',
+        phone: '',
+        image: '',
+        role: 'GUEST',
+        isActive: true,
+        permissions: [],
+        username: '',
+      );
+    }
+    
+    debugPrint('Fetching user details with ID: $finalId');
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${_env.endpointApi}/auth/users/$finalId'),
+        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}
+      );
+      
+      final data = jsonDecode(response.body);
+      debugPrint('User API response: ${response.statusCode}');
+      
+      // Chuyển đổi từ API response mới sang model User
+      return User(
+        uid: data['id'].toString(),
+        name: data['fullName'] ?? '',
+        email: data['email'] ?? '',
+        phone: data['phone'] ?? '',
+        image: '', // API không trả về image
+        role: data['role'] != null ? data['role']['roleName'] ?? '' : '',
+        isActive: data['status'] != null ? data['status']['name'] != 'Inactive' : true,
+        permissions: [], // API không trả về permissions
+        username: data['username'] ?? '', // Thêm username
+      );
+    } catch (e) {
+      // Trả về user mặc định khi có lỗi
+      return User(
+        uid: finalId,
+        name: 'User',
+        email: '',
+        phone: '',
+        image: '',
+        role: 'USER',
+        isActive: true,
+        permissions: [],
+        username: '',
+      );
+    }
   }
 
   /// Edit user profile information
