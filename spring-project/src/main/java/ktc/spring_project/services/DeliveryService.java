@@ -73,6 +73,20 @@ public class DeliveryService {
     @Autowired
     private RouteService routeService;
 
+    /**
+     * Tìm delivery theo orderId
+     */
+    public List<Delivery> findByOrderId(Long orderId) {
+        return deliveryRepository.findByOrderId(orderId);
+    }
+
+    /**
+     * Lưu delivery
+     */
+    public Delivery save(Delivery delivery) {
+        return deliveryRepository.save(delivery);
+    }
+
     public Delivery createDelivery(Delivery delivery) {
         if (delivery.getDeliveryAttempts() != null && delivery.getDeliveryAttempts() < 0) {
             throw new HttpException("Delivery attempts cannot be negative", org.springframework.http.HttpStatus.BAD_REQUEST);

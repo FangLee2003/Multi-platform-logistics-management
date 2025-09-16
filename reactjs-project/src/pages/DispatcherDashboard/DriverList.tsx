@@ -61,7 +61,7 @@ export default function DriverList() {
             id: statusMap[newStatus] || 7,
             name: newStatus,
             statusType: "USER",
-            description: currentDriver.status?.description || ""
+            description: (typeof currentDriver.status === 'object' && currentDriver.status?.description) ? currentDriver.status.description : ""
           }
         };
 
@@ -87,7 +87,7 @@ export default function DriverList() {
   };
 
   const filteredDrivers = drivers.filter(driver => {
-    const name = driver.fullName || driver.username || "";
+    const name = (driver.fullName ?? driver.name ?? "") as string;
     return (
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (driver.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -217,12 +217,12 @@ export default function DriverList() {
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-12 w-12">
                             <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-lg">
-                              {((driver.fullName || driver.username || "").charAt(0) || "?").toUpperCase()}
+                              {((driver.fullName ?? driver.name ?? "").toString().charAt(0) || "?").toUpperCase()}
                             </div>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
-                              {driver.fullName || driver.username || "(Không tên)"}
+                              {driver.fullName ?? driver.name ?? "(Không tên)"}
                             </div>
                             <div className="text-sm text-gray-500">ID: {driver.id}</div>
                           </div>
@@ -247,13 +247,13 @@ export default function DriverList() {
                 <div key={driver.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-gray-200">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-lg">
-                      {((driver.fullName || driver.username || "").charAt(0) || "?").toUpperCase()}
+                      {((driver.fullName ?? driver.name ?? "").toString().charAt(0) || "?").toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="text-sm font-medium text-gray-900 truncate">
-                            {driver.fullName || driver.username}
+                            {driver.fullName ?? driver.name}
                           </h3>
                           <p className="text-sm text-gray-500">ID: {driver.id}</p>
                         </div>

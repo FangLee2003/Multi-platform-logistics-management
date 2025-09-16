@@ -1,4 +1,5 @@
 
+
 package ktc.spring_project.controllers;
 
 import ktc.spring_project.dtos.orderitem.CreateOrderItemRequestDTO;
@@ -20,6 +21,16 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/order-items")
 public class OrderItemController {
+    // Lấy tất cả order item (có phân trang)
+    @GetMapping
+    public ResponseEntity<?> getAllOrderItemsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<OrderItem> pageResult = orderItemService.findAllPaged(pageable);
+        return ResponseEntity.ok(pageResult);
+    }
     @Autowired
     private OrderItemService orderItemService;
     @Autowired
@@ -68,26 +79,50 @@ public class OrderItemController {
         return ResponseEntity.noContent().build();
     }
 
-    // Lấy tất cả order item của 1 order
+
+    // Lấy tất cả order item của 1 order (có phân trang, mặc định size=5)
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<List<OrderItem>> getOrderItemsByOrderId(@PathVariable Long orderId) {
-        List<OrderItem> items = orderItemService.findByOrderId(orderId);
-        return ResponseEntity.ok(items);
+    public ResponseEntity<?> getOrderItemsByOrderIdPagedDefault(
+            @PathVariable Long orderId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<OrderItem> pageResult = orderItemService.findByOrderIdPaged(orderId, pageable);
+        return ResponseEntity.ok(pageResult);
     }
 
-    // Lấy tổng số lượng sản phẩm của 1 order
+    // Lấy order item của 1 order có phân trang
+    @GetMapping("/order/{orderId}/paged")
+    public ResponseEntity<?> getOrderItemsByOrderIdPaged(
+            @PathVariable Long orderId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<OrderItem> pageResult = orderItemService.findByOrderIdPaged(orderId, pageable);
+        return ResponseEntity.ok(pageResult);
+    }
+
+
+    // Lấy tổng số lượng sản phẩm của 1 order (tối ưu, không load toàn bộ list)
     @GetMapping("/order/{orderId}/total-quantity")
-    public ResponseEntity<Integer> getTotalQuantityByOrderId(@PathVariable Long orderId) {
-        List<OrderItem> items = orderItemService.findByOrderId(orderId);
-        int total = items.stream().mapToInt(OrderItem::getQuantity).sum();
+    public ResponseEntity<Long> getTotalQuantityByOrderId(@PathVariable Long orderId) {
+        long total = orderItemService.getTotalQuantityByOrderId(orderId);
         return ResponseEntity.ok(total);
     }
 
-    // Đếm số order item của 1 order
+    // Đếm số order item của 1 order (tối ưu)
     @GetMapping("/order/{orderId}/count")
     public ResponseEntity<Long> countOrderItemsByOrderId(@PathVariable Long orderId) {
         long count = orderItemService.countByOrderId(orderId);
         return ResponseEntity.ok(count);
+    }
+
+    // Batch endpoint: lấy tổng quantity cho nhiều orderId
+    @PostMapping("/orders/total-quantity")
+    public ResponseEntity<?> getTotalQuantityByOrderIds(@RequestBody List<Long> orderIds) {
+        return ResponseEntity.ok(orderItemService.getTotalQuantityByOrderIds(orderIds));
     }
 }
 
