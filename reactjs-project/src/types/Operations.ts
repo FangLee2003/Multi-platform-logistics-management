@@ -1,8 +1,8 @@
 export interface Vehicle {
   id: string | number;
   name?: string;
-  licensePlate?: string;
-  vehicleType?: string;
+  licensePlate: string;
+  vehicleType: string;
   type?: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
   brand?: string;
   model?: string;
@@ -13,15 +13,17 @@ export interface Vehicle {
   lastMaintenance?: string;
   nextMaintenance?: string;
   currentDriver?: {
+    id?: string | number;
     fullName?: string;
-    username?: string;
     email?: string;
+    phone?: string;
   };
   driver?: {
     id: string;
     name: string;
     phone: string;
   };
+  notes?: string;
   location?: {
     lat: number;
     lng: number;
@@ -29,7 +31,7 @@ export interface Vehicle {
   };
   fuel?: number; // percentage
   mileage?: number;
-  lastUpdated?: string;
+  updatedAt: string;
 }
 
 export interface Route {

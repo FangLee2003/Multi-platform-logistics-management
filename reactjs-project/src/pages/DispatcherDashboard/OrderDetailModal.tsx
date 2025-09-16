@@ -1,3 +1,16 @@
+interface ProductItem {
+  id: number;
+  product: {
+    name: string;
+    weight?: number;
+    volume?: number;
+    fragile?: boolean;
+  };
+  quantity: number;
+  shippingFee?: number;
+  notes?: string;
+}
+
 interface OrderDetailModalProps {
   open: boolean;
   onClose: () => void;
@@ -20,9 +33,14 @@ interface OrderDetailModalProps {
       username: string;
     };
   } | null;
+  products?: ProductItem[];
+  deliveryFee?: number;
+  productsPage?: number;
+  productsTotalPages?: number;
+  onProductsPageChange?: (page: number) => void;
 }
 
-export default function OrderDetailModal({ open, onClose, orderItem }: OrderDetailModalProps) {
+export default function OrderDetailModal({ open, onClose, orderItem, products, deliveryFee, productsPage = 0, productsTotalPages = 1, onProductsPageChange }: OrderDetailModalProps) {
   if (!open || !orderItem) return null;
 
   return (
@@ -37,7 +55,7 @@ export default function OrderDetailModal({ open, onClose, orderItem }: OrderDeta
             ×
           </button>
         </div>
-        
+
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -57,12 +75,12 @@ export default function OrderDetailModal({ open, onClose, orderItem }: OrderDeta
               <p className="text-gray-900">{orderItem.date}</p>
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700">Địa chỉ giao hàng</label>
             <p className="text-gray-900">{orderItem.address}</p>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700">Lộ trình</label>
             <div className="text-gray-900">
@@ -70,21 +88,89 @@ export default function OrderDetailModal({ open, onClose, orderItem }: OrderDeta
               <p><strong>Đến:</strong> {orderItem.to}</p>
             </div>
           </div>
-          
+
+          {/* Hiển thị danh sách sản phẩm */}
+          {products && products.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Sản phẩm</label>
+              <table className="min-w-full text-sm mt-2">
+                <thead>
+                  <tr>
+                    <th className="text-left">Tên sản phẩm</th>
+                    <th className="text-left">Số lượng</th>
+                    <th className="text-left">Khối lượng</th>
+                    <th className="text-left">Thể tích</th>
+                    <th className="text-left">Hàng dễ vỡ</th>
+                    <th className="text-left">Phí giao hàng</th>
+                    <th className="text-left">Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(item => (
+                    <tr key={item.id}>
+                      <td>{item.product?.name}</td>
+                      <td>{item.quantity}</td>
+                      <td>{item.product?.weight !== undefined ? item.product.weight : ""}</td>
+                      <td>{item.product?.volume !== undefined ? item.product.volume : ""}</td>
+                      <td>{item.product?.fragile !== undefined ? (item.product.fragile ? "Có" : "Không") : ""}</td>
+                      <td>{
+                        item.shippingFee
+                          ? Number(String(item.shippingFee).replace(/,/g, "")).toLocaleString() + " đ"
+                          : ""
+                      }</td>
+                      <td>{item.notes || ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {/* Phân trang cho sản phẩm */}
+              {productsTotalPages > 1 && onProductsPageChange && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <button
+                    onClick={() => onProductsPageChange(productsPage - 1)}
+                    disabled={productsPage === 0}
+                    className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 text-blue-700 font-semibold text-sm"
+                  >
+                    &lt; Trước
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Trang {productsPage + 1} / {productsTotalPages}
+                  </span>
+                  <button
+                    onClick={() => onProductsPageChange(productsPage + 1)}
+                    disabled={productsPage >= productsTotalPages - 1}
+                    className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 text-blue-700 font-semibold text-sm"
+                  >
+                    Tiếp &gt;
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Hiển thị phí giao hàng */}
+          {typeof deliveryFee === "number" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Phí giao hàng</label>
+              <p className="text-gray-900">{deliveryFee.toLocaleString()} đ</p>
+            </div>
+          )}
+
           {orderItem.note && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Ghi chú</label>
               <p className="text-gray-900">{orderItem.note}</p>
             </div>
           )}
-          
+
           {orderItem.description && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Mô tả</label>
               <p className="text-gray-900">{orderItem.description}</p>
             </div>
           )}
-          
+
           {orderItem.assignedVehicle && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Xe được gán</label>
@@ -93,7 +179,7 @@ export default function OrderDetailModal({ open, onClose, orderItem }: OrderDeta
               </p>
             </div>
           )}
-          
+
           {orderItem.currentDriver && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Tài xế</label>
@@ -103,7 +189,7 @@ export default function OrderDetailModal({ open, onClose, orderItem }: OrderDeta
             </div>
           )}
         </div>
-        
+
         <div className="flex justify-end mt-6">
           <button
             onClick={onClose}
