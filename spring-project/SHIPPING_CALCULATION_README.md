@@ -42,6 +42,12 @@ Hệ thống phân biệt rõ ràng:
   | STANDARD     | 1.0   |
   | FIRST_CLASS  | 1.3   |
   | EXPRESS      | 1.8   |
+  | Service Type   | Hệ số |
+  |---------------|-------|
+  | SECOND_CLASS  | 0.8   |
+  | STANDARD      | 1.0   |
+  | FIRST_CLASS   | 1.3   |
+  | EXPRESS       | 1.8   |
 
 
 ### 2.2. Delivery Fee (Delivery)
