@@ -153,6 +153,7 @@ public class SecurityConfig {
 .requestMatchers("/api/categories/**").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/stores", "/api/stores/**").permitAll()
 .requestMatchers(HttpMethod.PATCH, "/api/stores/**").permitAll()
+.requestMatchers(HttpMethod.PUT, "/api/stores/**").permitAll()
 .requestMatchers(HttpMethod.POST, "/api/orders", "/api/orders/**").permitAll()
 .requestMatchers(HttpMethod.PUT, "/api/orders/**").permitAll()
     .requestMatchers(HttpMethod.PATCH, "/api/orders/**").permitAll()

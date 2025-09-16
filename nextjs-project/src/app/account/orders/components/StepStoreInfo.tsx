@@ -6,13 +6,10 @@ import {
   Button,
   Select,
   InputNumber,
-  DatePicker,
-  Card,
 } from "antd";
-import { CloseCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { CloseCircleOutlined } from "@ant-design/icons";
 import { Store } from "@/types/Store";
 import { useState, useEffect } from "react";
-import dayjs from "dayjs";
 
 import {
   addressService,
@@ -22,14 +19,11 @@ import {
 } from "@/services/addressService";
 import { getCoordinatesFromAddress } from "@/server/geocode.api";
 
-const { TextArea } = Input;
-
 interface Props {
   store: Store | null;
 }
 
 export default function StepStoreInfo({ store }: Props) {
-  const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
   const form = Form.useFormInstance();
 
   // States cho địa chỉ
@@ -181,7 +175,7 @@ export default function StepStoreInfo({ store }: Props) {
     console.log("Found names:", { provinceName, districtName, wardName });
 
     // Địa chỉ lưu backend chỉ gồm số nhà, xã/phường, quận/huyện
-    let addressParts = [];
+    const addressParts = [];
     if (street.trim()) {
       addressParts.push(street.trim());
     }
@@ -309,59 +303,6 @@ export default function StepStoreInfo({ store }: Props) {
               style={{ backgroundColor: "#f5f5f5" }}
             />
           </Form.Item>
-        </Col>
-
-        {/* Phần thời gian lấy hàng */}
-        <Col xs={24}>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="pickup_date"
-                label="Ngày đến lấy"
-                rules={[
-                  { required: true, message: "Vui lòng chọn ngày lấy hàng!" },
-                ]}
-              >
-                <DatePicker
-                  style={{ width: "100%" }}
-                  placeholder="Chọn ngày"
-                  format="DD/MM/YYYY"
-                  disabledDate={(current) => {
-                    // Không cho chọn ngày trong quá khứ
-                    return current && current < dayjs().startOf("day");
-                  }}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="pickup_time_slot"
-                label="Buổi lấy hàng"
-                rules={[
-                  { required: true, message: "Vui lòng chọn buổi lấy hàng!" },
-                ]}
-              >
-                <Select
-                  placeholder="Chọn buổi"
-                  options={[
-                    {
-                      value: "MORNING",
-                      label: "Buổi sáng (8:00 - 12:00)",
-                    },
-                    {
-                      value: "AFTERNOON",
-                      label: "Buổi chiều (13:00 - 17:00)",
-                    },
-                    {
-                      value: "ALL_DAY",
-                      label: "Cả ngày (8:00 - 17:00)",
-                    },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
         </Col>
 
         {/* Phần thông tin người nhận - 2 cột */}
