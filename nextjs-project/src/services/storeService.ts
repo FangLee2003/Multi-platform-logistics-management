@@ -1,5 +1,9 @@
 import axios from "axios";
-import type { Store } from "@/types/Store";
+import type {
+  Store,
+  UpdateStoreInfoDto,
+  StoreInfoResponseDto,
+} from "@/types/Store";
 
 /**
  * Interfaces
@@ -31,8 +35,42 @@ export type UpdateStoreDto = Partial<CreateStoreDto>;
  * Axios instance
  */
 const api = axios.create({
-  baseURL: "/api", // Sử dụng Next.js API routes
+  baseURL: "http://localhost:8080/api", // Trỏ trực tiếp đến Spring Boot backend
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
+
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    // Get token from localStorage
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("accessToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, redirect to login
+      localStorage.removeItem("token");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+      window.location.href = "/auth/login";
+    }
+    return Promise.reject(error);
+  }
+);
 
 /**
  * Service methods
@@ -63,6 +101,30 @@ export const storeService = {
     storeData: UpdateStoreDto
   ): Promise<Store> => {
     const { data } = await api.patch<Store>(`/stores/${id}`, storeData);
+    return data;
+  },
+
+  /**
+   * Get store information for editing (includes read-only address)
+   */
+  getStoreInfoForEdit: async (id: string): Promise<UpdateStoreInfoDto> => {
+    const { data } = await api.get<UpdateStoreInfoDto>(`/stores/${id}/info`);
+    return data;
+  },
+
+  /**
+   * Update store information with restricted fields
+   * Only updates: storeName, email, phone, isActive, notes
+   * Address is displayed but cannot be updated
+   */
+  updateStoreInfo: async (
+    id: string,
+    storeData: UpdateStoreInfoDto
+  ): Promise<StoreInfoResponseDto> => {
+    const { data } = await api.put<StoreInfoResponseDto>(
+      `/stores/${id}/info`,
+      storeData
+    );
     return data;
   },
 
