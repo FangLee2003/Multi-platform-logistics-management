@@ -14,6 +14,7 @@ import ktc.spring_project.repositories.StatusRepository;
 import ktc.spring_project.repositories.StoreRepository;
 import ktc.spring_project.repositories.UserRepository;
 import ktc.spring_project.repositories.VehicleRepository;
+import ktc.spring_project.repositories.DeliveryRepository;
 import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.HttpException;
@@ -54,6 +55,9 @@ public class OrderService {
 
     @Autowired
     private VehicleRepository vehicleRepository;
+
+    @Autowired
+    private DeliveryRepository deliveryRepository;
 
     public Order createOrderFromDTO(ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO dto) {
         try {
@@ -353,8 +357,17 @@ public class OrderService {
         Map<String, Object> tracking = new HashMap<>();
         tracking.put("orderId", order.getId());
         tracking.put("status", order.getStatus() != null ? order.getStatus().getName() : null);
-        tracking.put("address", order.getAddress() != null ? order.getAddress().getAddress() : null);
-        tracking.put("currentLocation", order.getNotes());
+    tracking.put("address", order.getAddress() != null ? order.getAddress().getAddress() : null);
+    tracking.put("storeAddress", order.getStore() != null ? order.getStore().getAddress() : null);
+
+        // Lấy thông tin estimatedDelivery từ bảng Delivery
+        List<ktc.spring_project.entities.Delivery> deliveries = deliveryRepository.findByOrderId(order.getId());
+        if (deliveries != null && !deliveries.isEmpty()) {
+            ktc.spring_project.entities.Delivery delivery = deliveries.get(0);
+            tracking.put("estimatedDelivery", delivery.getScheduleDeliveryTime());
+        } else {
+            tracking.put("estimatedDelivery", null);
+        }
         tracking.put("updatedAt", order.getUpdatedAt() != null ? order.getUpdatedAt() : LocalDateTime.now());
         return tracking;
     }
