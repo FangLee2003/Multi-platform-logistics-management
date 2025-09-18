@@ -108,8 +108,8 @@ export default function OrdersPage() {
         size
       );
 
-      const formattedOrders: Order[] = response.data.map((order, index) => ({
-        id: `ORD${user.id}${String(order.orderId).padStart(5, "0")}-${index}`,
+      const formattedOrders: Order[] = response.data.map((order) => ({
+        id: order.orderId?.toString() || "N/A",
         created_at: order.createdAt || new Date().toISOString(),
         store_name: `Store ${order.storeId || "Unknown"}`,
         shipping_address: order.deliveryAddress || "No address provided",
@@ -152,12 +152,10 @@ export default function OrdersPage() {
   };
 
   const handleCopyOrderId = (orderId: string) => {
-    // Lấy mã đơn hàng không bao gồm index
-    const orderCode = orderId.split("-")[0];
     navigator.clipboard
-      .writeText(orderCode)
+      .writeText(orderId)
       .then(() => {
-        messageApi.success(`Đã sao chép mã đơn hàng: ${orderCode}`);
+        messageApi.success(`Đã sao chép mã đơn hàng: ${orderId}`);
       })
       .catch(() => {
         messageApi.error("Không thể sao chép mã đơn hàng");
@@ -174,19 +172,15 @@ export default function OrdersPage() {
       title: "Mã đơn hàng",
       dataIndex: "id",
       key: "id",
-      render: (text: string) => {
-        // Chỉ hiển thị phần mã đơn hàng không bao gồm index
-        const orderCode = text.split("-")[0];
-        return (
-          <a
-            onClick={() => handleCopyOrderId(text)}
-            style={{ cursor: "pointer" }}
-            title="Click để sao chép mã đơn hàng"
-          >
-            {orderCode}
-          </a>
-        );
-      },
+      render: (text: string) => (
+        <a
+          onClick={() => handleCopyOrderId(text)}
+          style={{ cursor: "pointer" }}
+          title="Click để sao chép mã đơn hàng"
+        >
+          {text}
+        </a>
+      ),
     },
     {
       title: "Ngày tạo",
