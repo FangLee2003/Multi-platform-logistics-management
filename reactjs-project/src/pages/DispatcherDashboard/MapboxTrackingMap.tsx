@@ -152,8 +152,38 @@ export default function MapboxTrackingMap() {
         
         console.log('🔍 MapboxTrackingMap: Saving vehicle location to tracking:', trackingData);
         
-        const response = await fetch('http://localhost:8080/api/tracking/vehicle-location', {
-          method: 'POST',
+        // Kiểm tra xem đã có tracking record cho vehicle+delivery này chưa
+        let existingTrackingId = null;
+        try {
+          const checkResponse = await fetch(`http://localhost:8080/api/tracking/vehicle/${vehicleId}/delivery/${deliveryId}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          if (checkResponse.ok) {
+            const existingTracking = await checkResponse.json();
+            if (existingTracking && existingTracking.id) {
+              existingTrackingId = existingTracking.id;
+              console.log('🔍 MapboxTrackingMap: Found existing tracking ID:', existingTrackingId);
+            }
+          }
+        } catch (checkError) {
+          console.log('🔍 MapboxTrackingMap: No existing tracking found, will create new');
+        }
+        
+        // Quyết định POST (tạo mới) hay PUT (cập nhật)
+        const isUpdate = existingTrackingId !== null;
+        const method = isUpdate ? 'PUT' : 'POST';
+        const url = isUpdate 
+          ? `http://localhost:8080/api/tracking/vehicle-location/${existingTrackingId}`
+          : 'http://localhost:8080/api/tracking/vehicle-location';
+          
+        console.log(`🔍 MapboxTrackingMap: ${isUpdate ? 'Updating' : 'Creating'} tracking record...`);
+        
+        const response = await fetch(url, {
+          method: method,
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -163,10 +193,10 @@ export default function MapboxTrackingMap() {
         
         if (response.ok) {
           const result = await response.json();
-          console.log('✅ MapboxTrackingMap: Vehicle location saved to tracking:', result);
+          console.log(`✅ MapboxTrackingMap: Vehicle location ${isUpdate ? 'updated' : 'saved'} successfully:`, result);
         } else {
           const errorText = await response.text();
-          console.log('❌ MapboxTrackingMap: Failed to save tracking data:', response.status, errorText);
+          console.log(`❌ MapboxTrackingMap: Failed to ${isUpdate ? 'update' : 'save'} tracking data:`, response.status, errorText);
         }
       } catch (error) {
         console.error('❌ MapboxTrackingMap: Error saving tracking data:', error);
@@ -174,13 +204,12 @@ export default function MapboxTrackingMap() {
     };
 
     const useStoreCoordinatesAsDefault = () => {
-      // Chỉ sử dụng tọa độ thực tế của store, nếu không có thì không làm gì cả
+      // Chỉ sử dụng tọa độ thực tế của store để hiển thị map, KHÔNG lưu tracking
       if (selectedOrder?.store?.latitude && selectedOrder?.store?.longitude) {
         const storeCoords: [number, number] = [selectedOrder.store.longitude, selectedOrder.store.latitude];
-        console.log('🔍 MapboxTrackingMap: Using actual store coordinates:', storeCoords);
+        console.log('🔍 MapboxTrackingMap: Using actual store coordinates for display only:', storeCoords);
         console.log('🔍 MapboxTrackingMap: Store info:', selectedOrder.store);
-        // Lưu tọa độ xe vào tracking database
-        saveVehicleLocationToTracking(vehicleId, storeCoords);
+        // CHỈ set position để hiển thị trên map, KHÔNG lưu vào database
         setVehiclePos(storeCoords);
         if (map.current) {
           map.current.flyTo({

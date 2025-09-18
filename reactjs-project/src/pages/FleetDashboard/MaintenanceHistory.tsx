@@ -44,10 +44,10 @@ export default function MaintenanceHistory() {
                   {statusMap[item.status?.name]?.label || item.status?.name || "Không rõ"}
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2 text-sm">
                 <div>
                   <span className="font-semibold">Loại:</span> {item.maintenanceType}
-                  <div><span className="font-semibold">Mô tả:</span> {item.description}</div>
+                  <div><span className="font-semibold">Nội dung bảo trì:</span> {item.description}</div>
                 </div>
                 <div>
                   <span className="font-semibold">Chi phí:</span>
@@ -60,6 +60,10 @@ export default function MaintenanceHistory() {
                   <div>
                     <span className="font-semibold">Lịch bảo trì sắp tới:</span> {item.nextDueDate?.slice(0, 10)}
                   </div>
+                </div>
+                <div>
+                  <span className="font-semibold">Notes: </span>
+                  <div>{item.notes || <span className="italic text-gray-400">Không có</span>}</div>
                 </div>
               </div>
             </div>
