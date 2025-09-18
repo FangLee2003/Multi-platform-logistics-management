@@ -20,6 +20,7 @@ import ktc.spring_project.exceptions.HttpException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -447,6 +448,68 @@ public class OrderService {
             throw e;
         } catch (Exception e) {
             throw new HttpException("Failed to search orders by store ID and order ID: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo ID đơn hàng và store ID với phân trang
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdAndOrderIdPaginated(Long storeId, Long orderId, int page, int size) {
+        try {
+            validateId(storeId, "Store ID");
+            validateId(orderId, "Order ID");
+            validatePaginationParams(page, size);
+            log.debug("Searching orders by store ID and order ID paginated: storeId={}, orderId={}, page={}, size={}", storeId, orderId, page, size);
+            
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+            
+            // Tạo Page từ List kết quả
+            List<OrderSummaryDTO> orders = orderRepository.findOrderSummariesByStoreIdAndOrderId(storeId, orderId);
+            int start = Math.min((int) pageable.getOffset(), orders.size());
+            int end = Math.min((start + pageable.getPageSize()), orders.size());
+            
+            return new PageImpl<>(orders.subList(start, end), pageable, orders.size());
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to search orders by store ID and order ID paginated: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo store ID và khoảng thời gian
+     */
+    public List<OrderSummaryDTO> searchOrdersByStoreIdAndDateRange(Long storeId, LocalDateTime fromDate, LocalDateTime toDate) {
+        try {
+            validateId(storeId, "Store ID");
+            log.debug("Searching orders by store ID and date range: storeId={}, fromDate={}, toDate={}", storeId, fromDate, toDate);
+            
+            return orderRepository.findOrderSummariesByStoreIdAndDateRange(storeId, fromDate, toDate);
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to search orders by store ID and date range: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo store ID và khoảng thời gian với phân trang
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdAndDateRangePaginated(Long storeId, LocalDateTime fromDate, LocalDateTime toDate, int page, int size) {
+        try {
+            validateId(storeId, "Store ID");
+            validatePaginationParams(page, size);
+            log.debug("Searching orders by store ID and date range paginated: storeId={}, fromDate={}, toDate={}, page={}, size={}", storeId, fromDate, toDate, page, size);
+            
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+            return orderRepository.findOrderSummariesByStoreIdAndDateRangePaginated(storeId, fromDate, toDate, pageable);
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to search orders by store ID and date range paginated: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

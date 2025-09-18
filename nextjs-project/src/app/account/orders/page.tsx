@@ -18,6 +18,7 @@ import {
 import {
   orderApi,
   type PaginatedOrderSummaryResponse,
+  type OrderSummary,
 } from "@/services/orderService";
 import { OrderFilters } from "./components/OrderFilters";
 import type { Dayjs } from "dayjs";
@@ -168,11 +169,13 @@ export default function OrdersPage() {
             setLoading(true);
             const searchResults = await orderApi.searchOrdersByStoreAndOrderId(
               storeId,
-              orderIdNumber
+              orderIdNumber,
+              currentPage,
+              pageSize
             );
 
             // Format kết quả search giống như fetchOrders
-            const formattedSearchResults: Order[] = searchResults.map(
+            const formattedSearchResults: Order[] = searchResults.data.map(
               (order) => ({
                 id: order.orderId?.toString() || "N/A",
                 created_at: order.createdAt || new Date().toISOString(),
@@ -200,7 +203,7 @@ export default function OrdersPage() {
             );
 
             setOrders(formattedSearchResults);
-            setTotalRecords(formattedSearchResults.length);
+            setTotalRecords(searchResults.totalRecords);
             setLoading(false);
           } catch (error) {
             console.error("Search failed:", error);
@@ -209,8 +212,8 @@ export default function OrdersPage() {
           }
         }
       } else if (searchText.trim() === "") {
-        // Nếu search text rỗng, load lại danh sách ban đầu
-        fetchOrders(currentPage, pageSize);
+        // Logic sẽ được handle bởi useEffect khác
+        return;
       }
     };
 
@@ -218,6 +221,89 @@ export default function OrdersPage() {
     const timeoutId = setTimeout(searchOrders, 500);
     return () => clearTimeout(timeoutId);
   }, [searchText, storeId, currentPage, pageSize, messageApi]);
+
+  // Effect để xử lý tìm kiếm theo khoảng thời gian
+  useEffect(() => {
+    // Chỉ thực hiện tìm kiếm theo date range khi:
+    // 1. Có date range được chọn
+    // 2. Không có search text (để tránh conflict)
+    // 3. Có storeId và dateRange không null
+    if (
+      dateRange &&
+      dateRange[0] &&
+      dateRange[1] &&
+      storeId &&
+      searchText.trim() === ""
+    ) {
+      const searchByDateRange = async () => {
+        try {
+          setLoading(true);
+
+          // Chuyển đổi Dayjs thành chuỗi định dạng yyyy-MM-dd
+          const fromDate = dateRange[0]!.format("YYYY-MM-DD");
+          const toDate = dateRange[1]!.format("YYYY-MM-DD");
+
+          const searchResults = await orderApi.searchOrdersByStoreAndDateRange(
+            storeId,
+            currentPage,
+            pageSize,
+            fromDate,
+            toDate
+          );
+
+          // Format kết quả search giống như fetchOrders
+          const formattedSearchResults: Order[] = searchResults.data.map(
+            (order: OrderSummary) => ({
+              id: order.orderId?.toString() || "N/A",
+              created_at: order.createdAt || new Date().toISOString(),
+              store_name: `Store ${order.storeId || "Unknown"}`,
+              shipping_address: order.deliveryAddress || "No address provided",
+              total_items: order.totalItems || 0,
+              cod_amount: 0,
+              shipping_fee: order.deliveryFee || 0,
+              status: {
+                id: getStatusId(order.orderStatus || "PENDING"),
+                name: order.orderStatus || "PENDING",
+                color: getStatusColor(order.orderStatus || "PENDING"),
+              },
+              tracking_updates: [
+                {
+                  time: order.createdAt || new Date().toISOString(),
+                  status: order.orderStatus || "PENDING",
+                  description: `Order ${(
+                    order.orderStatus || "PENDING"
+                  ).toLowerCase()}`,
+                },
+              ],
+            })
+          );
+
+          setOrders(formattedSearchResults);
+          setTotalRecords(searchResults.totalRecords);
+          setLoading(false);
+        } catch (error) {
+          console.error("Date range search failed:", error);
+          setLoading(false);
+          messageApi.error("Tìm kiếm theo khoảng thời gian thất bại");
+        }
+      };
+
+      // Debounce search để tránh gọi API liên tục
+      const timeoutId = setTimeout(searchByDateRange, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [dateRange, storeId, currentPage, pageSize, messageApi, searchText]);
+
+  // Effect riêng để load lại list khi clear tất cả filters
+  useEffect(() => {
+    // Load lại list khi:
+    // 1. Không có search text
+    // 2. HOẶC không có date range (dateRange null hoặc một trong hai date bị null)
+    if (!searchText.trim() && (!dateRange || !dateRange[0] || !dateRange[1])) {
+      console.log("Loading normal list - filters cleared");
+      fetchOrders(currentPage, pageSize);
+    }
+  }, [dateRange, searchText, currentPage, pageSize, fetchOrders]);
 
   const showTrackingModal = (order: Order) => {
     setSelectedOrder(order);
@@ -363,7 +449,8 @@ export default function OrdersPage() {
           loading={loading}
           rowKey="id"
           pagination={
-            searchText.trim()
+            // Luôn hiển thị pagination, chỉ ẩn khi có search text (orderId search)
+            searchText.trim() && !isNaN(parseInt(searchText.trim()))
               ? false
               : {
                   current: currentPage,

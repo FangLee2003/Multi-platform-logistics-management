@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -492,18 +494,185 @@ public ResponseEntity<Order> putOrder(
     }
 
     /**
-     * Tìm kiếm đơn hàng theo ID đơn hàng
-     * API: GET /api/orders/search?storeId=xxx&orderId=xxx
+     * Tìm kiếm đơn hàng theo ID đơn hàng với phân trang
+     * API: GET /api/orders/search?storeId=xxx&orderId=xxx&page=1&size=10
      */
     @GetMapping("/search")
-    public ResponseEntity<List<OrderSummaryDTO>> searchOrdersByOrderId(
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersByOrderId(
             @RequestParam Long storeId,
-            @RequestParam Long orderId) {
+            @RequestParam Long orderId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            List<OrderSummaryDTO> orders = orderService.searchOrdersByStoreIdAndOrderId(storeId, orderId);
-            return ResponseEntity.ok(orders);
+            System.out.println("Searching orders with storeId: " + storeId + ", orderId: " + orderId + ", page: " + page + ", size: " + size);
+            
+            Page<OrderSummaryDTO> ordersPage = orderService.searchOrdersByStoreIdAndOrderIdPaginated(storeId, orderId, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = new PaginatedOrderSummaryResponseDto(
+                    ordersPage.getContent(),
+                    ordersPage.getNumber() + 1, // Convert 0-based to 1-based 
+                    ordersPage.getSize(),
+                    ordersPage.getTotalElements(),
+                    ordersPage.getTotalPages(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            System.out.println("Found " + ordersPage.getTotalElements() + " total orders, returning page " + page + " of " + ordersPage.getTotalPages());
+            
+            return ResponseEntity.ok(response);
             
         } catch (Exception e) {
+            System.err.println("Error searching orders by orderId: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo khoảng thời gian với phân trang
+     * API: GET /api/orders/search-by-date?storeId=xxx&fromDate=yyyy-MM-dd&toDate=yyyy-MM-dd&page=1&size=10
+     */
+    @GetMapping("/search-by-date")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersByDateRange(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            LocalDateTime fromDateTime = null;
+            LocalDateTime toDateTime = null;
+            
+            // Parse fromDate nếu có
+            if (fromDate != null && !fromDate.trim().isEmpty()) {
+                try {
+                    LocalDate parsedFromDate = LocalDate.parse(fromDate);
+                    fromDateTime = parsedFromDate.atStartOfDay(); // 00:00:00 của ngày đó
+                    System.out.println("Parsed fromDate: " + fromDateTime);
+                } catch (Exception e) {
+                    System.err.println("Invalid fromDate format: " + fromDate + " - " + e.getMessage());
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            // Parse toDate nếu có
+            if (toDate != null && !toDate.trim().isEmpty()) {
+                try {
+                    LocalDate parsedToDate = LocalDate.parse(toDate);
+                    toDateTime = parsedToDate.atTime(23, 59, 59); // 23:59:59 của ngày đó
+                    System.out.println("Parsed toDate: " + toDateTime);
+                } catch (Exception e) {
+                    System.err.println("Invalid toDate format: " + toDate + " - " + e.getMessage());
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            System.out.println("Searching orders with storeId: " + storeId + 
+                    ", fromDateTime: " + fromDateTime + ", toDateTime: " + toDateTime + 
+                    ", page: " + page + ", size: " + size);
+            
+            Page<OrderSummaryDTO> ordersPage = orderService.searchOrdersByStoreIdAndDateRangePaginated(storeId, fromDateTime, toDateTime, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = new PaginatedOrderSummaryResponseDto(
+                    ordersPage.getContent(),
+                    ordersPage.getNumber() + 1, // Convert 0-based to 1-based 
+                    ordersPage.getSize(),
+                    ordersPage.getTotalElements(),
+                    ordersPage.getTotalPages(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            System.out.println("Found " + ordersPage.getTotalElements() + " total orders, returning page " + page + " of " + ordersPage.getTotalPages());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("Bad request: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            System.err.println("===== DETAILED ERROR =====");
+            System.err.println("Error searching orders by date range: " + e.getMessage());
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
+            e.printStackTrace();
+            System.err.println("===========================");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo khoảng thời gian với phân trang
+     * API: GET /api/orders/search-by-date-paginated?storeId=xxx&fromDate=yyyy-MM-dd&toDate=yyyy-MM-dd&page=1&size=10
+     */
+    @GetMapping("/search-by-date-paginated")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersByDateRangePaginated(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            LocalDateTime fromDateTime = null;
+            LocalDateTime toDateTime = null;
+            
+            // Parse fromDate nếu có
+            if (fromDate != null && !fromDate.trim().isEmpty()) {
+                try {
+                    LocalDate parsedFromDate = LocalDate.parse(fromDate);
+                    fromDateTime = parsedFromDate.atStartOfDay(); // 00:00:00 của ngày đó
+                    System.out.println("Parsed fromDate: " + fromDateTime);
+                } catch (Exception e) {
+                    System.err.println("Invalid fromDate format: " + fromDate + " - " + e.getMessage());
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            // Parse toDate nếu có
+            if (toDate != null && !toDate.trim().isEmpty()) {
+                try {
+                    LocalDate parsedToDate = LocalDate.parse(toDate);
+                    toDateTime = parsedToDate.atTime(23, 59, 59); // 23:59:59 của ngày đó
+                    System.out.println("Parsed toDate: " + toDateTime);
+                } catch (Exception e) {
+                    System.err.println("Invalid toDate format: " + toDate + " - " + e.getMessage());
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            System.out.println("Searching orders paginated with storeId: " + storeId + 
+                    ", fromDateTime: " + fromDateTime + ", toDateTime: " + toDateTime + 
+                    ", page: " + page + ", size: " + size);
+            
+            Page<OrderSummaryDTO> ordersPage = orderService.searchOrdersByStoreIdAndDateRangePaginated(storeId, fromDateTime, toDateTime, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = new PaginatedOrderSummaryResponseDto(
+                    ordersPage.getContent(),
+                    ordersPage.getNumber() + 1, // Convert 0-based to 1-based 
+                    ordersPage.getSize(),
+                    ordersPage.getTotalElements(),
+                    ordersPage.getTotalPages(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            System.out.println("Found " + ordersPage.getTotalElements() + " total orders, returning page " + page + " of " + ordersPage.getTotalPages());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("Bad request: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            System.err.println("===== DETAILED ERROR (PAGINATED) =====");
+            System.err.println("Error searching orders by date range paginated: " + e.getMessage());
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
+            e.printStackTrace();
+            System.err.println("===========================");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

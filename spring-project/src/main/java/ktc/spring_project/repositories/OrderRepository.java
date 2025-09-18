@@ -142,4 +142,41 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "AND o.id = :orderId " +
            "ORDER BY o.createdAt DESC")
     List<OrderSummaryDTO> findOrderSummariesByStoreIdAndOrderId(@Param("storeId") Long storeId, @Param("orderId") Long orderId);
+
+    @Query("SELECT NEW ktc.spring_project.dtos.order.OrderSummaryDTO(" +
+           "o.id, " +
+           "o.store.id, " +
+           "o.createdAt, " +
+           "o.address.address, " +
+           "(SELECT COUNT(oi) FROM OrderItem oi WHERE oi.order = o), " +
+           "(SELECT MAX(d2.deliveryFee) FROM Delivery d2 WHERE d2.order = o), " +
+           "o.status.name) " +
+           "FROM Order o " +
+           "WHERE o.store.id = :storeId " +
+           "AND (:fromDate IS NULL OR o.createdAt >= :fromDate) " +
+           "AND (:toDate IS NULL OR o.createdAt <= :toDate) " +
+           "ORDER BY o.createdAt DESC")
+    List<OrderSummaryDTO> findOrderSummariesByStoreIdAndDateRange(
+        @Param("storeId") Long storeId, 
+        @Param("fromDate") LocalDateTime fromDate, 
+        @Param("toDate") LocalDateTime toDate);
+
+    @Query("SELECT NEW ktc.spring_project.dtos.order.OrderSummaryDTO(" +
+           "o.id, " +
+           "o.store.id, " +
+           "o.createdAt, " +
+           "o.address.address, " +
+           "(SELECT COUNT(oi) FROM OrderItem oi WHERE oi.order = o), " +
+           "(SELECT MAX(d2.deliveryFee) FROM Delivery d2 WHERE d2.order = o), " +
+           "o.status.name) " +
+           "FROM Order o " +
+           "WHERE o.store.id = :storeId " +
+           "AND (:fromDate IS NULL OR o.createdAt >= :fromDate) " +
+           "AND (:toDate IS NULL OR o.createdAt <= :toDate) " +
+           "ORDER BY o.createdAt DESC")
+    Page<OrderSummaryDTO> findOrderSummariesByStoreIdAndDateRangePaginated(
+        @Param("storeId") Long storeId, 
+        @Param("fromDate") LocalDateTime fromDate, 
+        @Param("toDate") LocalDateTime toDate,
+        Pageable pageable);
 }
