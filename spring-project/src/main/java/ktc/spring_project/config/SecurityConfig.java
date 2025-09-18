@@ -142,6 +142,7 @@ public class SecurityConfig {
     .requestMatchers("/api/auth/**").permitAll()
     .requestMatchers("/api/public/**").permitAll()
     .requestMatchers("/actuator/**").permitAll()
+    .requestMatchers("/api/sse/**").permitAll()  // Allow SSE endpoints
     .requestMatchers("/api/admin/**").hasRole("ADMIN")
     .requestMatchers("/api/dispatcher/**").hasAnyRole("ADMIN", "DISPATCHER")
     .requestMatchers("/api/driver/**").hasAnyRole("ADMIN", "DRIVER")
@@ -215,6 +216,7 @@ public class SecurityConfig {
         // Apply configuration cho tất cả API endpoints
         org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
+        source.registerCorsConfiguration("/api/sse/**", configuration);  // Explicit CORS for SSE
         return source;
     }
 }

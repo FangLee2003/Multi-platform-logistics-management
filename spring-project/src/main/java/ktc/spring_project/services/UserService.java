@@ -25,6 +25,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map;
@@ -400,5 +401,35 @@ User user = getUserById(id);
         User user = findByEmail(email);
         user.setTotpEnabled(false);
         userRepository.save(user);
+    }
+
+    /**
+     * Get staff statistics (all users except customers)
+     * For Operations Dashboard
+     */
+    public Map<String, Object> getStaffStatistics() {
+        try {
+            // Count total users
+            long totalUsers = userRepository.count();
+            
+            // Count customers (users with CUSTOMER role)
+            long customerCount = userRepository.countByRole_RoleName("CUSTOMER");
+            
+            // Staff count = total users - customers
+            long staffCount = totalUsers - customerCount;
+            
+            // Count active staff (active users who are not customers)
+            long activeStaffCount = userRepository.countByStatusNameAndRoleRoleNameNot("Active", "CUSTOMER");
+            
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalStaff", staffCount);
+            stats.put("activeStaff", activeStaffCount);
+            stats.put("totalUsers", totalUsers);
+            stats.put("customerCount", customerCount);
+            
+            return stats;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get staff statistics: " + e.getMessage());
+        }
     }
 }

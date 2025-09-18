@@ -3,97 +3,119 @@ import GlassCard from '../../components/GlassCard';
 import StatCard from '../../components/StatCard';
 import DataTable, { TableRow, TableCell } from '../../components/DataTable';
 import GlassButton from '../../components/GlassButton';
-import { operationsAPI, type Vehicle } from '../../services/operationsAPI';
+import { operationsAPI } from '../../services/operationsAPI';
+import type { Vehicle } from '../../types/dashboard';
 import { fetchVehicleStats } from '../../services/VehicleListAPI';
+import { OperationsMetricsService } from '../../services/operationsMetricsService';
 
 export default function ResourceMonitoring() {
   const [timeFilter, setTimeFilter] = useState('24h');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [totalVehiclesFromDB, setTotalVehiclesFromDB] = useState(0);
+  const [vehicleMetrics, setVehicleMetrics] = useState({
+    active: 0,
+    total: 0,
+    percentage: 0,
+    ratio: '0/0'
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchVehicles();
-  }, []);
+    fetchVehicles(timeFilter);
+  }, [timeFilter]);
 
-  const fetchVehicles = async () => {
+  // Thêm tham số filter thời gian
+  const fetchVehicles = async (filter: string = '24h') => {
     try {
       setLoading(true);
       
-      // Lấy tổng số xe thật từ database
+      // Luôn lấy tổng số xe từ database trước
+      let totalVehiclesFromDB = 0;
       try {
-        const { totalRecords } = await fetchVehicleStats();
-        setTotalVehiclesFromDB(totalRecords);
-      } catch {
-        console.warn('Không thể lấy tổng số xe từ database');
+        // Nếu backend hỗ trợ filter thời gian, truyền filter vào đây
+        const { totalRecords } = await fetchVehicleStats(/* filter */);
+        totalVehiclesFromDB = totalRecords;
+        console.log('📊 Total vehicles from database:', totalVehiclesFromDB, 'with filter:', filter);
+      } catch (error) {
+        console.warn('Không thể lấy tổng số xe từ database:', error);
       }
       
-      const data = await operationsAPI.getVehicles();
-      setVehicles(data);
+      // Lấy vehicle metrics từ OperationsMetricsService (giống như trang overview)
+      try {
+        // Nếu backend hỗ trợ filter thời gian, truyền filter vào đây
+        const metrics = await OperationsMetricsService.getActiveVehiclesRatio(/* filter */);
+        console.log('📊 Vehicle metrics from OperationsMetricsService:', metrics, 'with filter:', filter);
+        // Sử dụng total từ database nếu có, nếu không thì dùng từ metrics
+        const correctedMetrics = {
+          ...metrics,
+          total: totalVehiclesFromDB > 0 ? totalVehiclesFromDB : metrics.total,
+          percentage: totalVehiclesFromDB > 0 && metrics.active > 0 
+            ? Math.round((metrics.active / totalVehiclesFromDB) * 100) 
+            : metrics.percentage,
+          ratio: totalVehiclesFromDB > 0 
+            ? `${metrics.active}/${totalVehiclesFromDB}` 
+            : metrics.ratio
+        };
+        setVehicleMetrics(correctedMetrics);
+        console.log('📊 Corrected vehicle metrics:', correctedMetrics);
+      } catch (error) {
+        console.warn('Không thể lấy vehicle metrics từ OperationsMetricsService:', error);
+        // Fallback: sử dụng tổng số từ database
+        setVehicleMetrics({
+          active: 0,
+          total: totalVehiclesFromDB,
+          percentage: 0,
+          ratio: `0/${totalVehiclesFromDB}`
+        });
+      }
+      
+      // Lấy danh sách xe để hiển thị trong table
+      try {
+        console.log('📋 Fetching vehicles from operations API...');
+        const data = await operationsAPI.getVehicles();
+        console.log('📋 Received vehicles data:', data);
+        
+        // Transform data để đảm bảo compatibility với component  
+        const transformedVehicles: Vehicle[] = data.map((vehicle) => ({
+          id: String(vehicle.id || ''),
+          name: String(vehicle.name || ''),
+          type: vehicle.type as 'TRUCK' | 'VAN' | 'MOTORCYCLE',
+          status: vehicle.status as 'ACTIVE' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE',
+          statusDisplay: String(vehicle.statusDisplay || vehicle.status || ''),
+          statusCode: vehicle.statusCode || '',
+          statusDescription: vehicle.statusDescription || '',
+          created_at: vehicle.created_at || '',
+          fuel: Number(vehicle.fuel) || 0,
+          location: vehicle.location || { lat: 0, lng: 0, address: 'Chưa xác định' },
+          mileage: Number(vehicle.mileage) || 0,
+          lastMaintenance: String(vehicle.lastMaintenance || ''),
+          nextMaintenance: String(vehicle.nextMaintenance || ''),
+          driver: vehicle.driver || undefined
+        }));
+        
+        setVehicles(transformedVehicles);
+        console.log('📋 Transformed vehicles:', transformedVehicles);
+      } catch (error) {
+        console.error('❌ Failed to fetch vehicles from API:', error);
+        setError('Không thể tải dữ liệu xe từ server');
+        setVehicles([]); // Clear vehicles instead of using mock data
+      }
+      
       setError('');
-    } catch {
-      setError('Không thể tải dữ liệu xe. Sử dụng dữ liệu mẫu.');
-      // Fallback to mock data if API fails
-      setVehicles([
-        { 
-          id: '1', 
-          name: 'Xe tải VT-001', 
-          type: 'TRUCK', 
-          status: 'ACTIVE', 
-          fuel: 85, 
-          location: { lat: 21.0285, lng: 105.8542, address: 'Khu vực A - Hà Nội' },
-          mileage: 45000,
-          lastMaintenance: '2024-07-15',
-          nextMaintenance: '2024-10-15',
-          driver: { id: 'D001', name: 'Nguyễn Văn A', phone: '0912345678' }
-        },
-        { 
-          id: '2', 
-          name: 'Xe tải VT-002', 
-          type: 'TRUCK', 
-          status: 'MAINTENANCE', 
-          fuel: 42, 
-          location: { lat: 21.0245, lng: 105.8412, address: 'Garage - Hà Nội' },
-          mileage: 52000,
-          lastMaintenance: '2024-08-01',
-          nextMaintenance: '2024-11-01',
-        },
-        { 
-          id: '3', 
-          name: 'Xe van VV-001', 
-          type: 'VAN', 
-          status: 'ACTIVE', 
-          fuel: 73, 
-          location: { lat: 21.0195, lng: 105.8385, address: 'Khu vực B - Hà Nội' },
-          mileage: 32000,
-          lastMaintenance: '2024-06-20',
-          nextMaintenance: '2024-09-20',
-          driver: { id: 'D002', name: 'Trần Thị B', phone: '0987654321' }
-        },
-        { 
-          id: '4', 
-          name: 'Xe tải VT-003', 
-          type: 'TRUCK', 
-          status: 'IDLE', 
-          fuel: 92, 
-          location: { lat: 21.0305, lng: 105.8485, address: 'Khu vực C - Hà Nội' },
-          mileage: 38000,
-          lastMaintenance: '2024-07-05',
-          nextMaintenance: '2024-10-05',
-        },
-      ]);
+    } catch (globalError) {
+      setError('Không thể tải dữ liệu xe. Vui lòng thử lại sau.');
+      console.error('Global error in fetchVehicles:', globalError);
+      
+      // Clear all data on global error
+      setVehicleMetrics({
+        active: 0,  
+        total: 0,
+        percentage: 0,
+        ratio: '0/0'
+      });
+      setVehicles([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (vehicleId: string, newStatus: Vehicle['status']) => {
-    try {
-      await operationsAPI.updateVehicleStatus(vehicleId, newStatus);
-      await fetchVehicles(); // Refresh data
-    } catch {
-      setError('Không thể cập nhật trạng thái xe');
     }
   };
 
@@ -117,11 +139,6 @@ export default function ResourceMonitoring() {
     }
   };
 
-  const getFuelColor = (fuel: number) => {
-    if (fuel > 70) return 'text-green-400';
-    if (fuel > 30) return 'text-yellow-400';
-    return 'text-red-400';
-  };
 
   const getTypeText = (type: Vehicle['type']) => {
     switch (type) {
@@ -132,11 +149,10 @@ export default function ResourceMonitoring() {
     }
   };
 
-  // Calculate stats from vehicles data
-  const totalVehicles = totalVehiclesFromDB > 0 ? totalVehiclesFromDB : vehicles.length;
-  const activeVehicles = vehicles.filter(v => v.status === 'ACTIVE').length;
+  // Calculate stats from vehicleMetrics (sử dụng dữ liệu từ OperationsMetricsService giống như trang overview)
+  const totalVehicles = vehicleMetrics.total;
+  const activeVehicles = vehicleMetrics.active;
   const maintenanceVehicles = vehicles.filter(v => v.status === 'MAINTENANCE').length;
-  const avgFuel = vehicles.length > 0 ? Math.round(vehicles.reduce((sum, v) => sum + v.fuel, 0) / vehicles.length) : 0;
 
   if (loading) {
     return (
@@ -157,17 +173,17 @@ export default function ResourceMonitoring() {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-800">Giám sát tài nguyên</h2>
         <div className="flex gap-2">
-          {['1h', '6h', '24h', '7d'].map((period) => (
+          {['24h', '7d', '1m'].map((period) => (
             <GlassButton
               key={period}
               size="sm"
               variant={timeFilter === period ? 'primary' : 'secondary'}
               onClick={() => setTimeFilter(period)}
             >
-              {period}
+              {period === '1m' ? '1 tháng' : period}
             </GlassButton>
           ))}
-          <GlassButton size="sm" variant="secondary" onClick={fetchVehicles}>
+          <GlassButton size="sm" variant="secondary" onClick={() => fetchVehicles(timeFilter)}>
             🔄 Làm mới
           </GlassButton>
         </div>
@@ -184,25 +200,24 @@ export default function ResourceMonitoring() {
           title="Đang hoạt động"
           value={activeVehicles.toString()}
           icon="✅"
-          subtitle={`${Math.round((activeVehicles / totalVehicles) * 100)}% tổng số`}
+          subtitle={`${vehicleMetrics.percentage}% tổng số`}
         />
         <StatCard
           title="Đang bảo trì"
           value={maintenanceVehicles.toString()}
           icon="🔧"
-          subtitle={`${Math.round((maintenanceVehicles / totalVehicles) * 100)}% tổng số`}
+          subtitle={`${totalVehicles > 0 ? Math.round((maintenanceVehicles / totalVehicles) * 100) : 0}% tổng số`}
         />
         <StatCard
-          title="Mức nhiên liệu TB"
-          value={`${avgFuel}%`}
-          icon="⛽"
-          trend={{ value: 3.1, isPositive: true }}
+          title="Yêu cầu bảo trì"
+          value="12"
+          icon="🔧"
         />
       </div>
 
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-gray-800">Chi tiết tài nguyên</h3>
-        <DataTable headers={['Tên xe', 'Loại', 'Tài xế', 'Trạng thái', 'Nhiên liệu', 'Vị trí', 'Hành động']}>
+  <DataTable headers={['Tên xe', 'Loại', 'Tài xế', 'Trạng thái', 'Ngày tạo']}>
           {vehicles.map((vehicle) => (
             <TableRow key={vehicle.id}>
               <TableCell>
@@ -222,37 +237,11 @@ export default function ResourceMonitoring() {
               </TableCell>
               <TableCell>
                 <span className={`font-medium ${getStatusColor(vehicle.status)}`}>
-                  {getStatusText(vehicle.status)}
+                  {vehicle.statusDisplay || getStatusText(vehicle.status)}
                 </span>
               </TableCell>
               <TableCell>
-                <span className={`font-medium ${getFuelColor(vehicle.fuel)}`}>
-                  {vehicle.fuel}%
-                </span>
-              </TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  {vehicle.location.address}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <GlassButton size="sm" variant="ocean">
-                    Chi tiết
-                  </GlassButton>
-                  <GlassButton size="sm" variant="green">
-                    Theo dõi
-                  </GlassButton>
-                  {vehicle.status === 'ACTIVE' && (
-                    <GlassButton 
-                      size="sm" 
-                      variant="danger"
-                      onClick={() => handleStatusChange(vehicle.id, 'MAINTENANCE')}
-                    >
-                      Bảo trì
-                    </GlassButton>
-                  )}
-                </div>
+                <span className="text-xs text-gray-700">{vehicle.created_at}</span>
               </TableCell>
             </TableRow>
           ))}

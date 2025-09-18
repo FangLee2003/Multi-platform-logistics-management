@@ -182,40 +182,65 @@ export class OperationsMetricsService {
   }> {
     console.log('🚛 getActiveVehiclesRatio called');
     try {
-      console.log('🚛 Fetching vehicle stats...');
-      const { totalRecords, sampleVehicles } = await fetchVehicleStats();
-      console.log('🚛 Raw vehicle stats:', { totalRecords, sampleVehicles });
-      console.log('🚛 Total vehicles found:', totalRecords);
-      console.log('🚛 Sample vehicles:', sampleVehicles.length);
+      console.log('🚛 Fetching active vehicle stats from new API...');
+      const token = localStorage.getItem('token') || '';
       
-      // Đếm xe đang hoạt động từ sample data
-      // Hiện tại chỉ đếm xe có status AVAILABLE hoặc IN_USE
-      const activeVehicles = sampleVehicles.filter(vehicle => 
-        vehicle.status === 'AVAILABLE' || vehicle.status === 'IN_USE'
-      );
-
-      const activeCount = activeVehicles.length;
-      const totalCount = totalRecords; // Sử dụng totalRecords thay vì sample length
-      const percentage = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0;
-
-      console.log(`🚛 Active vehicles: ${activeCount}/${totalCount} (${percentage}%)`);
-      console.log('🚛 Vehicle statuses:', sampleVehicles.map(v => ({ id: v.id, status: v.status })));
-
+      const response = await fetch('http://localhost:8080/api/vehicles/stats/active', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch active vehicle stats');
+      }
+      
+      const data = await response.json();
+      console.log('🚛 Active vehicle stats from API:', data);
+      
       return {
-        active: activeCount,
-        total: totalCount,
-        percentage,
-        ratio: `${activeCount}/${totalCount}`
+        active: data.active,
+        total: data.total,
+        percentage: data.percentage,
+        ratio: data.ratio
       };
     } catch (error) {
       console.error('Error calculating active vehicles:', error);
-      // Trả về dữ liệu mặc định khi có lỗi
-      return {
-        active: 18,
-        total: 24,
-        percentage: 75,
-        ratio: '18/24'
-      };
+      // Fallback: sử dụng cách cũ nếu API mới lỗi
+      console.log('🚛 Falling back to old method...');
+      try {
+        console.log('🚛 Fetching vehicle stats...');
+        const { totalRecords, sampleVehicles } = await fetchVehicleStats();
+        console.log('🚛 Raw vehicle stats:', { totalRecords, sampleVehicles });
+        console.log('🚛 Total vehicles found:', totalRecords);
+        console.log('🚛 Sample vehicles:', sampleVehicles.length);
+        
+        // Chỉ đếm xe có status IN_USE (đang sử dụng)
+        const activeVehicles = sampleVehicles.filter(vehicle => 
+          vehicle.status === 'IN_USE'
+        );
+
+        const activeCount = activeVehicles.length;
+        const totalCount = totalRecords; 
+        const percentage = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0;
+
+        console.log(`🚛 Active vehicles (IN_USE only): ${activeCount}/${totalCount} (${percentage}%)`);
+        console.log('🚛 Vehicle statuses:', sampleVehicles.map(v => ({ id: v.id, status: v.status })));
+
+        return {
+          active: activeCount,
+          total: totalCount,
+          percentage,
+          ratio: `${activeCount}/${totalCount}`
+        };
+      } catch (fallbackError) {
+        console.error('Error in fallback method:', fallbackError);
+        // Trả về dữ liệu mặc định khi có lỗi
+        return {
+          active: 0,
+          total: 104,
+          percentage: 0,
+          ratio: '0/104'
+        };
+      }
     }
   }
 

@@ -422,4 +422,35 @@ public ResponseEntity<Void> deleteVehicle(@PathVariable Long id, Authentication 
 
         return ResponseEntity.ok(activeLocations);
     }
+
+    /**
+     * Get active vehicles statistics (vehicles with IN_USE status)
+     * For Operations Dashboard metrics
+     */
+    @GetMapping("/stats/active")
+    public ResponseEntity<Map<String, Object>> getActiveVehicleStats() {
+        try {
+            VehicleService.VehicleStatsDto stats = vehicleService.getActiveVehicleStats();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("active", stats.getActive());
+            response.put("total", stats.getTotal());
+            response.put("percentage", Math.round(stats.getPercentage()));
+            response.put("ratio", stats.getRatio());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("Error getting active vehicle stats: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Return fallback data
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("active", 0);
+            fallback.put("total", 0);
+            fallback.put("percentage", 0);
+            fallback.put("ratio", "0/0");
+            
+            return ResponseEntity.ok(fallback);
+        }
+    }
 }

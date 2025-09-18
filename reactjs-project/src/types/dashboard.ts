@@ -20,17 +20,15 @@ export interface Vehicle {
   name: string;
   type: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
   status: 'ACTIVE' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE';
+  statusDisplay?: string; // Vietnamese display name for status
+  statusCode?: string; // status.name
+  statusDescription?: string; // status.description
+  created_at?: string;
   driver?: {
     id: string;
     name: string;
     phone: string;
   };
-  location: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
-  fuel: number;
   mileage: number;
   lastMaintenance: string;
   nextMaintenance: string;

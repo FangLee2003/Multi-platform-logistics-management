@@ -1,6 +1,53 @@
 import type { Vehicle, Staff } from "../types/dashboard";
+
 // API endpoints và các interface để tương tác với backend
 export const API_BASE_URL = 'http://localhost:8080/api';
+
+// Missing types
+interface OperationsSummary {
+  todayOrders: number;
+  activeVehicles: number;
+  totalStaff: number;
+  revenue: number;
+}
+
+interface Order {
+  id: string;
+  status: string;
+  priority: string;
+  customerId: string;
+  vehicleId?: string;
+  driverId?: string;
+}
+
+interface PerformanceMetrics {
+  deliverySuccessRate: number;
+  averageDeliveryTime: number;
+  vehicleUtilization: number;
+  customerSatisfaction: number;
+}
+
+interface SystemMetrics {
+  uptime: number;
+  cpuUsage: number;
+  memoryUsage: number;
+  diskUsage: number;
+}
+
+interface Alert {
+  id: string;
+  type: string;
+  message: string;
+  acknowledged: boolean;
+  timestamp: string;
+}
+
+interface Report {
+  id: string;
+  type: string;
+  status: string;
+  downloadUrl?: string;
+}
 
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -9,7 +56,6 @@ export const getAuthHeaders = () => {
     'Content-Type': 'application/json',
   };
 };
-
 
 // API functions
 export const operationsAPI = {
@@ -61,8 +107,8 @@ export const operationsAPI = {
     return response.json();
   },
 
-  // Staff
-  getStaff: async (department?: string): Promise<any[]> => {
+  // Staff management
+  getStaff: async (department?: string): Promise<Staff[]> => {
     const queryParams = department ? `?department=${department}` : '';
     const response = await fetch(`${API_BASE_URL}/operations/staff${queryParams}`, {
       headers: getAuthHeaders(),
@@ -71,7 +117,7 @@ export const operationsAPI = {
     return response.json();
   },
 
-  updateStaffStatus: async (staffId: string, status: string): Promise<any> => {
+  updateStaffStatus: async (staffId: string, status: Staff['status']): Promise<Staff> => {
     const response = await fetch(`${API_BASE_URL}/operations/staff/${staffId}/status`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
@@ -91,7 +137,7 @@ export const operationsAPI = {
   },
 
   // System Monitoring
-  getSystemMetrics: async (): Promise<any> => {
+  getSystemMetrics: async (): Promise<SystemMetrics> => {
     const response = await fetch(`${API_BASE_URL}/operations/system/metrics`, {
       headers: getAuthHeaders(),
     });
@@ -99,7 +145,7 @@ export const operationsAPI = {
     return response.json();
   },
 
-  getAlerts: async (acknowledged?: boolean): Promise<any[]> => {
+  getAlerts: async (acknowledged?: boolean): Promise<Alert[]> => {
     const queryParams = acknowledged !== undefined ? `?acknowledged=${acknowledged}` : '';
     const response = await fetch(`${API_BASE_URL}/operations/alerts${queryParams}`, {
       headers: getAuthHeaders(),
@@ -108,7 +154,7 @@ export const operationsAPI = {
     return response.json();
   },
 
-  acknowledgeAlert: async (alertId: string): Promise<any> => {
+  acknowledgeAlert: async (alertId: string): Promise<Alert> => {
     const response = await fetch(`${API_BASE_URL}/operations/alerts/${alertId}/acknowledge`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -118,7 +164,7 @@ export const operationsAPI = {
   },
 
   // Reports
-  generateReport: async (type: string, params: Record<string, unknown>): Promise<any> => {
+  generateReport: async (type: string, params: Record<string, unknown>): Promise<Report> => {
     const response = await fetch(`${API_BASE_URL}/operations/reports/${type}`, {
       method: 'POST',
       headers: getAuthHeaders(),

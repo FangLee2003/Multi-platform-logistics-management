@@ -31,7 +31,11 @@ interface MonthlyRevenueData {
   revenue: number;
 }
 
-function MonthlyRevenueChart() {
+interface MonthlyRevenueChartProps {
+  onRefreshAll?: () => Promise<void>;
+}
+
+export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChartProps) {
   const [monthlyData, setMonthlyData] = useState<MonthlyRevenueData[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [averageRevenue, setAverageRevenue] = useState(0);
@@ -68,6 +72,22 @@ function MonthlyRevenueChart() {
       console.error('Error fetching monthly revenue:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Hàm để refresh cả metrics và chart data
+  const handleRefreshAll = async () => {
+    setLoading(true);
+    try {
+      // Refresh chart data
+      await fetchMonthlyRevenue();
+      
+      // Refresh metrics nếu có callback từ parent
+      if (onRefreshAll) {
+        await onRefreshAll();
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
     }
   };
 
@@ -181,7 +201,7 @@ function MonthlyRevenueChart() {
         <div className="flex gap-2">
           <button 
             className="px-3 py-1 text-xs rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-            onClick={fetchMonthlyRevenue}
+            onClick={handleRefreshAll}
             disabled={loading}
           >
             {loading ? 'Đang tải...' : 'Làm mới'}
@@ -223,5 +243,3 @@ function MonthlyRevenueChart() {
     </div>
   );
 }
-
-export default MonthlyRevenueChart;

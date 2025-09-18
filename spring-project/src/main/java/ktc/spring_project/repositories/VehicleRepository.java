@@ -38,6 +38,9 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     @Query("SELECT COUNT(v) FROM Vehicle v WHERE v.status.name = 'ACTIVE'")
     long countActiveVehicles();
 
+    // Đếm xe theo status_id
+    long countByStatusId(Byte statusId);
+
     @Modifying
 @Query("UPDATE Vehicle v SET v.currentDriver = NULL WHERE v.currentDriver.id = :driverId")
 void clearDriverAssignment(@Param("driverId") Long driverId);

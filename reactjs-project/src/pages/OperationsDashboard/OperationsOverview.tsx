@@ -1,4 +1,4 @@
-import { useCallback, forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useImperativeHandle } from 'react';
 import MonthlyRevenueChart from '../../components/MonthlyRevenueChart';
 
 // Interface cho metrics data
@@ -145,7 +145,7 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
       
       {/* Monthly Revenue Chart - full width */}
       <div className="w-full">
-        <MonthlyRevenueChart />
+        <MonthlyRevenueChart onRefreshAll={onRefresh} />
       </div>
 
       {/* Fleet Status Overview */}

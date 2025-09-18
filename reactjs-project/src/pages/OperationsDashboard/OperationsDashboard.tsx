@@ -15,6 +15,7 @@ interface OperationsDashboardProps {
 
 export default function OperationsDashboard({ user, onLogout }: OperationsDashboardProps) {
   const [tab, setTab] = useState<OperationsTab>("overview");
+  const [previousTab, setPreviousTab] = useState<OperationsTab>("overview");
   
   // Cache metrics data ở parent level (similar to AdminDashboard)
   const [metricsData, setMetricsData] = useState<MetricsData>({
@@ -49,6 +50,7 @@ export default function OperationsDashboard({ user, onLogout }: OperationsDashbo
   // Function để update metrics (similar to AdminDashboard's handleUserCountUpdate)
   const handleMetricsUpdate = useCallback(async () => {
     try {
+      setIsLoadingMetrics(true);
       console.log("Updating metrics data...");
       const [todayOrdersResult, activeVehiclesResult, revenueResult, performanceResult] = await Promise.all([
         OperationsMetricsService.getTodayOrdersCount(true), // Force refresh
@@ -69,8 +71,21 @@ export default function OperationsDashboard({ user, onLogout }: OperationsDashbo
       console.log("Metrics updated:", todayOrdersResult.count, "orders,", activeVehiclesResult.ratio, "vehicles,", revenueResult.amount, "revenue,", performanceResult.percentage + "% performance");
     } catch (error) {
       console.error('Error updating metrics:', error);
+    } finally {
+      setIsLoadingMetrics(false);
     }
   }, []);
+
+  // SSE removed - using manual refresh only
+
+  // Auto-refresh khi chuyển về tab overview
+  useEffect(() => {
+    if (tab === "overview" && previousTab !== "overview") {
+      console.log("Switched to overview tab, refreshing data...");
+      handleMetricsUpdate();
+    }
+    setPreviousTab(tab);
+  }, [tab, previousTab, handleMetricsUpdate]);
 
   // Initial fetch khi dashboard mount (similar to AdminDashboard)
   useEffect(() => {
