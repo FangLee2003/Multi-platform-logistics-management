@@ -401,4 +401,9 @@ User user = getUserById(id);
         user.setTotpEnabled(false);
         userRepository.save(user);
     }
+
+    // Tìm user theo username
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
+    }
 }

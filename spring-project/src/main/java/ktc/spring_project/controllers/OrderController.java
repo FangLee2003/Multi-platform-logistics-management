@@ -12,12 +12,18 @@ import ktc.spring_project.services.OrderService;
 import ktc.spring_project.services.UserService;
 import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.DeliveryTrackingService;
+import ktc.spring_project.repositories.OrderRepository;
+import ktc.spring_project.repositories.VehicleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import java.util.Map;
+import java.util.Optional;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
@@ -43,6 +49,12 @@ public class OrderController {
 
     @Autowired
     private DeliveryTrackingService deliveryTrackingService;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private VehicleRepository vehicleRepository;
 
     /**
      * Tạo đơn hàng mới
@@ -239,24 +251,41 @@ public ResponseEntity<Order> putOrder(
 
     // API cập nhật vehicle cho đơn hàng
     @PatchMapping("/{id}/vehicle")
-    public ResponseEntity<Order> updateOrderVehicle(
+    public ResponseEntity<?> updateOrderVehicle(
             @PathVariable Long id,
             @Valid @RequestBody UpdateOrderVehicleDTO dto) {
         try {
             Order order = orderService.getOrderById(id);
+            if (order == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Order not found with id: " + id));
+            }
+            
             if (dto.vehicleId != null && dto.vehicleId > 0) {
-                // Assign vehicle
-                Vehicle vehicle = new Vehicle();
-                vehicle.setId(dto.vehicleId);
-                order.setVehicle(vehicle);
+                // Validate vehicle exists
+                Optional<Vehicle> vehicleOpt = vehicleRepository.findById(dto.vehicleId);
+                if (vehicleOpt.isEmpty()) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "Vehicle not found with id: " + dto.vehicleId));
+                }
+                
+                Vehicle vehicle = vehicleOpt.get();
+                // Check if vehicle has a driver
+                if (vehicle.getCurrentDriver() == null) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "Vehicle " + vehicle.getLicensePlate() + " does not have an assigned driver"));
+                }
+                
+                // Use OrderService to assign driver/vehicle to ensure checklist logging
+                Order updatedOrder = orderService.assignDriverToOrder(order.getId(), vehicle.getCurrentDriver().getId());
+                return ResponseEntity.ok(updatedOrder);
             } else {
                 // Unassign vehicle (vehicleId is null or 0)
                 order.setVehicle(null);
+                order.setDriver(null);
+                Order updatedOrder = orderRepository.save(order);
+                return ResponseEntity.ok(updatedOrder);
             }
-            Order updatedOrder = orderService.createOrder(order);
-            return ResponseEntity.ok(updatedOrder);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to update order vehicle: " + e.getMessage()));
         }
     }
 
@@ -329,5 +358,4 @@ public ResponseEntity<Order> putOrder(
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
 }

@@ -72,6 +72,9 @@ public class DeliveryService {
     
     @Autowired
     private RouteService routeService;
+    
+    @Autowired
+    private ChecklistService checklistService;
 
     public Delivery createDelivery(Delivery delivery) {
         if (delivery.getDeliveryAttempts() != null && delivery.getDeliveryAttempts() < 0) {
@@ -432,5 +435,153 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
             delivery.setRoute(routeService.getRouteById(dto.getRouteId()));
         }
         return delivery;
+    }
+    
+    // ================ CHECKLIST INTEGRATION METHODS ================
+    
+    /**
+     * Driver nhận delivery order từ dispatcher
+     */
+    public void driverReceiveDeliveryOrder(Long driverId, Long deliveryId) {
+        try {
+            Delivery delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new EntityNotFoundException("Delivery not found with id: " + deliveryId));
+            
+            // Log checklist step
+            checklistService.markStepCompleted(
+                driverId, 
+                delivery.getOrder().getId(),
+                "DRIVER_RECEIVE_DELIVERY_ORDER", 
+                "Received delivery order: " + deliveryId + " for Order: " + delivery.getOrder().getId()
+            );
+            
+            log.info("Driver {} received delivery order {}", driverId, deliveryId);
+        } catch (Exception e) {
+            log.error("Failed to process driver receive delivery order: {}", e.getMessage());
+            throw new HttpException("Failed to process driver receive delivery order", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Driver kiểm tra hàng hóa
+     */
+    public void driverCheckGoods(Long driverId, Long deliveryId, String checkNotes) {
+        try {
+            Delivery delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new HttpException("Delivery not found", org.springframework.http.HttpStatus.NOT_FOUND));
+            
+            checklistService.markStepCompleted(
+                driverId, 
+                delivery.getOrder().getId(),
+                "DRIVER_CHECK_GOODS", 
+                "Goods checked for delivery: " + deliveryId + (checkNotes != null ? " - Notes: " + checkNotes : "")
+            );
+            
+            log.info("Driver {} checked goods for delivery {}", driverId, deliveryId);
+        } catch (Exception e) {
+            log.error("Failed to process driver check goods: {}", e.getMessage());
+            throw new HttpException("Failed to process driver check goods", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Driver bắt đầu chuyến đi
+     */
+    public void driverStartTrip(Long driverId, Long deliveryId) {
+        try {
+            Delivery delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new HttpException("Delivery not found", org.springframework.http.HttpStatus.NOT_FOUND));
+            
+            checklistService.markStepCompleted(
+                driverId, 
+                delivery.getOrder().getId(),
+                "DRIVER_START_TRIP", 
+                "Started trip for delivery: " + deliveryId
+            );
+            
+            log.info("Driver {} started trip for delivery {}", driverId, deliveryId);
+        } catch (Exception e) {
+            log.error("Failed to process driver start trip: {}", e.getMessage());
+            throw new HttpException("Failed to process driver start trip", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Driver cập nhật status "On the way"
+     */
+    public void driverUpdateStatusOnRoute(Long driverId, Long deliveryId) {
+        try {
+            Delivery delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new RuntimeException("Delivery not found"));
+                
+            checklistService.markStepCompleted(
+                driverId, 
+                delivery.getOrder().getId(),
+                "DRIVER_UPDATE_STATUS_ON_ROUTE", 
+                "Updated status to 'On Route' for delivery: " + deliveryId
+            );
+            
+            log.info("Driver {} updated status to 'On Route' for delivery {}", driverId, deliveryId);
+        } catch (Exception e) {
+            log.error("Failed to process driver status update: {}", e.getMessage());
+            throw new HttpException("Failed to process driver status update", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Driver xác nhận kết quả giao hàng
+     */
+    public void driverConfirmDeliveryResult(Long driverId, Long deliveryId, boolean isSuccess, String resultNotes) {
+        try {
+            Delivery delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new RuntimeException("Delivery not found"));
+                
+            String result = isSuccess ? "Success" : "Failed";
+            checklistService.markStepCompleted(
+                driverId, 
+                delivery.getOrder().getId(),
+                "DRIVER_CONFIRM_DELIVERY_RESULT", 
+                "Delivery result confirmed: " + result + " for delivery: " + deliveryId + 
+                (resultNotes != null ? " - Notes: " + resultNotes : "")
+            );
+            
+            log.info("Driver {} confirmed delivery result {} for delivery {}", driverId, result, deliveryId);
+        } catch (Exception e) {
+            log.error("Failed to process driver delivery result confirmation: {}", e.getMessage());
+            throw new HttpException("Failed to process driver delivery result confirmation", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * Driver hoàn thành chuyến đi
+     */
+    public void driverCompleteTrip(Long driverId, Long deliveryId) {
+        try {
+            // ✅ Get delivery first to access order
+            Delivery delivery = deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new EntityNotFoundException("Delivery not found"));
+                
+            checklistService.markStepCompleted(
+                driverId, 
+                delivery.getOrder().getId(),
+                "DRIVER_COMPLETE_TRIP", 
+                "Completed trip for delivery: " + deliveryId
+            );
+            
+            // ✅ Nếu delivery thành công, cũng log customer nhận hàng
+            if (delivery.getOrder() != null && delivery.getOrder().getCreatedBy() != null) {
+                checklistService.markStepCompleted(
+                    delivery.getOrder().getCreatedBy().getId(), 
+                    delivery.getOrder().getId(),
+                    "CUSTOMER_RECEIVE_ORDER", 
+                    "Order received successfully - Delivery: " + deliveryId
+                );
+            }
+            
+            log.info("Driver {} completed trip for delivery {}", driverId, deliveryId);
+        } catch (Exception e) {
+            log.error("Failed to process driver complete trip: {}", e.getMessage());
+            throw new HttpException("Failed to process driver complete trip", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

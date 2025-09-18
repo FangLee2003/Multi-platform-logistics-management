@@ -2,6 +2,9 @@ package ktc.spring_project.repositories;
 
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
 import ktc.spring_project.entities.Order;
+import ktc.spring_project.entities.Status;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,6 +26,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStatus_Id(Short statusId);
     List<Order> findByStore_Id(Long storeId);
     List<Order> findByCreatedBy_Id(Long createdBy);
+
+    // Tìm đơn hàng theo status với phân trang
+    Page<Order> findByStatus(Status status, Pageable pageable);
 
     // Query các đơn hàng có trạng thái AVAILABLE
     @Query("SELECT o FROM Order o WHERE o.status.name = 'AVAILABLE'")
