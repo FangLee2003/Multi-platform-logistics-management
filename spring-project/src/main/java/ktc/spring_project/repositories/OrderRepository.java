@@ -128,4 +128,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "WHERE s.createdBy.id = :userId " +
            "ORDER BY o.createdAt DESC")
     Page<OrderSummaryDTO> findOrderSummariesByUserIdPaginated(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT NEW ktc.spring_project.dtos.order.OrderSummaryDTO(" +
+           "o.id, " +
+           "o.store.id, " +
+           "o.createdAt, " +
+           "o.address.address, " +
+           "(SELECT COUNT(oi) FROM OrderItem oi WHERE oi.order = o), " +
+           "(SELECT MAX(d2.deliveryFee) FROM Delivery d2 WHERE d2.order = o), " +
+           "o.status.name) " +
+           "FROM Order o " +
+           "WHERE o.store.id = :storeId " +
+           "AND o.id = :orderId " +
+           "ORDER BY o.createdAt DESC")
+    List<OrderSummaryDTO> findOrderSummariesByStoreIdAndOrderId(@Param("storeId") Long storeId, @Param("orderId") Long orderId);
 }

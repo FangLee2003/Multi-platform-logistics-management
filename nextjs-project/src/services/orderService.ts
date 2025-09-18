@@ -73,6 +73,16 @@ export const orderApi = {
     return data;
   },
 
+  searchOrdersByStoreAndOrderId: async (
+    storeId: number,
+    orderId: number
+  ): Promise<OrderSummary[]> => {
+    const { data } = await axios.get<OrderSummary[]>(
+      `http://localhost:8080/api/orders/search?storeId=${storeId}&orderId=${orderId}`
+    );
+    return data;
+  },
+
   downloadInvoice: async (id: string) => {
     const response = await api.get(`/orders/${id}/invoice`, {
       responseType: "blob",

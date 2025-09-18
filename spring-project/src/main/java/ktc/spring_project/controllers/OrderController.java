@@ -491,4 +491,21 @@ public ResponseEntity<Order> putOrder(
         }
     }
 
+    /**
+     * Tìm kiếm đơn hàng theo ID đơn hàng
+     * API: GET /api/orders/search?storeId=xxx&orderId=xxx
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<OrderSummaryDTO>> searchOrdersByOrderId(
+            @RequestParam Long storeId,
+            @RequestParam Long orderId) {
+        try {
+            List<OrderSummaryDTO> orders = orderService.searchOrdersByStoreIdAndOrderId(storeId, orderId);
+            return ResponseEntity.ok(orders);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 }

@@ -431,4 +431,22 @@ public class OrderService {
             throw new HttpException("Failed to get paginated order summaries by user ID: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * Tìm kiếm đơn hàng theo ID đơn hàng và store ID
+     */
+    public List<OrderSummaryDTO> searchOrdersByStoreIdAndOrderId(Long storeId, Long orderId) {
+        try {
+            validateId(storeId, "Store ID");
+            validateId(orderId, "Order ID");
+            log.debug("Searching orders by store ID and order ID: storeId={}, orderId={}", storeId, orderId);
+            
+            return orderRepository.findOrderSummariesByStoreIdAndOrderId(storeId, orderId);
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to search orders by store ID and order ID: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

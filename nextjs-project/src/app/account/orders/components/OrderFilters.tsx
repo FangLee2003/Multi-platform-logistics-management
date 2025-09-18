@@ -35,7 +35,7 @@ export const OrderFilters = ({
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8} md={6}>
           <Input
-            placeholder="Tìm mã đơn hàng..."
+            placeholder="Tìm theo ID đơn hàng..."
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => onSearchChange(e.target.value)}

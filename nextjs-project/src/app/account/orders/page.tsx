@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Table,
   Card,
@@ -92,59 +92,132 @@ export default function OrdersPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);
 
-  const fetchOrders = async (page: number = 1, size: number = 10) => {
-    setLoading(true);
-    try {
-      // Get user from localStorage
-      const userStr = localStorage.getItem("user");
-      if (!userStr) {
-        console.error("User not found in localStorage");
-        return;
-      }
-      const user = JSON.parse(userStr);
-      const response = await orderApi.getOrdersByUserPaginated(
-        user.id,
-        page,
-        size
-      );
+  // Store ID để sử dụng cho search
+  const [storeId, setStoreId] = useState<number | null>(null);
 
-      const formattedOrders: Order[] = response.data.map((order) => ({
-        id: order.orderId?.toString() || "N/A",
-        created_at: order.createdAt || new Date().toISOString(),
-        store_name: `Store ${order.storeId || "Unknown"}`,
-        shipping_address: order.deliveryAddress || "No address provided",
-        total_items: order.totalItems || 0,
-        cod_amount: 0, // Not available in the API
-        shipping_fee: order.deliveryFee || 0,
-        status: {
-          id: getStatusId(order.orderStatus || "PENDING"),
-          name: order.orderStatus || "PENDING",
-          color: getStatusColor(order.orderStatus || "PENDING"),
-        },
-        tracking_updates: [
-          {
-            time: order.createdAt || new Date().toISOString(),
-            status: order.orderStatus || "PENDING",
-            description: `Order ${(
-              order.orderStatus || "PENDING"
-            ).toLowerCase()}`,
+  const fetchOrders = useCallback(
+    async (page: number = 1, size: number = 10) => {
+      setLoading(true);
+      try {
+        // Get user from localStorage
+        const userStr = localStorage.getItem("user");
+        if (!userStr) {
+          console.error("User not found in localStorage");
+          return;
+        }
+        const user = JSON.parse(userStr);
+        const response = await orderApi.getOrdersByUserPaginated(
+          user.id,
+          page,
+          size
+        );
+
+        const formattedOrders: Order[] = response.data.map((order) => ({
+          id: order.orderId?.toString() || "N/A",
+          created_at: order.createdAt || new Date().toISOString(),
+          store_name: `Store ${order.storeId || "Unknown"}`,
+          shipping_address: order.deliveryAddress || "No address provided",
+          total_items: order.totalItems || 0,
+          cod_amount: 0, // Not available in the API
+          shipping_fee: order.deliveryFee || 0,
+          status: {
+            id: getStatusId(order.orderStatus || "PENDING"),
+            name: order.orderStatus || "PENDING",
+            color: getStatusColor(order.orderStatus || "PENDING"),
           },
-        ],
-      }));
+          tracking_updates: [
+            {
+              time: order.createdAt || new Date().toISOString(),
+              status: order.orderStatus || "PENDING",
+              description: `Order ${(
+                order.orderStatus || "PENDING"
+              ).toLowerCase()}`,
+            },
+          ],
+        }));
 
-      setOrders(formattedOrders);
-      setTotalRecords(response.totalRecords);
-      setCurrentPage(response.pageNumber);
-    } catch (error) {
-      console.error("Failed to fetch orders:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setOrders(formattedOrders);
+        setTotalRecords(response.totalRecords);
+        setCurrentPage(response.pageNumber);
+
+        // Lấy storeId từ đơn hàng đầu tiên để sử dụng cho search
+        if (response.data.length > 0 && !storeId) {
+          setStoreId(response.data[0].storeId);
+        }
+      } catch (error) {
+        console.error("Failed to fetch orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [storeId]
+  );
 
   useEffect(() => {
     fetchOrders(currentPage, pageSize);
   }, [currentPage, pageSize]);
+
+  // Effect để xử lý tìm kiếm
+  useEffect(() => {
+    const searchOrders = async () => {
+      if (searchText.trim() && storeId) {
+        // Kiểm tra xem searchText có phải là số không (orderId)
+        const orderIdNumber = parseInt(searchText.trim());
+        if (!isNaN(orderIdNumber)) {
+          try {
+            setLoading(true);
+            const searchResults = await orderApi.searchOrdersByStoreAndOrderId(
+              storeId,
+              orderIdNumber
+            );
+
+            // Format kết quả search giống như fetchOrders
+            const formattedSearchResults: Order[] = searchResults.map(
+              (order) => ({
+                id: order.orderId?.toString() || "N/A",
+                created_at: order.createdAt || new Date().toISOString(),
+                store_name: `Store ${order.storeId || "Unknown"}`,
+                shipping_address:
+                  order.deliveryAddress || "No address provided",
+                total_items: order.totalItems || 0,
+                cod_amount: 0,
+                shipping_fee: order.deliveryFee || 0,
+                status: {
+                  id: getStatusId(order.orderStatus || "PENDING"),
+                  name: order.orderStatus || "PENDING",
+                  color: getStatusColor(order.orderStatus || "PENDING"),
+                },
+                tracking_updates: [
+                  {
+                    time: order.createdAt || new Date().toISOString(),
+                    status: order.orderStatus || "PENDING",
+                    description: `Order ${(
+                      order.orderStatus || "PENDING"
+                    ).toLowerCase()}`,
+                  },
+                ],
+              })
+            );
+
+            setOrders(formattedSearchResults);
+            setTotalRecords(formattedSearchResults.length);
+            setLoading(false);
+          } catch (error) {
+            console.error("Search failed:", error);
+            setLoading(false);
+            messageApi.error("Tìm kiếm thất bại");
+          }
+        }
+      } else if (searchText.trim() === "") {
+        // Nếu search text rỗng, load lại danh sách ban đầu
+        fetchOrders(currentPage, pageSize);
+      }
+    };
+
+    // Debounce search để tránh gọi API liên tục
+    const timeoutId = setTimeout(searchOrders, 500);
+    return () => clearTimeout(timeoutId);
+  }, [searchText, storeId, currentPage, pageSize, messageApi]);
 
   const showTrackingModal = (order: Order) => {
     setSelectedOrder(order);
@@ -289,20 +362,24 @@ export default function OrdersPage() {
           dataSource={orders}
           loading={loading}
           rowKey="id"
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: totalRecords,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} của ${total} đơn hàng`,
-            position: ["bottomCenter"],
-            onChange: (page, size) => {
-              setCurrentPage(page);
-              setPageSize(size || 10);
-            },
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50"],
-          }}
+          pagination={
+            searchText.trim()
+              ? false
+              : {
+                  current: currentPage,
+                  pageSize: pageSize,
+                  total: totalRecords,
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} của ${total} đơn hàng`,
+                  position: ["bottomCenter"],
+                  onChange: (page, size) => {
+                    setCurrentPage(page);
+                    setPageSize(size || 10);
+                  },
+                  showSizeChanger: true,
+                  pageSizeOptions: ["10", "20", "50"],
+                }
+          }
         />
 
         {/* Tracking Modal */}
