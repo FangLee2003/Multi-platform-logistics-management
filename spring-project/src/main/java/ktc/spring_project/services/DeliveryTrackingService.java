@@ -49,6 +49,10 @@ public class DeliveryTrackingService {
         deliveryTrackingRepository.deleteById(id);
     }
     
+    public List<DeliveryTracking> findByVehicleIdAndDeliveryId(Long vehicleId, Long deliveryId) {
+        return deliveryTrackingRepository.findByVehicleIdAndDeliveryId(vehicleId, deliveryId);
+    }
+    
     /**
      * Update the location and optionally the status of a delivery
      */

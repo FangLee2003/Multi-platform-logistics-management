@@ -17,16 +17,28 @@ export default function VehicleList() {
 
   // Compute status logic: MAINTENANCE > IN_USE (if has driver) > AVAILABLE
   // Map numeric status to string
-  const statusMap: Record<string | number, 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE'> = {
+  const statusMap: Record<string | number, 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING'> = {
     17: 'AVAILABLE',
     18: 'IN_USE',
     19: 'MAINTENANCE',
+    51: 'MAINTENANCE_PENDING',
     'AVAILABLE': 'AVAILABLE',
     'IN_USE': 'IN_USE',
     'MAINTENANCE': 'MAINTENANCE',
+    'MAINTENANCE_PENDING': 'MAINTENANCE_PENDING',
   };
 
-  const getComputedStatus = (vehicle: Vehicle): 'MAINTENANCE' | 'IN_USE' | 'AVAILABLE' => {
+  const getComputedStatus = (vehicle: Vehicle): 'MAINTENANCE' | 'IN_USE' | 'AVAILABLE' | 'MAINTENANCE_PENDING' => {
+    // Ưu tiên trạng thái cần bảo trì
+    if (
+      vehicle.status === 'MAINTENANCE_PENDING' ||
+      vehicle.status === 51 ||
+      vehicle.status === '51' ||
+      (typeof vehicle.status === 'object' && vehicle.status !== null && vehicle.status.id === 51) ||
+      (typeof vehicle.status === 'object' && vehicle.status !== null && vehicle.status.name === 'MAINTENANCE_PENDING')
+    ) {
+      return 'MAINTENANCE_PENDING';
+    }
     if (vehicle.status !== undefined && vehicle.status !== null) {
       const mapped = statusMap[vehicle.status];
       if (mapped) return mapped;
@@ -98,26 +110,32 @@ export default function VehicleList() {
       if (!selectedDriverId) {
         // Nếu chọn 'Chưa gán tài xế', gửi driverId là null
         await assignDriverToVehicle(selectedVehicle.id, null);
+        // Nếu bỏ gán tài xế, chuyển trạng thái về AVAILABLE
+        await updateVehicleStatus(selectedVehicle.id, "AVAILABLE");
         setAssignSuccess("Đã bỏ gán tài xế!");
       } else {
         const driverObj = drivers.find(d => String(d.id) === String(selectedDriverId));
         if (!driverObj) throw new Error("Không tìm thấy tài xế");
         await assignDriverToVehicle(selectedVehicle.id, driverObj.id ?? "");
+        // Sau khi gán tài xế, chuyển trạng thái xe sang IN_USE
+        await updateVehicleStatus(selectedVehicle.id, "IN_USE");
         setAssignSuccess("Gán tài xế thành công!");
       }
-      // Refresh vehicles after assignment
+      // Refresh vehicles after assignment (local, context, và dashboard fleet)
       fetchVehicles(currentPage, itemsPerPage);
-      
-      console.log('🔄 VehicleList: Refreshing cache after driver assignment...');
-      // Force refetch React Query cache để các component khác cũng cập nhật ngay lập tức
       queryClient.refetchQueries({ queryKey: ['vehicles'] });
-      queryClient.refetchQueries({ queryKey: ['ordersForList'] }); // Cập nhật OrderList
-      console.log('✅ VehicleList: Cache refreshed successfully');
-      
-      // Cập nhật Context vehicles
+      queryClient.refetchQueries({ queryKey: ['ordersForList'] });
       refreshContextVehicles(true);
-      console.log('✅ VehicleList: Cache refreshed successfully');
-      
+      // Gọi thêm hàm cập nhật dashboard fleet nếu có (với delay để backend cập nhật)
+      setTimeout(() => {
+        if (window && typeof window.dispatchEvent === 'function') {
+          window.dispatchEvent(new CustomEvent('vehicleAssignmentChanged'));
+        }
+        // Gọi trực tiếp refreshVehicles của FleetDashboard nếu có
+        if (window && (window as any).fleetDashboardRefresh) {
+          (window as any).fleetDashboardRefresh();
+        }
+      }, 500); // Delay 500ms để backend cập nhật
       setTimeout(() => {
         closeAssignModal();
       }, 1000);
@@ -221,6 +239,15 @@ export default function VehicleList() {
       icon: '',
     };
     switch (computedStatus) {
+      case 'MAINTENANCE_PENDING':
+        badgeProps = {
+          color: 'red-800',
+          text: 'Cần bảo trì',
+          border: 'red-200',
+          bg: 'red-100',
+          icon: 'red-500',
+        };
+        break;
       case 'AVAILABLE':
         badgeProps = {
           color: 'green-800',
@@ -547,8 +574,10 @@ export default function VehicleList() {
                     >
                       <option value="">-- Chưa gán tài xế --</option>
                       {drivers.filter(driver => {
-                        // Chỉ cho phép tài xế chưa gán cho xe nào hoặc đang gán cho chính xe này
-                        const isAssigned = vehicles.some(v => v.currentDriver?.id === driver.id);
+                        // Lọc theo toàn bộ danh sách xe từ context (không chỉ trang hiện tại)
+                        // Đảm bảo tài xế đã gán cho bất kỳ xe nào cũng không xuất hiện, trừ khi đang là currentDriver của xe đang chọn
+                        const { vehicles: allVehicles } = useDispatcherContext();
+                        const isAssigned = allVehicles.some(v => v.currentDriver?.id === driver.id);
                         const isCurrent = selectedVehicle?.currentDriver?.id === driver.id;
                         return !isAssigned || isCurrent;
                       }).map(driver => (
