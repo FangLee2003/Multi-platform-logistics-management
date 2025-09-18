@@ -40,6 +40,15 @@ const { TextArea } = Input;
 interface EstimateForm {
   pickupAddress: string;
   deliveryAddress: string;
+  // Thêm các field cho địa chỉ giao hàng chi tiết
+  provinceCode?: string;
+  districtCode?: string;
+  wardCode?: string;
+  streetAddress?: string;
+  city?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
   weight: number;
   distance: number;
   // Thêm các field cho địa chỉ mới
@@ -464,7 +473,7 @@ export default function EstimatePage() {
   };
 
   return (
-    <Card>
+    <Card loading={loading}>
       <Title level={2}>Ước tính phí vận chuyển</Title>
       <Form
         form={form}
@@ -663,6 +672,176 @@ export default function EstimatePage() {
           </Col>
         </Row>
 
+        {/* Địa chỉ giao hàng - Full width */}
+        <Row gutter={[24, 16]}>
+          <Col xs={24}>
+            <Form.Item label="Địa chỉ giao hàng" required>
+              {/* Hidden fields for backend */}
+              <Form.Item name="city" style={{ display: "none" }}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="address" style={{ display: "none" }}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="latitude" style={{ display: "none" }}>
+                <InputNumber style={{ width: "100%" }} />
+              </Form.Item>
+              <Form.Item name="longitude" style={{ display: "none" }}>
+                <InputNumber style={{ width: "100%" }} />
+              </Form.Item>
+              <Form.Item name="provinceCode" style={{ display: "none" }}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="districtCode" style={{ display: "none" }}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="wardCode" style={{ display: "none" }}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="streetAddress" style={{ display: "none" }}>
+                <Input />
+              </Form.Item>
+
+              <Form.Item
+                name="deliveryAddress"
+                rules={[
+                  {
+                    required: true,
+                    message: "Vui lòng nhập địa chỉ giao hàng!",
+                  },
+                ]}
+              >
+                <Input
+                  placeholder="Địa chỉ sẽ hiển thị sau khi chọn tỉnh/huyện/xã"
+                  value={addressValue}
+                  readOnly
+                  style={{
+                    marginBottom: 16,
+                    borderRadius: 6,
+                    backgroundColor: addressValue ? "#f5f5f5" : "#fff",
+                    cursor: "default",
+                  }}
+                  suffix={
+                    addressValue ? (
+                      <CloseCircleOutlined
+                        onClick={handleClearAddress}
+                        style={{ cursor: "pointer", color: "#999" }}
+                      />
+                    ) : null
+                  }
+                />
+              </Form.Item>
+
+              {/* Hiển thị tọa độ nếu có */}
+              {coordinates.latitude && coordinates.longitude && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#52c41a",
+                    marginBottom: 12,
+                    padding: "4px 8px",
+                    background: "#f6ffed",
+                    borderRadius: 4,
+                    border: "1px solid #b7eb8f",
+                  }}
+                >
+                  📍 Tọa độ: {coordinates.latitude.toFixed(6)},{" "}
+                  {coordinates.longitude.toFixed(6)}
+                </div>
+              )}
+
+              <Row gutter={[12, 12]}>
+                <Col xs={24} sm={12}>
+                  <Select
+                    placeholder="Tỉnh/Thành phố"
+                    style={{ width: "100%" }}
+                    value={selectedProvince || undefined}
+                    onChange={handleProvinceChange}
+                    showSearch
+                    filterOption={(input, option) =>
+                      option?.label
+                        ?.toString()
+                        .toLowerCase()
+                        .includes(input.toLowerCase()) ?? false
+                    }
+                  >
+                    {provinces.map((province) => (
+                      <Select.Option
+                        key={province.code}
+                        value={province.code}
+                        label={province.name}
+                      >
+                        {province.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Select
+                    placeholder="Huyện/Quận"
+                    style={{ width: "100%" }}
+                    value={selectedDistrict || undefined}
+                    onChange={handleDistrictChange}
+                    disabled={!selectedProvince}
+                    showSearch
+                    filterOption={(input, option) =>
+                      option?.label
+                        ?.toString()
+                        .toLowerCase()
+                        .includes(input.toLowerCase()) ?? false
+                    }
+                  >
+                    {districts.map((district) => (
+                      <Select.Option
+                        key={district.code}
+                        value={district.code}
+                        label={district.name}
+                      >
+                        {district.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Select
+                    placeholder="Xã/Phường"
+                    style={{ width: "100%" }}
+                    value={selectedWard || undefined}
+                    onChange={handleWardChange}
+                    disabled={!selectedDistrict}
+                    showSearch
+                    filterOption={(input, option) =>
+                      option?.label
+                        ?.toString()
+                        .toLowerCase()
+                        .includes(input.toLowerCase()) ?? false
+                    }
+                  >
+                    {wards.map((ward) => (
+                      <Select.Option
+                        key={ward.code}
+                        value={ward.code}
+                        label={ward.name}
+                      >
+                        {ward.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Input
+                    placeholder="Đường/Thôn/Xóm/Số nhà"
+                    style={{ width: "100%" }}
+                    value={streetAddress}
+                    onChange={handleStreetAddressChange}
+                  />
+                </Col>
+              </Row>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* Thông tin kích thước và khối lượng */}
         <Row gutter={[24, 0]}>
           <Col xs={24} md={12}>
             <Form.Item
