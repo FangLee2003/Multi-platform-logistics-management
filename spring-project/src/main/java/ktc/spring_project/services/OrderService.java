@@ -127,6 +127,32 @@ public class OrderService {
         }
     }
 
+    public List<Order> getRecentOrders(int limit) {
+        try {
+            log.debug("Getting recent orders with limit: {}", limit);
+            
+            Pageable pageable = PageRequest.of(0, limit, Sort.by("createdAt").descending());
+            Page<Order> page = orderRepository.findAll(pageable);
+            return page.getContent();
+            
+        } catch (Exception e) {
+            throw new HttpException("Failed to get recent orders: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public Page<Order> getAllOrdersPaginated(int page, int size) {
+        try {
+            log.debug("Getting all orders paginated: page={}, size={}", page, size);
+            
+            // Lấy tất cả orders, sắp xếp theo ID để đảm bảo tính nhất quán
+            Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+            return orderRepository.findAll(pageable);
+            
+        } catch (Exception e) {
+            throw new HttpException("Failed to get paginated orders: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     public Page<Order> getOrdersPaginated(int page, int size) {
         try {
             validatePaginationParams(page, size);
