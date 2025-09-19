@@ -37,8 +37,4 @@
 //   );
 // });
 
-<<<<<<< HEAD
-export default VehicleList;
-=======
 // export default VehicleList;
->>>>>>> dd820b7dec040ef3e189b718e7431eec3e2d3d00
