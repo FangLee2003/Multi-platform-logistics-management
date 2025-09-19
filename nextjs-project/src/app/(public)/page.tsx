@@ -1,8 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrderByTrackingCodeApi } from "../../server/order.api";
+import { getOrderTrackingApi } from "../../server/order.api";
 import { useRouter, useSearchParams } from "next/navigation";
+
+// Format ISO date string to Vietnamese readable format
+const formatDate = (isoString: string) => {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  return date.toLocaleString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+};
 
 export default function PublicHome() {
   const router = useRouter();
@@ -13,7 +26,6 @@ export default function PublicHome() {
     status: string;
     from: string;
     to: string;
-    currentLocation: string;
     estimatedDelivery: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -59,20 +71,20 @@ export default function PublicHome() {
 
     setIsLoading(true);
     try {
-      const res = await getOrderByTrackingCodeApi(trackingCode);
+      const res = await getOrderTrackingApi(trackingCode);
       if (!res.ok) {
         setTrackingResult(null);
         setIsLoading(false);
         alert("Order not found!");
         return;
       }
-      const order = await res.json();
+  const order = await res.json();
+  console.log("Order tracking data:", order);
       setTrackingResult({
-        code: order.id,
-        status: order.status?.name || "Unknown",
-        from: order.store?.address || "",
-        to: order.address?.address || "",
-        currentLocation: order.status?.statusType || "",
+        code: order.orderId,
+        status: order.status || "Unknown",
+  from: order.storeAddress || "",
+        to: order.address || "",
         estimatedDelivery: order.estimatedDelivery || ""
       });
       setIsLoading(false);
@@ -113,10 +125,21 @@ export default function PublicHome() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-green-700 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div
+      className="relative min-h-screen w-full flex items-center justify-center"
+      style={{
+        backgroundImage: 'url(/login.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Overlay blur */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-0" />
+      {/* Main content glassmorphism */}
+      <div className="relative z-10 w-full">
+  {/* Header */}
+  <header className="bg-green-700 shadow-md rounded-b-2xl bg-opacity-80 backdrop-blur-md w-full">
+    <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <span className="ml-2 text-xl font-bold text-white">Fast Route</span>
@@ -165,9 +188,11 @@ export default function PublicHome() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
+      <main className="flex-1 flex items-center justify-center px-0 py-12 w-full">
+        {/* Glassmorphism card full screen */}
+  <div className="w-full rounded-2xl bg-white shadow-2xl p-8 mx-auto">
+  {/* Hero Section */}
+  <div className="text-center mb-12 w-full">
           <h1 className="text-4xl font-bold text-green-700 mb-4">
             Fast and reliable delivery service
           </h1>
@@ -176,8 +201,8 @@ export default function PublicHome() {
           </p>
         </div>
 
-        {/* Tracking Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-12">
+  {/* Tracking Section */}
+    <div className="bg-white rounded-2xl shadow-lg p-8 mb-12 backdrop-blur-md border border-gray-200">
           <div className="max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold text-green-700 mb-6 text-center">
               Track your order
@@ -214,7 +239,7 @@ export default function PublicHome() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-700">Estimated delivery:</p>
-                    <p className="font-semibold text-green-700">{trackingResult.estimatedDelivery}</p>
+                    <p className="font-semibold text-green-700">{formatDate(trackingResult.estimatedDelivery)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-700">From:</p>
@@ -224,18 +249,14 @@ export default function PublicHome() {
                     <p className="text-sm text-gray-700">To:</p>
                     <p className="font-semibold text-green-700">{trackingResult.to}</p>
                   </div>
-                  <div className="md:col-span-2">
-                    <p className="text-sm text-gray-700">Current location:</p>
-                    <p className="font-semibold text-green-700">{trackingResult.currentLocation}</p>
-                  </div>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+  {/* Features Section */}
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           <div className="text-center p-6 bg-white rounded-xl shadow-lg">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🚚</span>
@@ -259,8 +280,8 @@ export default function PublicHome() {
           </div>
         </div>
 
-        {/* Call to Action */}
-        <div className="bg-gradient-to-r from-green-700 to-green-900 rounded-2xl p-8 text-center text-white">
+  {/* Call to Action */}
+  <div className="bg-gradient-to-r from-green-700 to-green-900 rounded-2xl p-8 text-center text-white bg-opacity-90 backdrop-blur-md">
           <h2 className="text-3xl font-bold mb-4">Start shipping today</h2>
           <p className="text-xl mb-6">Sign up to experience the best service</p>
           <div className="flex gap-4 justify-center">
@@ -278,10 +299,11 @@ export default function PublicHome() {
             </button>
           </div>
         </div>
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-black text-white py-12 mt-16">
+  {/* Footer */}
+  <footer className="bg-black/80 text-white py-12 mt-16 rounded-t-2xl backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -318,6 +340,7 @@ export default function PublicHome() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 }

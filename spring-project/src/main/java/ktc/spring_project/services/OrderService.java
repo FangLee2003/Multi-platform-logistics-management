@@ -14,6 +14,7 @@ import ktc.spring_project.repositories.StatusRepository;
 import ktc.spring_project.repositories.StoreRepository;
 import ktc.spring_project.repositories.UserRepository;
 import ktc.spring_project.repositories.VehicleRepository;
+import ktc.spring_project.repositories.DeliveryRepository;
 import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.HttpException;
@@ -56,6 +57,9 @@ public class OrderService {
     @Autowired
     private VehicleRepository vehicleRepository;
 
+    @Autowired
+    private DeliveryRepository deliveryRepository;
+
     public Order createOrderFromDTO(ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO dto) {
         try {
             log.debug("Creating order from DTO: {}", dto);
@@ -67,7 +71,9 @@ public class OrderService {
             }
 
             Order order = buildOrderFromDTO(dto);
-            return createOrder(order);
+            Order createdOrder = createOrder(order);
+            
+            return createdOrder;
 
         } catch (EntityDuplicateException | HttpException e) {
             throw e;
@@ -284,7 +290,14 @@ public class OrderService {
         order.setOrderCode(dto.getOrderCode());
         order.setDescription(dto.getDescription());
         order.setTotalAmount(dto.getTotalAmount());
-        order.setNotes(dto.getNotes());
+        
+        // Lưu thời gian buổi lấy hàng vào trường note
+        String notes = dto.getNotes() != null ? dto.getNotes() : "";
+        if (dto.getPickupTimePeriod() != null) {
+            notes = notes.isEmpty() ? dto.getPickupTimePeriod() : notes + " | Buổi lấy hàng: " + dto.getPickupTimePeriod();
+        }
+        order.setNotes(notes);
+        
         order.setBenefitPerOrder(BigDecimal.ZERO);
         order.setOrderProfitPerOrder(BigDecimal.ZERO);
 
@@ -354,8 +367,17 @@ public class OrderService {
         Map<String, Object> tracking = new HashMap<>();
         tracking.put("orderId", order.getId());
         tracking.put("status", order.getStatus() != null ? order.getStatus().getName() : null);
-        tracking.put("address", order.getAddress() != null ? order.getAddress().getAddress() : null);
-        tracking.put("currentLocation", order.getNotes());
+    tracking.put("address", order.getAddress() != null ? order.getAddress().getAddress() : null);
+    tracking.put("storeAddress", order.getStore() != null ? order.getStore().getAddress() : null);
+
+        // Lấy thông tin estimatedDelivery từ bảng Delivery
+        List<ktc.spring_project.entities.Delivery> deliveries = deliveryRepository.findByOrderId(order.getId());
+        if (deliveries != null && !deliveries.isEmpty()) {
+            ktc.spring_project.entities.Delivery delivery = deliveries.get(0);
+            tracking.put("estimatedDelivery", delivery.getScheduleDeliveryTime());
+        } else {
+            tracking.put("estimatedDelivery", null);
+        }
         tracking.put("updatedAt", order.getUpdatedAt() != null ? order.getUpdatedAt() : LocalDateTime.now());
         return tracking;
     }
@@ -510,6 +532,64 @@ public class OrderService {
             throw e;
         } catch (Exception e) {
             throw new HttpException("Failed to search orders by store ID and date range paginated: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Unified search method that supports multiple search criteria
+     * @param storeId - required, orders must belong to this store
+     * @param orderId - optional, exact match if provided
+     * @param fromDate - optional, start date if provided
+     * @param toDate - optional, end date if provided  
+     * @param statusList - optional, list of status names if provided
+     * @param page - page number (1-based)
+     * @param size - page size
+     * @return paginated search results
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdWithFiltersPaginated(
+            Long storeId, Long orderId, LocalDateTime fromDate, LocalDateTime toDate, 
+            List<String> statusList, int page, int size) {
+        try {
+            validateId(storeId, "Store ID");
+            validatePaginationParams(page, size);
+            log.debug("Unified search orders: storeId={}, orderId={}, fromDate={}, toDate={}, statusList={}, page={}, size={}", 
+                storeId, orderId, fromDate, toDate, statusList, page, size);
+            
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+            return orderRepository.findOrderSummariesByStoreIdWithFiltersPaginated(
+                storeId, orderId, fromDate, toDate, statusList, pageable);
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to search orders with filters: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Get order statistics by store ID
+     * @param storeId - the store ID to get statistics for
+     * @return OrderStatsDto with counts for total, processing, and completed orders
+     */
+    public ktc.spring_project.dtos.order.OrderStatsDto getOrderStatsByStoreId(Long storeId) {
+        try {
+            validateId(storeId, "Store ID");
+            log.debug("Getting order stats for storeId: {}", storeId);
+            
+            long totalOrders = orderRepository.countTotalOrdersByStoreId(storeId);
+            long processingOrders = orderRepository.countProcessingOrdersByStoreId(storeId);
+            long completedOrders = orderRepository.countCompletedOrdersByStoreId(storeId);
+            
+            return ktc.spring_project.dtos.order.OrderStatsDto.builder()
+                    .totalOrders(totalOrders)
+                    .processingOrders(processingOrders)
+                    .completedOrders(completedOrders)
+                    .build();
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to get order statistics: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

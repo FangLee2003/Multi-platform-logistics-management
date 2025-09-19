@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:ktc_logistics_driver/data/env/environment.dart';
 import 'package:ktc_logistics_driver/data/local_secure/secure_storage.dart';
+import 'package:ktc_logistics_driver/data/network/http_client.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery_detail_response.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery_status_update.dart';
@@ -12,26 +11,41 @@ class DeliveryServices {
   // Dependencies
   final Environment _env = Environment.getInstance();
   final SecureStorageFrave secureStorage = SecureStorageFrave();
+  late final HttpClient _httpClient;
 
   // Constructor
-  DeliveryServices();
+  DeliveryServices() {
+    _httpClient = HttpClient(baseUrl: _env.apiBaseUrl, secureStorage: secureStorage);
+  }
 
   /// Get driver ID from secure storage
   Future<int?> _getDriverId() async {
-    // Đọc driverId từ secure storage
     final driverId = await secureStorage.readDriverId();
     if (driverId == null || driverId == "0" || driverId.isEmpty) {
-      // Debug log
-      debugPrint('Warning: driverId not found in secure storage');
+      debugPrint('⚠️ DriverId not found, attempting recovery...');
+      
+      // Fallback: Try to use userId if available
+      final userId = await secureStorage.readUserId();
+      if (userId != null && userId.isNotEmpty && userId != "0") {
+        debugPrint('🔄 Using userId as fallback for driverId: $userId');
+        try {
+          final id = int.parse(userId);
+          // Save it as driverId for future use
+          await secureStorage.persistentDriverId(userId);
+          return id;
+        } catch (e) {
+          debugPrint('Error parsing userId: $e');
+        }
+      }
+      
+      debugPrint('❌ Cannot get driverId - login may be required');
       return null;
     }
 
     try {
-      final id = int.parse(driverId);
-      debugPrint('Using driverId from storage: $id');
-      return id;
+      return int.parse(driverId);
     } catch (e) {
-      debugPrint('Error parsing driverId: $e. Value was: $driverId');
+      debugPrint('Error parsing driverId: $e');
       return null;
     }
   }
@@ -68,58 +82,24 @@ class DeliveryServices {
       if (sortBy != null) queryParams['sortBy'] = sortBy;
       if (sortDirection != null) queryParams['sortDirection'] = sortDirection;
 
-      final queryString = queryParams.isNotEmpty
-          ? '?${queryParams.entries.map((e) => '${e.key}=${e.value}').join('&')}'
-          : '';
-
-      // Make sure to use consistent URL pattern
-      final url = '${_env.endpointBase}api/driver/$driverId/deliveries$queryString';
-      debugPrint('Fetching deliveries from: $url');
-
-      final resp = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
+      final response = await _httpClient.get<List<dynamic>>(
+        '/drivers/$driverId/deliveries',
+        queryParams: queryParams,
+        useCache: false,
+        timeout: const Duration(seconds: 30),
       );
 
-      debugPrint('Response status: ${resp.statusCode}');
-      if (resp.statusCode == 200) {
-        final responseBody = resp.body;
-        debugPrint('Response body length: ${responseBody.length} characters');
-        if (responseBody.isNotEmpty) {
-          try {
-            final List<dynamic> data = json.decode(responseBody);
-            debugPrint('Parsed JSON data with ${data.length} items');
-
-            final deliveries = <Delivery>[];
-            for (var i = 0; i < data.length; i++) {
-              try {
-                final delivery = Delivery.fromJson(data[i]);
-                deliveries.add(delivery);
-              } catch (e) {
-                debugPrint('Error parsing delivery at index $i: $e');
-                debugPrint('Problematic data: ${data[i]}');
-              }
-            }
-
-            debugPrint(
-                'Successfully parsed ${deliveries.length} out of ${data.length} deliveries');
-            return deliveries;
-          } catch (e) {
-            debugPrint('Error decoding JSON response: $e');
-            return [];
-          }
-        } else {
-          debugPrint('Empty response body');
-          return [];
+      final deliveries = <Delivery>[];
+      for (var i = 0; i < response.length; i++) {
+        try {
+          final delivery = Delivery.fromJson(response[i]);
+          deliveries.add(delivery);
+        } catch (e) {
+          debugPrint('Error parsing delivery at index $i: $e');
         }
-      } else {
-        debugPrint(
-            'Error getting driver deliveries: ${resp.statusCode} - ${resp.body}');
-        return [];
       }
+
+      return deliveries;
     } catch (e) {
       debugPrint('Error getting driver deliveries: $e');
       return [];
@@ -143,33 +123,14 @@ class DeliveryServices {
       return null;
     }
 
-    debugPrint(
-        'Attempting to get detail for delivery ID: $deliveryId (Driver ID: $driverId)');
-
     try {
-      // Đúng endpoint: http://localhost:8080/api/driver/:driverId/deliveries/:deliveryId
-      // apiBaseUrl đã chứa '/api' nên không thêm nữa
-      final url = '${_env.endpointBase}api/driver/$driverId/deliveries/$deliveryId';
-      debugPrint('Requesting delivery details from: $url');
-
-      final resp = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
+      final response = await _httpClient.get<Map<String, dynamic>>(
+        '/drivers/$driverId/deliveries/$deliveryId',
+        useCache: false,
+        timeout: const Duration(seconds: 30),
       );
 
-      debugPrint('Response status: ${resp.statusCode}');
-      if (resp.statusCode == 200) {
-        final data = json.decode(resp.body);
-        debugPrint('Successfully parsed response data');
-        return DeliveryDetailResponse.fromJson(data);
-      } else {
-        debugPrint(
-            'Error getting delivery detail: ${resp.statusCode} - ${resp.body}');
-        return null;
-      }
+      return DeliveryDetailResponse.fromJson(response);
     } catch (e) {
       debugPrint('Error getting delivery detail: $e');
       return null;
@@ -194,25 +155,13 @@ class DeliveryServices {
     }
 
     try {
-      final url =
-          '${_env.endpointBase}api/driver/$driverId/deliveries/$deliveryId/route';
-      debugPrint('Requesting route data from: $url');
-
-      final resp = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
+      final response = await _httpClient.get<Map<String, dynamic>>(
+        '/drivers/$driverId/deliveries/$deliveryId/route',
+        useCache: false,
+        timeout: const Duration(seconds: 30),
       );
 
-      if (resp.statusCode == 200) {
-        return json.decode(resp.body);
-      } else {
-        debugPrint(
-            'Error getting delivery route: ${resp.statusCode} - ${resp.body}');
-        return null;
-      }
+      return response;
     } catch (e) {
       debugPrint('Error getting delivery route: $e');
       return null;
@@ -239,26 +188,13 @@ class DeliveryServices {
     }
 
     try {
-      final url =
-          '${_env.endpointBase}api/driver/$driverId/deliveries/$deliveryId/status';
-      debugPrint('Updating delivery status at: $url');
+      final response = await _httpClient.patch<Map<String, dynamic>>(
+        '/drivers/$driverId/deliveries/$deliveryId/status',
+        body: statusUpdate.toJson(),
+        fromJson: (json) => json,
+      );
 
-      final resp = await http.patch(Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token'
-          },
-          body: json.encode(statusUpdate.toJson()));
-
-      if (resp.statusCode == 200) {
-        debugPrint('Delivery status updated successfully');
-        final data = json.decode(resp.body);
-        return Delivery.fromJson(data);
-      } else {
-        debugPrint(
-            'Error updating delivery status: ${resp.statusCode} - ${resp.body}');
-        return null;
-      }
+      return Delivery.fromJson(response);
     } catch (e) {
       debugPrint('Error updating delivery status: $e');
       return null;

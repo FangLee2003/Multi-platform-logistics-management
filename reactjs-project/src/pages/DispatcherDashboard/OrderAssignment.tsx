@@ -8,6 +8,7 @@ import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
 import { FaUserCog, FaCheck, FaTimes, FaCar } from "react-icons/fa";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
+import { trackingService } from "../../services/trackingService";
 // Import test function for development
 import { testDeliveryTrackingFlow } from "../../services/testDeliveryTracking";
 
@@ -63,6 +64,72 @@ export default function OrdersAssignment(_props: any) {
   const [editingOrders, setEditingOrders] = useState<{ [orderId: string]: boolean }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 5;
+
+  // Hàm tạo/cập nhật tracking cho đơn hàng
+  const createTrackingForOrder = async (orderId: number, vehicleId: number) => {
+    try {
+      // Lấy deliveryId từ orderId trước khi lưu tracking
+      let deliveryId = null;
+      try {
+        const deliveryResponse = await fetch(`http://localhost:8080/api/deliveries/order/${orderId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (deliveryResponse.ok) {
+          const deliveries = await deliveryResponse.json();
+          if (deliveries && deliveries.length > 0) {
+            deliveryId = deliveries[0].id;
+            console.log('🔍 OrderAssignment: Found deliveryId:', deliveryId, 'for orderId:', orderId);
+          }
+        }
+      } catch (error) {
+        console.error('❌ OrderAssignment: Error fetching delivery:', error);
+      }
+
+      if (!deliveryId) {
+        console.warn('⚠️ OrderAssignment: No delivery found, backend should have created one...');
+        return;
+      }
+
+      // Lấy thông tin order để có store coordinates
+      const order = data.find(o => o.id === orderId);
+      if (!order) return;
+
+      const trackingData = {
+        vehicleId: vehicleId,
+        deliveryId: deliveryId,
+        latitude: order.storeId ? 10.77653 : 10.762622, // Store latitude hoặc fallback
+        longitude: order.storeId ? 106.700981 : 106.660172, // Store longitude hoặc fallback
+        location: `Auto-created for order #${orderId}`,
+        notes: `Vehicle assigned to order #${orderId}`
+      };
+      
+      console.log('🔍 OrderAssignment: Creating tracking:', trackingData);
+      
+      // Tạo tracking record mới
+      const response = await fetch('http://localhost:8080/api/tracking/vehicle-location', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(trackingData)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ OrderAssignment: Tracking created successfully:', result);
+      } else {
+        const errorText = await response.text();
+        console.log('❌ OrderAssignment: Failed to create tracking:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('❌ OrderAssignment: Error in createTrackingForOrder:', error);
+    }
+  };
 
   // Development: Add test function to window for testing
   if (import.meta.env.DEV) {
@@ -200,8 +267,19 @@ export default function OrdersAssignment(_props: any) {
     try {
       // Gán xe cho đơn hàng
       await updateOrderVehicle(orderId, Number(selectedVehicle.id));
-      
-      console.log('🔄 OrderAssignment: Refreshing cache after vehicle assignment...');
+
+
+      // Sau khi gán xe thành công, tự động tạo/cập nhật tracking
+      const updatedOrder = data.find(o => o.id.toString() === orderId);
+      if (updatedOrder && selectedVehicle.id) {
+        try {
+          await createTrackingForOrder(updatedOrder.id, Number(selectedVehicle.id));
+          console.log('✅ OrderAssignment: Tracking created/updated successfully for order:', updatedOrder.id);
+        } catch (err) {
+          console.error('❌ OrderAssignment: Error creating tracking:', err);
+        }
+      }
+
       // Force refetch ngay lập tức tất cả các cache liên quan để đảm bảo dữ liệu mới nhất
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['orders', currentPage, PAGE_SIZE] }),
@@ -210,10 +288,10 @@ export default function OrdersAssignment(_props: any) {
         queryClient.invalidateQueries({ queryKey: ['ordersTotalQuantity'] })
       ]);
       console.log('✅ OrderAssignment: Cache refreshed successfully');
-      
+
       // Cập nhật selectedOrder nếu đây là order đang được chọn để tracking
       if (selectedOrder && selectedOrder.id.toString() === orderId) {
-        const updatedOrder = {
+        const updatedOrderObj = {
           ...selectedOrder,
           vehicle: {
             id: Number(selectedVehicle.id),
@@ -223,18 +301,16 @@ export default function OrdersAssignment(_props: any) {
             } : undefined,
           }
         };
-        console.log('🔄 OrderAssignment: Updating selectedOrder for map tracking:', updatedOrder);
-        setSelectedOrder(updatedOrder);
+        setSelectedOrder(updatedOrderObj);
       }
-      
+
       // Debug: Log updated order data
       setTimeout(() => {
         const updatedOrder = data.find(o => o.id.toString() === orderId);
         console.log('🔍 Updated order after assignment:', updatedOrder);
       }, 200);
-      
+
       // Chỉ reset local state sau khi data đã được cập nhật
-      // Delay một chút để đảm bảo UI cập nhật mượt mà
       setTimeout(() => {
         setSelectedVehicles(prev => {
           const newState = { ...prev };
@@ -246,10 +322,10 @@ export default function OrdersAssignment(_props: any) {
           delete newState[orderId];
           return newState;
         });
-      }, 100); // Delay 100ms để cache kịp cập nhật
-      
+      }, 100);
+
       const isEditing = editingOrders[orderId];
-      setSuccessMessage(`Vehicle ${selectedVehicle.licensePlate} ${isEditing ? 'updated' : 'assigned'} successfully to order ${orderId}! Delivery tracking initiated.`);
+      setSuccessMessage(`Vehicle ${selectedVehicle.licensePlate} ${isEditing ? 'updated' : 'assigned'} successfully to order ${orderId}! Delivery tracking auto-updated.`);
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Failed to assign vehicle:", error);

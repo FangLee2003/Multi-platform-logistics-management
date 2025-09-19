@@ -11,6 +11,12 @@ export interface OrderSummary {
   orderStatus: string;
 }
 
+export interface OrderStatsDto {
+  totalOrders: number;
+  processingOrders: number;
+  completedOrders: number;
+}
+
 export interface PaginatedOrderSummaryResponse {
   data: OrderSummary[];
   pageNumber: number;
@@ -80,7 +86,7 @@ export const orderApi = {
     size: number = 10
   ): Promise<PaginatedOrderSummaryResponse> => {
     const { data } = await axios.get<PaginatedOrderSummaryResponse>(
-      `http://localhost:8080/api/orders/search?storeId=${storeId}&orderId=${orderId}&page=${page}&size=${size}`
+      `http://localhost:8080/api/orders/search-by-order-id?storeId=${storeId}&orderId=${orderId}&page=${page}&size=${size}`
     );
     return data;
   },
@@ -103,6 +109,64 @@ export const orderApi = {
     }
 
     const { data } = await axios.get<PaginatedOrderSummaryResponse>(url);
+    return data;
+  },
+
+  /**
+   * Unified search API that supports multiple search criteria
+   * @param storeId - required, orders must belong to this store
+   * @param orderId - optional, exact match if provided
+   * @param fromDate - optional, start date (YYYY-MM-DD format)
+   * @param toDate - optional, end date (YYYY-MM-DD format)
+   * @param statusList - optional, array of status names for multiple selection
+   * @param page - page number (1-based)
+   * @param size - page size
+   */
+  searchOrdersUnified: async (
+    storeId: number,
+    page: number = 1,
+    size: number = 10,
+    orderId?: number,
+    fromDate?: string,
+    toDate?: string,
+    statusList?: string[]
+  ): Promise<PaginatedOrderSummaryResponse> => {
+    let url = `http://localhost:8080/api/orders/search?storeId=${storeId}&page=${page}&size=${size}`;
+
+    if (orderId) {
+      url += `&orderId=${orderId}`;
+    }
+
+    if (fromDate) {
+      url += `&fromDate=${fromDate}`;
+    }
+
+    if (toDate) {
+      url += `&toDate=${toDate}`;
+    }
+
+    if (statusList && statusList.length > 0) {
+      // Add multiple status parameters
+      statusList.forEach((status) => {
+        if (status && status.trim()) {
+          url += `&status=${encodeURIComponent(status)}`;
+        }
+      });
+    }
+
+    const { data } = await axios.get<PaginatedOrderSummaryResponse>(url);
+    return data;
+  },
+
+  /**
+   * Get order statistics for a user
+   * @param userId - the user ID to get statistics for
+   * @returns OrderStatsDto with total, processing, and completed order counts
+   */
+  getUserOrderStats: async (userId: number): Promise<OrderStatsDto> => {
+    const { data } = await axios.get<OrderStatsDto>(
+      `http://localhost:8080/api/orders/user/${userId}/stats`
+    );
     return data;
   },
 

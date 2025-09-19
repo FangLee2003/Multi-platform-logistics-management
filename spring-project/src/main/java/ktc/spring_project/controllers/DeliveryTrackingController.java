@@ -44,6 +44,8 @@ public class DeliveryTrackingController {
         public Double longitude;
         public Long vehicleId;
         public String timestamp;
+        public String location;
+        public String notes;
         public TrackingPointDTO() {}
         public TrackingPointDTO(DeliveryTracking tracking) {
             this.id = tracking.getId();
@@ -51,6 +53,8 @@ public class DeliveryTrackingController {
             this.longitude = tracking.getLongitude() != null ? tracking.getLongitude().doubleValue() : null;
             this.vehicleId = tracking.getVehicle() != null ? tracking.getVehicle().getId() : null;
             this.timestamp = tracking.getTimestamp() != null ? tracking.getTimestamp().toString() : null;
+            this.location = tracking.getLocation();
+            this.notes = tracking.getNotes();
         }
     }
 
@@ -396,5 +400,86 @@ public class DeliveryTrackingController {
         }
 
         return ResponseEntity.ok(updatedTrackings);
+    }
+
+    /**
+     * Check if tracking exists for vehicle and delivery
+     */
+    @GetMapping("/vehicle/{vehicleId}/delivery/{deliveryId}")
+    public ResponseEntity<TrackingPointDTO> getTrackingByVehicleAndDelivery(
+            @PathVariable Long vehicleId, 
+            @PathVariable Long deliveryId) {
+        try {
+            // Tìm tracking record theo vehicleId và deliveryId
+            List<DeliveryTracking> trackings = deliveryTrackingService.findByVehicleIdAndDeliveryId(vehicleId, deliveryId);
+            
+            if (trackings != null && !trackings.isEmpty()) {
+                // Lấy tracking mới nhất
+                DeliveryTracking latest = trackings.get(trackings.size() - 1);
+                TrackingPointDTO dto = new TrackingPointDTO(latest);
+                return ResponseEntity.ok(dto);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            log.error("Error finding tracking for vehicle {} and delivery {}: {}", vehicleId, deliveryId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Update existing tracking record
+     */
+    @PutMapping("/vehicle-location/{trackingId}")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> updateExistingVehicleLocation(
+            @PathVariable Long trackingId,
+            @RequestBody Map<String, Object> locationData) {
+        try {
+            // Tìm tracking record hiện tại
+            DeliveryTracking existingTracking = deliveryTrackingService.findById(trackingId)
+                .orElseThrow(() -> new RuntimeException("Tracking record not found with ID: " + trackingId));
+
+            // Cập nhật thông tin mới
+            existingTracking.setLatitude(new BigDecimal(locationData.get("latitude").toString()));
+            existingTracking.setLongitude(new BigDecimal(locationData.get("longitude").toString()));
+            existingTracking.setTimestamp(Timestamp.from(Instant.now()));
+
+            if (locationData.containsKey("location")) {
+                existingTracking.setLocation((String) locationData.get("location"));
+            }
+            if (locationData.containsKey("notes")) {
+                existingTracking.setNotes((String) locationData.get("notes"));
+            }
+            if (locationData.containsKey("statusId")) {
+                existingTracking.setStatusId(Integer.valueOf(locationData.get("statusId").toString()));
+            }
+
+            log.info("🔄 Updating existing tracking: id={}, vehicleId={}, deliveryId={}, lat={}, lng={}", 
+                trackingId, existingTracking.getVehicle().getId(), existingTracking.getDelivery().getId(),
+                existingTracking.getLatitude(), existingTracking.getLongitude());
+
+            DeliveryTracking updated = deliveryTrackingService.save(existingTracking);
+            
+            log.info("✅ Tracking updated successfully: id={}", updated.getId());
+
+            Map<String, Object> result = new java.util.HashMap<>();
+            result.put("success", true);
+            result.put("message", "Vehicle location updated successfully");
+            result.put("trackingId", updated.getId());
+            result.put("vehicleId", updated.getVehicle().getId());
+            result.put("deliveryId", updated.getDelivery().getId());
+            result.put("latitude", updated.getLatitude());
+            result.put("longitude", updated.getLongitude());
+            result.put("timestamp", updated.getTimestamp());
+            result.put("location", updated.getLocation());
+            result.put("notes", updated.getNotes());
+            result.put("statusId", updated.getStatusId());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error updating tracking record {}: {}", trackingId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to update vehicle location: " + e.getMessage()));
+        }
     }
 }

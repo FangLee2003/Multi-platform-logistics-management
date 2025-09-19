@@ -99,7 +99,7 @@ export default function CreateOrder() {
         return;
       }
 
-      if (!mergedValues.pickup_date || !mergedValues.pickup_time_slot) {
+      if (!mergedValues.pickup_date || !mergedValues.pickup_time_period) {
         message.error("Vui lòng chọn thời gian lấy hàng!");
         return;
       }
@@ -108,7 +108,22 @@ export default function CreateOrder() {
 
       try {
         // BƯỚC 1: Lưu Address
-        const addressPayload = createAddressPayload(mergedValues);
+        console.log("📍 Creating address with values:", mergedValues);
+        
+        // Tạo payload chỉ với những field cần thiết cho address
+        const addressOnlyValues = {
+          addressType: mergedValues.addressType,
+          address: mergedValues.address,
+          city: mergedValues.city,
+          receiver_name: mergedValues.receiver_name,
+          receiver_phone: mergedValues.receiver_phone,
+          receiver_email: mergedValues.receiver_email,
+          latitude: mergedValues.latitude,
+          longitude: mergedValues.longitude,
+        };
+        
+        const addressPayload = createAddressPayload(addressOnlyValues);
+        console.log("📍 Address payload:", addressPayload);
         const addressResult = await OrderFlowService.createAddress(
           addressPayload
         );

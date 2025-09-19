@@ -22,24 +22,49 @@ const typeOptions = [
   { value: "", label: "Chọn loại" },
   { value: "Bảo dưỡng định kỳ", label: "Bảo dưỡng định kỳ" },
   { value: "Sửa chữa", label: "Sửa chữa" },
+  { value: "Sửa chữa khẩn cấp", label: "Sửa chữa khẩn cấp" },
 ];
 
 interface MaintenanceFormProps {
   onAddMaintenance?: (data: ScheduleForm) => void;
   onMaintenanceCreated?: () => void; // Add callback to refresh data
+  initialVehicle?: Vehicle;
+  initialDescription?: string;
+  initialType?: string;
+  initialMaintenanceId?: number;
 }
 
-export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated }: MaintenanceFormProps) {
+import axios from 'axios';
+
+export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated, initialVehicle, initialDescription, initialType, initialMaintenanceId }: MaintenanceFormProps) {
+  const isEmergency = Boolean(initialType || initialDescription);
   const [form, setForm] = useState<ScheduleForm>({
-    vehicle: "",
-    type: "",
-    description: "",
+    vehicle: initialVehicle?.id?.toString() || "",
+    type: initialType || "",
+    description: initialDescription || "",
     date: "",
     cost: "0",
     nextMaintenance: "",
     statusId: "19", // Mặc định là "Đang bảo trì"
     notes: "",
   });
+
+  // Khi props thay đổi (mở modal mới), tự động fill lại form
+
+  useEffect(() => {
+    console.log('DEBUG MaintenanceForm useEffect triggered with:', {
+      initialVehicle: initialVehicle?.licensePlate,
+      initialType,
+      initialDescription,
+      isEmergency: Boolean(initialType || initialDescription)
+    });
+    setForm(f => ({
+      ...f,
+      vehicle: initialVehicle?.id?.toString() || "",
+      type: initialType || "",
+      description: initialDescription || "",
+    }));
+  }, [initialVehicle, initialDescription, initialType]);
 // const statusOptions = [
 //   { value: "1", label: "Chờ xử lý" },
 //   { value: "2", label: "Đang thực hiện" },
@@ -76,19 +101,46 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Debug: Log để kiểm tra initialMaintenanceId
+      console.log('DEBUG MaintenanceForm handleSubmit:', {
+        initialMaintenanceId,
+        hasId: Boolean(initialMaintenanceId),
+        formData: form
+      });
+
       // Gửi dữ liệu lên API để lưu vào database
       // Chuyển đổi ngày sang định dạng yyyy-MM-ddTHH:mm:ss
       const toDateTime = (date: string) => date ? `${date}T00:00:00` : '';
-      await createVehicleMaintenance({
-        vehicle: { id: Number(form.vehicle) },
-        maintenanceDate: toDateTime(form.date),
-        nextDueDate: toDateTime(form.nextMaintenance),
-        maintenanceType: form.type,
-        description: form.description,
-        cost: form.cost ? Number(form.cost) : undefined,
-        notes: form.notes,
-        status: { id: 19 }, // gửi status object thay vì statusId
-      });
+      
+      if (initialMaintenanceId) {
+        console.log('DEBUG: Updating existing maintenance request with ID:', initialMaintenanceId);
+        // PUT cập nhật maintenance request
+        await axios.put(`/api/maintenance-requests/${initialMaintenanceId}`, {
+          statusId: Number(form.statusId),
+          scheduledMaintenanceDate: toDateTime(form.date),
+          cost: form.cost ? Number(form.cost) : undefined,
+          notes: form.notes,
+          nextDueDate: toDateTime(form.nextMaintenance), // Sửa từ next_due_date thành nextDueDate
+          maintenanceType: form.type,
+          description: form.description,
+        }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        console.log('DEBUG: Successfully updated maintenance request');
+      } else {
+        console.log('DEBUG: Creating new maintenance request');
+        await createVehicleMaintenance({
+          vehicle: { id: Number(form.vehicle) },
+          maintenanceDate: toDateTime(form.date),
+          nextDueDate: toDateTime(form.nextMaintenance),
+          maintenanceType: form.type,
+          description: form.description,
+          cost: form.cost ? Number(form.cost) : undefined,
+          notes: form.notes,
+          status: { id: Number(form.statusId) },
+        });
+        console.log('DEBUG: Successfully created new maintenance request');
+      }
 
       // Cập nhật trạng thái xe thành MAINTENANCE sau khi tạo lịch bảo trì thành công
       await updateVehicleStatus(form.vehicle, 'MAINTENANCE');
@@ -126,7 +178,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
             onChange={handleChange}
             className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
             required
-            disabled={loadingVehicles}
+            disabled={loadingVehicles || isEmergency}
           >
             {vehicleOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -143,6 +195,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
             onChange={handleChange}
             className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
             required
+            disabled={isEmergency}
           >
             {typeOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -158,6 +211,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
             onChange={handleChange}
             className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
             placeholder="Mô tả chi tiết công việc cần thực hiện"
+            disabled={isEmergency}
           />
         </div>
         <div className="md:col-span-2">
