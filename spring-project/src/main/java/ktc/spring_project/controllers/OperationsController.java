@@ -151,7 +151,9 @@ public class OperationsController {
         try {
             List<User> staff = userService.getAllUsers().stream()
                 .filter(user -> user.getRole() != null && 
-                    !user.getRole().getRoleName().equals("CUSTOMER"))
+                    (user.getRole().getRoleName().equals("DRIVER") ||
+                     user.getRole().getRoleName().equals("FLEET") ||
+                     user.getRole().getRoleName().equals("DISPATCHER")))
                 .collect(Collectors.toList());
             
             // Filter by department if specified
@@ -166,7 +168,7 @@ public class OperationsController {
                 staffDTO.put("email", user.getEmail());
                 staffDTO.put("phone", user.getPhone());
                 staffDTO.put("role", user.getRole().getRoleName());
-                staffDTO.put("status", "ACTIVE"); // Default status
+                staffDTO.put("status", mapStatusToFrontend(user.getStatus() != null ? user.getStatus().getName() : "Unknown"));
                 staffDTO.put("department", mapRoleToDepartment(user.getRole().getRoleName()));
                 staffDTO.put("shiftStart", "08:00");
                 staffDTO.put("shiftEnd", "17:00");
@@ -205,14 +207,25 @@ public class OperationsController {
         switch (roleName) {
             case "DRIVER":
                 return "Vận chuyển";
-            case "WAREHOUSE_STAFF":
-                return "Kho";
             case "DISPATCHER":
                 return "Điều phối";
-            case "MAINTENANCE":
+            case "FLEET":
                 return "Bảo trì";
             default:
                 return "Khác";
+        }
+    }
+
+    private String mapStatusToFrontend(String statusName) {
+        switch (statusName) {
+            case "Active":
+                return "ACTIVE";
+            case "Inactive":
+                return "ON_LEAVE";
+            case "Suspended":
+                return "TERMINATED";
+            default:
+                return "ACTIVE";
         }
     }
 }

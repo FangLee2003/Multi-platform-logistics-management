@@ -59,7 +59,7 @@ export interface Staff {
   name: string;
   email: string;
   phone: string;
-  role: 'DRIVER' | 'DISPATCHER' | 'WAREHOUSE_STAFF' | 'MAINTENANCE';
+  role: 'DRIVER' | 'DISPATCHER' | 'FLEET';
   status: 'ACTIVE' | 'ON_LEAVE' | 'SICK_LEAVE' | 'TERMINATED';
   department: string;
   shiftStart: string;
@@ -150,22 +150,6 @@ export interface Vehicle {
   mileage: number;
   lastMaintenance: string;
   nextMaintenance: string;
-}
-
-// Staff (chuẩn hóa theo backend và code thực tế)
-export interface Staff {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: 'DRIVER' | 'DISPATCHER' | 'WAREHOUSE_STAFF' | 'MAINTENANCE';
-  status: 'ACTIVE' | 'ON_LEAVE' | 'SICK_LEAVE' | 'TERMINATED';
-  department: string;
-  shiftStart: string;
-  shiftEnd: string;
-  performanceScore: number;
-  totalDeliveries: number;
-  onTimeDeliveries: number;
 }
 
 // SystemMetrics
