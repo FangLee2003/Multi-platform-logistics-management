@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import ktc.spring_project.enums.TransportMode;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 
 /**
  * DTO for creating new delivery orders
@@ -28,6 +29,10 @@ public class CreateDeliveryOrderRequestDTO {
     private Long vehicleId;
     private Long driverId;
     private Long routeId;
+    
+    // Thêm trường ngày lấy hàng và thời gian buổi lấy hàng
+    private LocalDate pickupDate;
+    private String pickupTimePeriod;
 
     // Thay các trường id bằng object
     private ktc.spring_project.entities.Store store;
@@ -102,6 +107,12 @@ public class CreateDeliveryOrderRequestDTO {
     
     public Long getRouteId() { return routeId; }
     public void setRouteId(Long routeId) { this.routeId = routeId; }
+    
+    public LocalDate getPickupDate() { return pickupDate; }
+    public void setPickupDate(LocalDate pickupDate) { this.pickupDate = pickupDate; }
+    
+    public String getPickupTimePeriod() { return pickupTimePeriod; }
+    public void setPickupTimePeriod(String pickupTimePeriod) { this.pickupTimePeriod = pickupTimePeriod; }
     
     public ktc.spring_project.entities.Store getStore() { return store; }
     public void setStore(ktc.spring_project.entities.Store store) { this.store = store; }

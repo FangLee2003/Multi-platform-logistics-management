@@ -167,6 +167,9 @@ public class SecurityConfig {
 // .requestMatchers(HttpMethod.POST, "/api/products/**").hasAnyRole("ADMIN", "USER", "CUSTOMER")
 .requestMatchers("/api/products/**").permitAll()
 .requestMatchers("/api/orders/**").permitAll()
+.requestMatchers("/api/addresses/**").permitAll()
+.requestMatchers("/api/order-items/**").permitAll()
+.requestMatchers("/api/deliveries/**").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/**").permitAll()
     // Maintenance APIs require authentication
     .requestMatchers("/api/drivers/*/maintenance-requests/**").hasAnyRole("ADMIN", "DRIVER")

@@ -18,15 +18,26 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log('[NextJS API] POST /api/address payload:', body);
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error('Failed to create address');
-    const data = await res.json();
+    const text = await res.text();
+    if (!res.ok) {
+      console.error('[NextJS API] Backend error:', text);
+      return NextResponse.json({ error: `Backend error: ${res.status} - ${text}` }, { status: res.status });
+    }
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
+    console.error('[NextJS API] Exception:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

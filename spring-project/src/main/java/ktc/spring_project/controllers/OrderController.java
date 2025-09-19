@@ -97,6 +97,9 @@ public class OrderController {
             System.out.println("- Status ID: " + (createdOrder.getStatus() != null ? createdOrder.getStatus().getId() : "null"));
             System.out.println("- Created By ID: " + (createdOrder.getCreatedBy() != null ? createdOrder.getCreatedBy().getId() : "null"));
             System.out.println("- Address ID: " + (createdOrder.getAddress() != null ? createdOrder.getAddress().getId() : "null"));
+            if (dto.getPickupDate() != null) {
+                System.out.println("- Pickup Date: " + dto.getPickupDate() + " (will be handled by separate delivery creation)");
+            }
 
             return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {

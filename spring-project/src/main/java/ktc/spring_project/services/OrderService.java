@@ -66,7 +66,9 @@ public class OrderService {
             }
 
             Order order = buildOrderFromDTO(dto);
-            return createOrder(order);
+            Order createdOrder = createOrder(order);
+            
+            return createdOrder;
 
         } catch (EntityDuplicateException | HttpException e) {
             throw e;
@@ -283,7 +285,14 @@ public class OrderService {
         order.setOrderCode(dto.getOrderCode());
         order.setDescription(dto.getDescription());
         order.setTotalAmount(dto.getTotalAmount());
-        order.setNotes(dto.getNotes());
+        
+        // Lưu thời gian buổi lấy hàng vào trường note
+        String notes = dto.getNotes() != null ? dto.getNotes() : "";
+        if (dto.getPickupTimePeriod() != null) {
+            notes = notes.isEmpty() ? dto.getPickupTimePeriod() : notes + " | Buổi lấy hàng: " + dto.getPickupTimePeriod();
+        }
+        order.setNotes(notes);
+        
         order.setBenefitPerOrder(BigDecimal.ZERO);
         order.setOrderProfitPerOrder(BigDecimal.ZERO);
 
