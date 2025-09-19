@@ -23,23 +23,38 @@ public class AddressController {
      */
     @PostMapping
     public ResponseEntity<Address> createAddress(@Valid @RequestBody CreateAddressRequestDTO dto) {
-        // Mapping thủ công từ DTO sang entity Address
-        Address address = new Address();
-        address.setAddressType(dto.getAddressType());
-        address.setAddress(dto.getAddress());
-        address.setLatitude(dto.getLatitude());
-        address.setLongitude(dto.getLongitude());
-        address.setCity(dto.getCity());
-        address.setState(dto.getState());
-        address.setCountry(dto.getCountry());
-        address.setRegion(dto.getRegion());
-        address.setPostalCode(dto.getPostalCode());
-        address.setContactName(dto.getContactName());
-        address.setContactPhone(dto.getContactPhone());
-        address.setContactEmail(dto.getContactEmail());
-        address.setFloorNumber(dto.getFloorNumber());
-        Address created = addressService.createAddress(address);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+        try {
+            // Mapping thủ công từ DTO sang entity Address
+            Address address = new Address();
+            
+            // Handle addressType conversion từ string thành enum
+            if (dto.getAddressType() != null) {
+                address.setAddressType(dto.getAddressType());
+            } else {
+                // Default to DELIVERY if not specified
+                address.setAddressType(ktc.spring_project.enums.AddressType.DELIVERY);
+            }
+            
+            address.setAddress(dto.getAddress());
+            address.setLatitude(dto.getLatitude());
+            address.setLongitude(dto.getLongitude());
+            address.setCity(dto.getCity());
+            address.setState(dto.getState());
+            address.setCountry(dto.getCountry());
+            address.setRegion(dto.getRegion());
+            address.setPostalCode(dto.getPostalCode());
+            address.setContactName(dto.getContactName());
+            address.setContactPhone(dto.getContactPhone());
+            address.setContactEmail(dto.getContactEmail());
+            address.setFloorNumber(dto.getFloorNumber());
+            
+            Address created = addressService.createAddress(address);
+            return new ResponseEntity<>(created, HttpStatus.CREATED);
+        } catch (Exception e) {
+            System.err.println("Error creating address: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
