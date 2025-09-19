@@ -78,7 +78,7 @@ class MaintenanceServices {
       };
 
       final response = await _httpClient.post(
-        '/drivers/$driverId/maintenance-requests',
+        '/drivers/$driverId/maintenance-requests/emergency',
         body: createDto,
         timeout: const Duration(seconds: 30),
       );
@@ -196,7 +196,7 @@ class MaintenanceServices {
     }
 
     try {
-      String url = '/drivers/$driverId/maintenance-requests/$maintenanceId';
+      String url = '/maintenance-requests/$maintenanceId';
 
       final body = {
         'statusId': 18,
