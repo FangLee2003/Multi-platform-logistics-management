@@ -14,18 +14,24 @@ export class OrderFlowService {
    * Tạo address
    */
   static async createAddress(payload: AddressPayload) {
-    const response = await fetch('/api/address', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const response = await fetch('/api/address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Lưu address thất bại: ${errorData.error || response.statusText}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || response.statusText;
+        throw new Error(`Lưu address thất bại: ${errorMessage}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      console.error('Error creating address:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   /**

@@ -14,12 +14,12 @@ interface OrderFiltersProps {
 }
 
 const orderStatuses = [
-  { id: 1, name: "Chờ xử lý", color: "default" },       // Pending
-  { id: 4, name: "Đang xử lý", color: "processing" },   // Processing  
-  { id: 5, name: "Đang giao", color: "warning" },       // Shipped
-  { id: 6, name: "Đã giao", color: "success" },         // Delivered
-  { id: 2, name: "Hoàn thành", color: "success" },      // Completed
-  { id: 3, name: "Đã hủy", color: "error" },            // Cancelled
+  { id: 1, name: "Pending", color: "default" },
+  { id: 2, name: "Processing", color: "processing" },
+  { id: 3, name: "Shipped", color: "warning" },
+  { id: 4, name: "Delivered", color: "success" },
+  { id: 5, name: "Completed", color: "success" },
+  { id: 6, name: "Cancelled", color: "error" },
 ];
 
 export const OrderFilters = ({
@@ -35,7 +35,7 @@ export const OrderFilters = ({
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8} md={6}>
           <Input
-            placeholder="Tìm mã đơn hàng..."
+            placeholder="Tìm theo ID đơn hàng..."
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => onSearchChange(e.target.value)}

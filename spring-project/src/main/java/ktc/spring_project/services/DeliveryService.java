@@ -557,7 +557,7 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
             }
             delivery.setTransportMode(dto.getTransportMode());
             delivery.setServiceType(dto.getServiceType());
-            delivery.setPickupDate(dto.getPickupDate());
+            delivery.setPickupDate(dto.getPickupDate() != null ? java.sql.Timestamp.valueOf(dto.getPickupDate().atStartOfDay()) : null);
             delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
             delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
             delivery.setDeliveryNotes(dto.getDeliveryNotes());
@@ -601,12 +601,12 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
         }
         delivery.setDeliveryFee(dto.getDeliveryFee());
         delivery.setTransportMode(dto.getTransportMode());
-        delivery.setServiceType(dto.getServiceType());
-        delivery.setPickupDate(dto.getPickupDate());
-        delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
-        delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
-        delivery.setDeliveryNotes(dto.getDeliveryNotes());
-        delivery.setOrderDate(dto.getOrderDate());
+    delivery.setServiceType(dto.getServiceType());
+    delivery.setPickupDate(dto.getPickupDate() != null ? java.sql.Timestamp.valueOf(dto.getPickupDate().atStartOfDay()) : null);
+    delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
+    delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
+    delivery.setDeliveryNotes(dto.getDeliveryNotes());
+    delivery.setOrderDate(dto.getOrderDate());
         if (dto.getVehicleId() != null) {
             delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
         }

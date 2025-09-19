@@ -54,6 +54,9 @@ public class UserService {
     private RoleRepository roleRepository;
 
     @Autowired
+    private ktc.spring_project.repositories.StoreRepository storeRepository;
+
+    @Autowired
     private RestTemplate restTemplate;
 
     @Autowired
@@ -404,32 +407,12 @@ User user = getUserById(id);
     }
 
     /**
-     * Get staff statistics (all users except customers)
-     * For Operations Dashboard
+     * Lấy danh sách store thuộc về user
      */
-    public Map<String, Object> getStaffStatistics() {
-        try {
-            // Count total users
-            long totalUsers = userRepository.count();
-            
-            // Count customers (users with CUSTOMER role)
-            long customerCount = userRepository.countByRole_RoleName("CUSTOMER");
-            
-            // Staff count = total users - customers
-            long staffCount = totalUsers - customerCount;
-            
-            // Count active staff (active users who are not customers)
-            long activeStaffCount = userRepository.countByStatusNameAndRoleRoleNameNot("Active", "CUSTOMER");
-            
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("totalStaff", staffCount);
-            stats.put("activeStaff", activeStaffCount);
-            stats.put("totalUsers", totalUsers);
-            stats.put("customerCount", customerCount);
-            
-            return stats;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get staff statistics: " + e.getMessage());
+    public List<ktc.spring_project.entities.Store> getStoresByUserId(Long userId) {
+        if (userId == null) {
+            throw new HttpException("User ID cannot be null", HttpStatus.BAD_REQUEST);
         }
+        return storeRepository.findByCreatedById(userId);
     }
 }

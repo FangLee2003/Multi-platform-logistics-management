@@ -44,6 +44,8 @@ public class DeliveryTrackingController {
         public Double longitude;
         public Long vehicleId;
         public String timestamp;
+        public String location;
+        public String notes;
         public TrackingPointDTO() {}
         public TrackingPointDTO(DeliveryTracking tracking) {
             this.id = tracking.getId();
@@ -51,6 +53,8 @@ public class DeliveryTrackingController {
             this.longitude = tracking.getLongitude() != null ? tracking.getLongitude().doubleValue() : null;
             this.vehicleId = tracking.getVehicle() != null ? tracking.getVehicle().getId() : null;
             this.timestamp = tracking.getTimestamp() != null ? tracking.getTimestamp().toString() : null;
+            this.location = tracking.getLocation();
+            this.notes = tracking.getNotes();
         }
     }
 
@@ -447,6 +451,9 @@ public class DeliveryTrackingController {
             if (locationData.containsKey("notes")) {
                 existingTracking.setNotes((String) locationData.get("notes"));
             }
+            if (locationData.containsKey("statusId")) {
+                existingTracking.setStatusId(Integer.valueOf(locationData.get("statusId").toString()));
+            }
 
             log.info("🔄 Updating existing tracking: id={}, vehicleId={}, deliveryId={}, lat={}, lng={}", 
                 trackingId, existingTracking.getVehicle().getId(), existingTracking.getDelivery().getId(),
@@ -456,16 +463,19 @@ public class DeliveryTrackingController {
             
             log.info("✅ Tracking updated successfully: id={}", updated.getId());
 
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Vehicle location updated successfully",
-                "trackingId", updated.getId(),
-                "vehicleId", updated.getVehicle().getId(),
-                "deliveryId", updated.getDelivery().getId(),
-                "latitude", updated.getLatitude(),
-                "longitude", updated.getLongitude(),
-                "timestamp", updated.getTimestamp()
-            ));
+            Map<String, Object> result = new java.util.HashMap<>();
+            result.put("success", true);
+            result.put("message", "Vehicle location updated successfully");
+            result.put("trackingId", updated.getId());
+            result.put("vehicleId", updated.getVehicle().getId());
+            result.put("deliveryId", updated.getDelivery().getId());
+            result.put("latitude", updated.getLatitude());
+            result.put("longitude", updated.getLongitude());
+            result.put("timestamp", updated.getTimestamp());
+            result.put("location", updated.getLocation());
+            result.put("notes", updated.getNotes());
+            result.put("statusId", updated.getStatusId());
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Error updating tracking record {}: {}", trackingId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

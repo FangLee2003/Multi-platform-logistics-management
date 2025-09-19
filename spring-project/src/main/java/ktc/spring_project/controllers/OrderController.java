@@ -3,6 +3,8 @@ package ktc.spring_project.controllers;
 import ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO;
 import ktc.spring_project.dtos.order.DeliveryOrderResponseDTO;
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
+import ktc.spring_project.dtos.order.OrderStatsDto;
+import ktc.spring_project.dtos.order.PaginatedOrderSummaryResponseDto;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Vehicle;
@@ -24,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -97,6 +101,9 @@ public class OrderController {
             System.out.println("- Status ID: " + (createdOrder.getStatus() != null ? createdOrder.getStatus().getId() : "null"));
             System.out.println("- Created By ID: " + (createdOrder.getCreatedBy() != null ? createdOrder.getCreatedBy().getId() : "null"));
             System.out.println("- Address ID: " + (createdOrder.getAddress() != null ? createdOrder.getAddress().getId() : "null"));
+            if (dto.getPickupDate() != null) {
+                System.out.println("- Pickup Date: " + dto.getPickupDate() + " (will be handled by separate delivery creation)");
+            }
 
             return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
@@ -472,6 +479,33 @@ public ResponseEntity<Order> putOrder(
     }
 
     /**
+     * Lấy thông tin tóm tắt của đơn hàng theo store ID với phân trang (10 items/page)
+     */
+    @GetMapping("/store/{storeId}/summary/paginated")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> getOrderSummariesByStorePaginated(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Page<OrderSummaryDTO> orderSummariesPage = orderService.getOrderSummariesByStoreIdPaginated(storeId, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = PaginatedOrderSummaryResponseDto.builder()
+                    .data(orderSummariesPage.getContent())
+                    .pageNumber(page)
+                    .pageSize(size)
+                    .totalRecords(orderSummariesPage.getTotalElements())
+                    .totalPages(orderSummariesPage.getTotalPages())
+                    .hasNext(orderSummariesPage.hasNext())
+                    .hasPrevious(orderSummariesPage.hasPrevious())
+                    .build();
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * Lấy thông tin tóm tắt của tất cả đơn hàng theo user ID
      * User ID sẽ được dùng để tìm các store mà user đó tạo
      * Sau đó lấy tất cả order của các store đó
@@ -543,6 +577,334 @@ public ResponseEntity<Order> putOrder(
             System.err.println("❌ Error creating initial tracking: " + e.getMessage());
             e.printStackTrace();
             // Không throw exception để không làm gián đoạn vehicle assignment
+        }
+    }
+
+    /**
+     * Lấy thông tin tóm tắt của đơn hàng theo user ID với phân trang (10 items/page)
+     */
+    @GetMapping("/user/{userId}/summary/paginated")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> getOrderSummariesByUserPaginated(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Page<OrderSummaryDTO> orderSummariesPage = orderService.getOrderSummariesByUserIdPaginated(userId, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = PaginatedOrderSummaryResponseDto.builder()
+                    .data(orderSummariesPage.getContent())
+                    .pageNumber(page)
+                    .pageSize(size)
+                    .totalRecords(orderSummariesPage.getTotalElements())
+                    .totalPages(orderSummariesPage.getTotalPages())
+                    .hasNext(orderSummariesPage.hasNext())
+                    .hasPrevious(orderSummariesPage.hasPrevious())
+                    .build();
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Unified search API for orders with multiple criteria
+     * API: GET /api/orders/search?storeId=xxx&orderId=xxx&fromDate=yyyy-MM-dd&toDate=yyyy-MM-dd&status=xxx,yyy&page=1&size=10
+     * All parameters except storeId are optional
+     * status parameter can accept multiple values separated by comma
+     */
+    @GetMapping("/search")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersUnified(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) Long orderId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) List<String> status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            LocalDateTime fromDateTime = null;
+            LocalDateTime toDateTime = null;
+            
+            // Parse fromDate nếu có
+            if (fromDate != null && !fromDate.trim().isEmpty()) {
+                try {
+                    fromDateTime = LocalDate.parse(fromDate.trim()).atStartOfDay();
+                } catch (Exception e) {
+                    System.err.println("Invalid fromDate format: " + fromDate);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            // Parse toDate nếu có  
+            if (toDate != null && !toDate.trim().isEmpty()) {
+                try {
+                    toDateTime = LocalDate.parse(toDate.trim()).atTime(23, 59, 59);
+                } catch (Exception e) {
+                    System.err.println("Invalid toDate format: " + toDate);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+
+            // Filter out empty status values
+            List<String> statusList = null;
+            if (status != null && !status.isEmpty()) {
+                statusList = status.stream()
+                    .filter(s -> s != null && !s.trim().isEmpty())
+                    .collect(java.util.stream.Collectors.toList());
+                if (statusList.isEmpty()) {
+                    statusList = null;
+                }
+            }
+
+            System.out.println("Unified search with: storeId=" + storeId + ", orderId=" + orderId + 
+                    ", fromDate=" + fromDateTime + ", toDate=" + toDateTime + ", statusList=" + statusList +
+                    ", page=" + page + ", size=" + size);
+            
+            Page<OrderSummaryDTO> ordersPage = orderService.searchOrdersByStoreIdWithFiltersPaginated(
+                storeId, orderId, fromDateTime, toDateTime, statusList, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = new PaginatedOrderSummaryResponseDto(
+                    ordersPage.getContent(),
+                    ordersPage.getNumber() + 1, // Convert 0-based to 1-based 
+                    ordersPage.getSize(),
+                    ordersPage.getTotalElements(),
+                    ordersPage.getTotalPages(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            System.out.println("Found " + ordersPage.getTotalElements() + " total orders, returning page " + page + " of " + ordersPage.getTotalPages());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("Bad request: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            System.err.println("===== DETAILED ERROR =====");
+            System.err.println("Error in unified search: " + e.getMessage());
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
+            e.printStackTrace();
+            System.err.println("===========================");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * @deprecated Use searchOrdersUnified instead
+     * Tìm kiếm đơn hàng theo ID đơn hàng với phân trang
+     * API: GET /api/orders/search?storeId=xxx&orderId=xxx&page=1&size=10
+     */
+    @GetMapping("/search-by-order-id")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersByOrderId(
+            @RequestParam Long storeId,
+            @RequestParam Long orderId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            System.out.println("Searching orders with storeId: " + storeId + ", orderId: " + orderId + ", page: " + page + ", size: " + size);
+            
+            Page<OrderSummaryDTO> ordersPage = orderService.searchOrdersByStoreIdAndOrderIdPaginated(storeId, orderId, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = new PaginatedOrderSummaryResponseDto(
+                    ordersPage.getContent(),
+                    ordersPage.getNumber() + 1, // Convert 0-based to 1-based 
+                    ordersPage.getSize(),
+                    ordersPage.getTotalElements(),
+                    ordersPage.getTotalPages(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            System.out.println("Found " + ordersPage.getTotalElements() + " total orders, returning page " + page + " of " + ordersPage.getTotalPages());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("Error searching orders by orderId: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo khoảng thời gian với phân trang
+     * API: GET /api/orders/search-by-date?storeId=xxx&fromDate=yyyy-MM-dd&toDate=yyyy-MM-dd&page=1&size=10
+     */
+    @GetMapping("/search-by-date")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersByDateRange(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            LocalDateTime fromDateTime = null;
+            LocalDateTime toDateTime = null;
+            
+            // Parse fromDate nếu có
+            if (fromDate != null && !fromDate.trim().isEmpty()) {
+                try {
+                    LocalDate parsedFromDate = LocalDate.parse(fromDate);
+                    fromDateTime = parsedFromDate.atStartOfDay(); // 00:00:00 của ngày đó
+                    System.out.println("Parsed fromDate: " + fromDateTime);
+                } catch (Exception e) {
+                    System.err.println("Invalid fromDate format: " + fromDate + " - " + e.getMessage());
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            // Parse toDate nếu có
+            if (toDate != null && !toDate.trim().isEmpty()) {
+                try {
+                    LocalDate parsedToDate = LocalDate.parse(toDate);
+                    toDateTime = parsedToDate.atTime(23, 59, 59); // 23:59:59 của ngày đó
+                    System.out.println("Parsed toDate: " + toDateTime);
+                } catch (Exception e) {
+                    System.err.println("Invalid toDate format: " + toDate + " - " + e.getMessage());
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            System.out.println("Searching orders with storeId: " + storeId + 
+                    ", fromDateTime: " + fromDateTime + ", toDateTime: " + toDateTime + 
+                    ", page: " + page + ", size: " + size);
+            
+            Page<OrderSummaryDTO> ordersPage = orderService.searchOrdersByStoreIdAndDateRangePaginated(storeId, fromDateTime, toDateTime, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = new PaginatedOrderSummaryResponseDto(
+                    ordersPage.getContent(),
+                    ordersPage.getNumber() + 1, // Convert 0-based to 1-based 
+                    ordersPage.getSize(),
+                    ordersPage.getTotalElements(),
+                    ordersPage.getTotalPages(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            System.out.println("Found " + ordersPage.getTotalElements() + " total orders, returning page " + page + " of " + ordersPage.getTotalPages());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("Bad request: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            System.err.println("===== DETAILED ERROR =====");
+            System.err.println("Error searching orders by date range: " + e.getMessage());
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
+            e.printStackTrace();
+            System.err.println("===========================");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo khoảng thời gian với phân trang
+     * API: GET /api/orders/search-by-date-paginated?storeId=xxx&fromDate=yyyy-MM-dd&toDate=yyyy-MM-dd&page=1&size=10
+     */
+    @GetMapping("/search-by-date-paginated")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersByDateRangePaginated(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            LocalDateTime fromDateTime = null;
+            LocalDateTime toDateTime = null;
+            
+            // Parse fromDate nếu có
+            if (fromDate != null && !fromDate.trim().isEmpty()) {
+                try {
+                    LocalDate parsedFromDate = LocalDate.parse(fromDate);
+                    fromDateTime = parsedFromDate.atStartOfDay(); // 00:00:00 của ngày đó
+                    System.out.println("Parsed fromDate: " + fromDateTime);
+                } catch (Exception e) {
+                    System.err.println("Invalid fromDate format: " + fromDate + " - " + e.getMessage());
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            // Parse toDate nếu có
+            if (toDate != null && !toDate.trim().isEmpty()) {
+                try {
+                    LocalDate parsedToDate = LocalDate.parse(toDate);
+                    toDateTime = parsedToDate.atTime(23, 59, 59); // 23:59:59 của ngày đó
+                    System.out.println("Parsed toDate: " + toDateTime);
+                } catch (Exception e) {
+                    System.err.println("Invalid toDate format: " + toDate + " - " + e.getMessage());
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            System.out.println("Searching orders paginated with storeId: " + storeId + 
+                    ", fromDateTime: " + fromDateTime + ", toDateTime: " + toDateTime + 
+                    ", page: " + page + ", size: " + size);
+            
+            Page<OrderSummaryDTO> ordersPage = orderService.searchOrdersByStoreIdAndDateRangePaginated(storeId, fromDateTime, toDateTime, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = new PaginatedOrderSummaryResponseDto(
+                    ordersPage.getContent(),
+                    ordersPage.getNumber() + 1, // Convert 0-based to 1-based 
+                    ordersPage.getSize(),
+                    ordersPage.getTotalElements(),
+                    ordersPage.getTotalPages(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            System.out.println("Found " + ordersPage.getTotalElements() + " total orders, returning page " + page + " of " + ordersPage.getTotalPages());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("Bad request: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            System.err.println("===== DETAILED ERROR (PAGINATED) =====");
+            System.err.println("Error searching orders by date range paginated: " + e.getMessage());
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
+            e.printStackTrace();
+            System.err.println("===========================");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get order statistics by store ID from logged-in user
+     * API: GET /api/orders/user/{userId}/stats
+     * Returns total orders, processing orders, and completed orders count
+     */
+    @GetMapping("/user/{userId}/stats")
+    public ResponseEntity<OrderStatsDto> getUserOrderStats(@PathVariable Long userId) {
+        try {
+            // First get the store ID associated with this user
+            // For now, we'll assume storeId = userId for simplicity
+            // In real implementation, you might need to get storeId from user entity
+            Long storeId = userId; // This should be modified based on your user-store relationship
+            
+            System.out.println("Getting order stats for userId: " + userId + ", using storeId: " + storeId);
+            
+            OrderStatsDto stats = orderService.getOrderStatsByStoreId(storeId);
+            
+            System.out.println("Order stats: total=" + stats.getTotalOrders() + 
+                    ", processing=" + stats.getProcessingOrders() + 
+                    ", completed=" + stats.getCompletedOrders());
+            
+            return ResponseEntity.ok(stats);
+            
+        } catch (Exception e) {
+            System.err.println("Error getting order stats: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
