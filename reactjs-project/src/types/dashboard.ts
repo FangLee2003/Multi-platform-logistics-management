@@ -34,21 +34,24 @@ export interface Vehicle {
   nextMaintenance: string;
 }
 
-// Order interface từ operationsAPI.ts (ưu tiên bản chi tiết hơn)
+// Order interface từ operationsAPI.ts (unified version)
 export interface Order {
   id: string;
+  orderCode?: string; // New field from API
+  description?: string; // New field from API
+  totalAmount?: string; // New field from API
   customerName: string;
   customerPhone: string;
-  pickupAddress: string;
+  pickupAddress?: string; // Optional for backward compatibility
   deliveryAddress: string;
-  status: 'PENDING' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  status: string; // Can be Vietnamese status or English enum
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; // Optional for backward compatibility
   assignedVehicle?: string;
   assignedDriver?: string;
-  estimatedDeliveryTime: string;
+  estimatedDeliveryTime?: string; // Optional for backward compatibility
   actualDeliveryTime?: string;
-  weight: number;
-  value: number;
+  weight?: number; // Optional for backward compatibility
+  value?: number; // Optional for backward compatibility
   createdAt: string;
   updatedAt: string;
 }
@@ -109,25 +112,6 @@ export interface Role {
   name: string;
   icon?: string; // Tên icon, render ở component
   permissions: string[];
-}
-
-// Order (chuẩn hóa theo backend và code thực tế)
-export interface Order {
-  id: string;
-  customerName: string;
-  customerPhone: string;
-  pickupAddress: string;
-  deliveryAddress: string;
-  status: 'PENDING' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  assignedVehicle?: string;
-  assignedDriver?: string;
-  estimatedDeliveryTime: string;
-  actualDeliveryTime?: string;
-  weight: number;
-  value: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
 // Vehicle (chuẩn hóa theo backend và code thực tế)

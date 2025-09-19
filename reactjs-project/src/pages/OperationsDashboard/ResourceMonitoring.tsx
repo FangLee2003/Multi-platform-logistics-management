@@ -17,12 +17,26 @@ export default function ResourceMonitoring() {
     percentage: 0,
     ratio: '0/0'
   });
+  const [maintenanceRequestsCount, setMaintenanceRequestsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchVehicles(timeFilter);
+    fetchMaintenanceRequestsCount();
   }, [timeFilter]);
+
+  // Thêm function để fetch maintenance requests count
+  const fetchMaintenanceRequestsCount = async () => {
+    try {
+      const result = await operationsAPI.getMaintenanceRequestsCount();
+      setMaintenanceRequestsCount(result.count);
+      console.log('📊 Maintenance requests count:', result.count);
+    } catch (error) {
+      console.warn('Không thể lấy số yêu cầu bảo trì:', error);
+      setMaintenanceRequestsCount(0);
+    }
+  };
 
   // Thêm tham số filter thời gian
   const fetchVehicles = async (filter: string = '24h') => {
@@ -183,7 +197,10 @@ export default function ResourceMonitoring() {
               {period === '1m' ? '1 tháng' : period}
             </GlassButton>
           ))}
-          <GlassButton size="sm" variant="secondary" onClick={() => fetchVehicles(timeFilter)}>
+          <GlassButton size="sm" variant="secondary" onClick={() => {
+            fetchVehicles(timeFilter);
+            fetchMaintenanceRequestsCount();
+          }}>
             🔄 Làm mới
           </GlassButton>
         </div>
@@ -210,7 +227,7 @@ export default function ResourceMonitoring() {
         />
         <StatCard
           title="Yêu cầu bảo trì"
-          value="12"
+          value={maintenanceRequestsCount.toString()}
           icon="🔧"
         />
       </div>

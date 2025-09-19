@@ -142,7 +142,7 @@ export default function CustomerAccount() {
         <Col xs={24} md={8}>
           <Card>
             <Statistic
-              title="Đang vận chuyển"
+              title="Đang giao"
               value={0}
               prefix={<CarOutlined />}
               valueStyle={{ color: "#1890ff" }}

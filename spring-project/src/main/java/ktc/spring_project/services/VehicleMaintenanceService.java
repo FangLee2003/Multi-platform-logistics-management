@@ -43,4 +43,11 @@ public class VehicleMaintenanceService {
         // ... các trường khác nếu có ...
         return repository.save(oldEntity);
     }
+
+    /**
+     * Count total maintenance requests
+     */
+    public long countMaintenanceRequests() {
+        return repository.count();
+    }
 }

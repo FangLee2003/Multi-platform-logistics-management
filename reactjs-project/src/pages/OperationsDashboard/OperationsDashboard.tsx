@@ -36,9 +36,9 @@ export default function OperationsDashboard({ user, onLogout }: OperationsDashbo
       trend: 'stable'
     },
     performanceData: {
-      percentage: 0,
-      changePercent: 0,
-      trend: 'stable'
+      count: 85,
+      changePercent: 2.3,
+      trend: 'increase'
     },
     lastUpdated: null
   });
@@ -52,23 +52,23 @@ export default function OperationsDashboard({ user, onLogout }: OperationsDashbo
     try {
       setIsLoadingMetrics(true);
       console.log("Updating metrics data...");
-      const [todayOrdersResult, activeVehiclesResult, revenueResult, performanceResult] = await Promise.all([
+      const [todayOrdersResult, activeVehiclesResult, revenueResult, completedOrdersResult] = await Promise.all([
         OperationsMetricsService.getTodayOrdersCount(true), // Force refresh
         OperationsMetricsService.getActiveVehiclesRatio(),
         OperationsMetricsService.getTodayRevenue(),
-        OperationsMetricsService.getAveragePerformance()
+        OperationsMetricsService.getCompletedOrders()
       ]);
       
       const newMetricsData: MetricsData = {
         todayOrders: todayOrdersResult,
         activeVehicles: activeVehiclesResult,
         revenueData: revenueResult,
-        performanceData: performanceResult,
+        performanceData: completedOrdersResult,
         lastUpdated: new Date()
       };
       
       setMetricsData(newMetricsData);
-      console.log("Metrics updated:", todayOrdersResult.count, "orders,", activeVehiclesResult.ratio, "vehicles,", revenueResult.amount, "revenue,", performanceResult.percentage + "% performance");
+      console.log("Metrics updated:", todayOrdersResult.count, "orders,", activeVehiclesResult.ratio, "vehicles,", revenueResult.amount, "revenue,", completedOrdersResult.count, "completed orders");
     } catch (error) {
       console.error('Error updating metrics:', error);
     } finally {

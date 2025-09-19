@@ -2,9 +2,13 @@ package ktc.spring_project.controllers;
 
 import ktc.spring_project.entities.Vehicle;
 import ktc.spring_project.entities.User;
+import ktc.spring_project.entities.Order;
 import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.UserService;
+import ktc.spring_project.services.VehicleMaintenanceService;
+import ktc.spring_project.services.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +31,12 @@ public class OperationsController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private VehicleMaintenanceService vehicleMaintenanceService;
+
+    @Autowired
+    private OrderService orderService;
 
     /**
      * Get all vehicles for operations dashboard
@@ -182,6 +192,139 @@ public class OperationsController {
             
         } catch (Exception e) {
             return ResponseEntity.ok(List.of());
+        }
+    }
+
+    /**
+     * Get maintenance requests count for dashboard
+     * Returns total number of maintenance requests
+     */
+    @GetMapping("/maintenance-requests/count")
+    public ResponseEntity<Map<String, Object>> getMaintenanceRequestsCount(Authentication authentication) {
+        try {
+            long count = vehicleMaintenanceService.countMaintenanceRequests();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("count", count);
+            response.put("message", "Maintenance requests count retrieved successfully");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("count", 0);
+            errorResponse.put("message", "Error retrieving maintenance requests count");
+            
+            return ResponseEntity.ok(errorResponse);
+        }
+    }
+
+    /**
+     * Get orders for operations dashboard with pagination
+     * Returns all orders from database for performance analytics
+     */
+    @GetMapping("/orders")
+    public ResponseEntity<Map<String, Object>> getOrdersForOperations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            Authentication authentication) {
+        try {
+            // Get all orders with pagination
+            Page<Order> orderPage = orderService.getAllOrdersPaginated(page, size);
+            
+            // Convert to dashboard format
+            List<Map<String, Object>> orderDTOs = orderPage.getContent().stream().map(order -> {
+                Map<String, Object> orderDTO = new HashMap<>();
+                orderDTO.put("id", order.getId().toString());
+                orderDTO.put("orderCode", order.getOrderCode() != null ? order.getOrderCode() : "DH" + String.format("%03d", order.getId()));
+                orderDTO.put("description", order.getDescription() != null ? order.getDescription() : "");
+                orderDTO.put("totalAmount", order.getTotalAmount() != null ? order.getTotalAmount().toString() : "0");
+                
+                // Status mapping - theo đúng dữ liệu trong database
+                String statusDisplay = "Chưa xác định";
+                if (order.getStatus() != null) {
+                    String statusName = order.getStatus().getName();
+                    switch (statusName) {
+                        case "Pending":
+                            statusDisplay = "Chờ xử lý";
+                            break;
+                        case "Processing":
+                            statusDisplay = "Đang xử lý";
+                            break;
+                        case "Shipped":
+                            statusDisplay = "Đang giao";
+                            break;
+                        case "Delivered":
+                            statusDisplay = "Đã giao";
+                            break;
+                        case "Completed":
+                            statusDisplay = "Hoàn thành";
+                            break;
+                        case "Cancelled":
+                            statusDisplay = "Đã hủy";
+                            break;
+                        case "FAILED":
+                            statusDisplay = "Thất bại";
+                            break;
+                        default:
+                            statusDisplay = statusName;
+                    }
+                }
+                orderDTO.put("status", statusDisplay);
+                
+                // Store info
+                if (order.getStore() != null) {
+                    orderDTO.put("customerName", order.getStore().getStoreName());
+                    orderDTO.put("customerPhone", order.getStore().getPhone());
+                } else {
+                    orderDTO.put("customerName", "Khách hàng");
+                    orderDTO.put("customerPhone", "");
+                }
+                
+                // Address info
+                if (order.getAddress() != null) {
+                    orderDTO.put("deliveryAddress", order.getAddress().getAddress());
+                } else {
+                    orderDTO.put("deliveryAddress", "Chưa xác định");
+                }
+                
+                // Vehicle and driver info
+                orderDTO.put("assignedVehicle", order.getVehicle() != null ? order.getVehicle().getLicensePlate() : "");
+                orderDTO.put("assignedDriver", order.getVehicle() != null && order.getVehicle().getCurrentDriver() != null ? 
+                    order.getVehicle().getCurrentDriver().getFullName() : "");
+                
+                // Timestamps
+                orderDTO.put("createdAt", order.getCreatedAt() != null ? order.getCreatedAt().toString() : "");
+                orderDTO.put("updatedAt", order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : "");
+                
+                return orderDTO;
+            }).collect(Collectors.toList());
+            
+            // Create paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", orderDTOs);
+            response.put("totalElements", orderPage.getTotalElements());
+            response.put("totalPages", orderPage.getTotalPages());
+            response.put("currentPage", orderPage.getNumber());
+            response.put("size", orderPage.getSize());
+            response.put("first", orderPage.isFirst());
+            response.put("last", orderPage.isLast());
+            response.put("numberOfElements", orderPage.getNumberOfElements());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            // Return empty paginated response on error
+            Map<String, Object> emptyResponse = new HashMap<>();
+            emptyResponse.put("content", List.of());
+            emptyResponse.put("totalElements", 0L);
+            emptyResponse.put("totalPages", 0);
+            emptyResponse.put("currentPage", 0);
+            emptyResponse.put("size", size);
+            emptyResponse.put("first", true);
+            emptyResponse.put("last", true);
+            emptyResponse.put("numberOfElements", 0);
+            return ResponseEntity.ok(emptyResponse);
         }
     }
 

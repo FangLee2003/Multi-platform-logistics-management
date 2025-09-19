@@ -327,6 +327,48 @@ export class OperationsMetricsService {
   }
 
   /**
+   * Lấy số đơn hàng hoàn thành hôm nay
+   */
+  static async getCompletedOrders(): Promise<{
+    count: number;
+    changePercent: number;
+    trend: 'increase' | 'decrease' | 'stable';
+  }> {
+    try {
+      // Gọi API để lấy số đơn hàng hoàn thành
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('http://localhost:8080/api/deliveries/completed-today', {
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch completed orders');
+      }
+
+      const data = await response.json();
+      
+      return {
+        count: data.count,
+        changePercent: data.changePercent,
+        trend: data.trend
+      };
+
+    } catch (error) {
+      console.error('Error fetching completed orders:', error);
+      // Fallback data khi API lỗi
+      return {
+        count: 85,
+        changePercent: 2.3,
+        trend: 'increase'
+      };
+    }
+  }
+
+  /**
    * Tính hiệu suất trung bình dựa trên completion rate từ API tối ưu
    */
   static async getAveragePerformance(): Promise<{

@@ -29,19 +29,35 @@ export default function PerformanceAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchPerformanceData = async () => {
+  // Trạng thái filter (khớp với backend status mapping)
+  const [selectedStatus, setSelectedStatus] = useState<string>('Tất cả');
+  const statusOptions = [
+    'Tất cả',
+    'Chờ xử lý',      // Pending (ID: 1)
+    'Đang xử lý',     // Processing (ID: 4)
+    'Đang giao',      // Shipped (ID: 5)
+    'Hoàn thành',     // Completed (ID: 2)
+    'Đã hủy',         // Cancelled (ID: 3)
+  ];
+
+  // Server-side pagination states
+  const [currentPage, setCurrentPage] = useState(0); // 0-based for API
+  const [ordersPerPage] = useState(50); // Tăng lên 50 để lấy nhiều dữ liệu hơn
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const fetchPerformanceData = async (page: number = 0) => {
     try {
       setLoading(true);
-      const [metricsData, ordersData] = await Promise.all([
-        operationsAPI.getPerformanceMetrics(timeRange),
-        operationsAPI.getOrders({ limit: 10 })
-      ]);
-      setMetrics(metricsData);
-      setRecentOrders(ordersData);
-      setError('');
-    } catch {
-      setError('Không thể tải dữ liệu hiệu suất. Sử dụng dữ liệu mẫu.');
-      // Fallback data
+      
+      // Get paginated orders from API
+      const ordersResponse = await operationsAPI.getOrdersForOperations(page, ordersPerPage);
+      setRecentOrders(ordersResponse.content);
+      setTotalPages(ordersResponse.totalPages);
+      setTotalElements(ordersResponse.totalElements);
+      setCurrentPage(page);
+      
+      // For now, still use fallback metrics data since we haven't implemented the metrics API yet
       setMetrics({
         deliverySuccessRate: 94.5,
         avgDeliveryTime: 28,
@@ -56,179 +72,29 @@ export default function PerformanceAnalytics() {
           customerSatisfaction: 4.5,
         }
       });
-      setRecentOrders([
-        { 
-          id: 'DH001', 
-          customerName: 'Công ty ABC',
-          customerPhone: '0912345678',
-          pickupAddress: 'Hà Nội', 
-          deliveryAddress: 'Hải Phòng', 
-          status: 'DELIVERED', 
-          priority: 'HIGH',
-          estimatedDeliveryTime: '2024-08-08T16:00:00Z',
-          actualDeliveryTime: '2024-08-08T15:30:00Z',
-          weight: 500,
-          value: 2000000,
-          createdAt: '2024-08-08T08:00:00Z',
-          updatedAt: '2024-08-08T15:30:00Z',
-          assignedVehicle: 'VT-001',
-          assignedDriver: 'D001'
-        },
-        { 
-          id: 'DH002', 
-          customerName: 'Cửa hàng XYZ',
-          customerPhone: '0987654321',
-          pickupAddress: 'Hà Nội', 
-          deliveryAddress: 'Hưng Yên', 
-          status: 'IN_TRANSIT', 
-          priority: 'MEDIUM',
-          estimatedDeliveryTime: '2024-08-08T18:00:00Z',
-          weight: 200,
-          value: 800000,
-          createdAt: '2024-08-08T10:00:00Z',
-          updatedAt: '2024-08-08T14:00:00Z',
-          assignedVehicle: 'VV-001',
-          assignedDriver: 'D002'
-        },
-        { 
-          id: 'DH003', 
-          customerName: 'Nhà máy DEF',
-          customerPhone: '0123456789',
-          pickupAddress: 'Hà Nội', 
-          deliveryAddress: 'Quảng Ninh', 
-          status: 'DELIVERED', 
-          priority: 'LOW',
-          estimatedDeliveryTime: '2024-08-08T20:00:00Z',
-          actualDeliveryTime: '2024-08-08T19:45:00Z',
-          weight: 1000,
-          value: 5000000,
-          createdAt: '2024-08-08T07:00:00Z',
-          updatedAt: '2024-08-08T19:45:00Z',
-          assignedVehicle: 'VT-003'
-        },
-        { 
-          id: 'DH004', 
-          customerName: 'Siêu thị GHI',
-          customerPhone: '0456789123',
-          pickupAddress: 'Hà Nội', 
-          deliveryAddress: 'Bắc Ninh', 
-          status: 'DELIVERED', 
-          priority: 'URGENT',
-          estimatedDeliveryTime: '2024-08-08T14:00:00Z',
-          actualDeliveryTime: '2024-08-08T16:30:00Z',
-          weight: 300,
-          value: 1500000,
-          createdAt: '2024-08-08T09:00:00Z',
-          updatedAt: '2024-08-08T16:30:00Z',
-          assignedVehicle: 'VT-002'
-        },
-      ]);
+      
+      setError('');
+    } catch (error) {
+      console.error('Failed to fetch performance data:', error);
+      setError('Không thể tải dữ liệu hiệu suất.');
+      // Don't set any fallback data - keep empty arrays/null values
+      setMetrics(null);
+      setRecentOrders([]);
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
   };
 
+  // Function to handle page change
+  const handlePageChange = (newPage: number) => {
+    fetchPerformanceData(newPage);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [metricsData, ordersData] = await Promise.all([
-          operationsAPI.getPerformanceMetrics(timeRange),
-          operationsAPI.getOrders({ limit: 10 })
-        ]);
-        setMetrics(metricsData);
-        setRecentOrders(ordersData);
-        setError('');
-      } catch {
-        setError('Không thể tải dữ liệu hiệu suất. Sử dụng dữ liệu mẫu.');
-        // Fallback data
-        setMetrics({
-          deliverySuccessRate: 94.5,
-          avgDeliveryTime: 28,
-          costPerKm: 12500,
-          customerSatisfaction: 4.6,
-          onTimeDeliveryRate: 87.3,
-          fuelEfficiency: 8.5,
-          target: {
-            deliverySuccessRate: 95,
-            avgDeliveryTime: 30,
-            costPerKm: 13000,
-            customerSatisfaction: 4.5,
-          }
-        });
-        setRecentOrders([
-          { 
-            id: 'DH001', 
-            customerName: 'Công ty ABC',
-            customerPhone: '0912345678',
-            pickupAddress: 'Hà Nội', 
-            deliveryAddress: 'Hải Phòng', 
-            status: 'DELIVERED', 
-            priority: 'HIGH',
-            estimatedDeliveryTime: '2024-08-08T16:00:00Z',
-            actualDeliveryTime: '2024-08-08T15:30:00Z',
-            weight: 500,
-            value: 2000000,
-            createdAt: '2024-08-08T08:00:00Z',
-            updatedAt: '2024-08-08T15:30:00Z',
-            assignedVehicle: 'VT-001',
-            assignedDriver: 'D001'
-          },
-          { 
-            id: 'DH002', 
-            customerName: 'Cửa hàng XYZ',
-            customerPhone: '0987654321',
-            pickupAddress: 'Hà Nội', 
-            deliveryAddress: 'Hưng Yên', 
-            status: 'IN_TRANSIT', 
-            priority: 'MEDIUM',
-            estimatedDeliveryTime: '2024-08-08T18:00:00Z',
-            weight: 200,
-            value: 800000,
-            createdAt: '2024-08-08T10:00:00Z',
-            updatedAt: '2024-08-08T14:00:00Z',
-            assignedVehicle: 'VV-001',
-            assignedDriver: 'D002'
-          },
-          { 
-            id: 'DH003', 
-            customerName: 'Nhà máy DEF',
-            customerPhone: '0123456789',
-            pickupAddress: 'Hà Nội', 
-            deliveryAddress: 'Quảng Ninh', 
-            status: 'DELIVERED', 
-            priority: 'LOW',
-            estimatedDeliveryTime: '2024-08-08T20:00:00Z',
-            actualDeliveryTime: '2024-08-08T19:45:00Z',
-            weight: 1000,
-            value: 5000000,
-            createdAt: '2024-08-08T07:00:00Z',
-            updatedAt: '2024-08-08T19:45:00Z',
-            assignedVehicle: 'VT-003'
-          },
-          { 
-            id: 'DH004', 
-            customerName: 'Siêu thị GHI',
-            customerPhone: '0456789123',
-            pickupAddress: 'Hà Nội', 
-            deliveryAddress: 'Bắc Ninh', 
-            status: 'DELIVERED', 
-            priority: 'URGENT',
-            estimatedDeliveryTime: '2024-08-08T14:00:00Z',
-            actualDeliveryTime: '2024-08-08T16:30:00Z',
-            weight: 300,
-            value: 1500000,
-            createdAt: '2024-08-08T09:00:00Z',
-            updatedAt: '2024-08-08T16:30:00Z',
-            assignedVehicle: 'VT-002'
-          },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [timeRange]);
+    fetchPerformanceData(0); // Start from page 0
+  }, [timeRange]); // fetchPerformanceData is stable, no need to add
 
   if (loading) {
     return (
@@ -306,7 +172,72 @@ export default function PerformanceAnalytics() {
 
   <PerformanceStatCards performanceData={performanceData} />
 
-  <RecentOrdersTable orders={recentOrders} onRefresh={fetchPerformanceData} loading={loading} />
+  {/* Filter trạng thái */}
+  <div className="flex flex-wrap gap-2 mb-2">
+    {statusOptions.map((status) => (
+      <GlassButton
+        key={status}
+        size="sm"
+        variant={selectedStatus === status ? 'primary' : 'secondary'}
+        onClick={() => setSelectedStatus(status)}
+      >
+        {status}
+      </GlassButton>
+    ))}
+  </div>
+
+  {/* Bảng đơn hàng với filter trạng thái */}
+  <RecentOrdersTable
+    orders={selectedStatus === 'Tất cả' ? recentOrders : recentOrders.filter(o => o.status === selectedStatus)}
+    onRefresh={() => fetchPerformanceData(currentPage)}
+    loading={loading}
+  />
+  
+  {/* Pagination Controls */}
+  {totalPages > 1 && (
+    <div className="flex justify-center items-center mt-6 space-x-2">
+      <button
+        onClick={() => handlePageChange(Math.max(currentPage - 1, 0))}
+        disabled={currentPage === 0}
+        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Trước
+      </button>
+      
+      <div className="flex space-x-1">
+        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          const pageNumber = Math.max(0, currentPage - 2) + i;
+          if (pageNumber >= totalPages) return null;
+          
+          return (
+            <button
+              key={pageNumber}
+              onClick={() => handlePageChange(pageNumber)}
+              className={`px-3 py-2 text-sm font-medium rounded-md ${
+                currentPage === pageNumber
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {pageNumber + 1}
+            </button>
+          );
+        })}
+      </div>
+      
+      <button
+        onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages - 1))}
+        disabled={currentPage === totalPages - 1}
+        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Sau
+      </button>
+      
+      <span className="text-sm text-gray-700 ml-4">
+        Trang {currentPage + 1} / {totalPages} ({totalElements} đơn hàng)
+      </span>
+    </div>
+  )}
     </GlassCard>
   );
 }

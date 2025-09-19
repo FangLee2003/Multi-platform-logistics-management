@@ -20,7 +20,7 @@ export interface MetricsData {
     trend: 'increase' | 'decrease' | 'stable';
   };
   performanceData: {
-    percentage: number;
+    count: number;
     changePercent: number;
     trend: 'increase' | 'decrease' | 'stable';
   };
@@ -119,8 +119,8 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
         
         <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-gray-700 font-medium">Hiệu suất TB</h3>
-            <span className="text-2xl">⚡</span>
+            <h3 className="text-gray-700 font-medium">Đơn hàng hoàn thành</h3>
+            <span className="text-2xl">✅</span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">
@@ -129,14 +129,14 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-800">{metricsData.performanceData.percentage}%</p>
+              <p className="text-3xl font-bold text-gray-800">{metricsData.performanceData.count}</p>
               <p className={`text-sm mt-2 ${
                 metricsData.performanceData.trend === 'increase' ? 'text-green-600' : 
                 metricsData.performanceData.trend === 'decrease' ? 'text-red-600' : 'text-gray-600'
               }`}>
                 {metricsData.performanceData.trend === 'increase' ? '+' : 
                  metricsData.performanceData.trend === 'decrease' ? '-' : ''}
-                {metricsData.performanceData.changePercent.toFixed(1)}% so với tuần trước
+                {metricsData.performanceData.changePercent.toFixed(1)}% so với hôm qua
               </p>
             </>
           )}

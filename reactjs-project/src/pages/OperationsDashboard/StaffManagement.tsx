@@ -281,9 +281,6 @@ export default function StaffManagement() {
               </span>
             )}
           </h3>
-          <GlassButton variant="primary" size="sm">
-            + Thêm nhân viên
-          </GlassButton>
         </div>
         
         <DataTable headers={['Tên', 'Chức vụ', 'Phòng ban', 'Trạng thái', 'Liên hệ']}>

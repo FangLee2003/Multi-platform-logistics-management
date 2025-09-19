@@ -49,10 +49,12 @@ interface Order {
 const getStatusId = (status: string): number => {
   const statusMap: { [key: string]: number } = {
     PENDING: 1,
-    RECEIVED: 2,
-    IN_PROGRESS: 3,
-    COMPLETED: 4,
-    CANCELLED: 5,
+    PROCESSING: 2,
+    SHIPPED: 3,
+    DELIVERED: 4,
+    COMPLETED: 5,
+    CANCELLED: 6,
+    FAILED: 7,
   };
   return statusMap[status] || 1;
 };
@@ -60,10 +62,12 @@ const getStatusId = (status: string): number => {
 const getStatusColor = (status: string): string => {
   const colorMap: { [key: string]: string } = {
     PENDING: "default",
-    RECEIVED: "processing",
-    IN_PROGRESS: "warning",
+    PROCESSING: "processing",
+    SHIPPED: "warning",
+    DELIVERED: "success",
     COMPLETED: "success",
     CANCELLED: "error",
+    FAILED: "error",
   };
   return colorMap[status] || "default";
 };

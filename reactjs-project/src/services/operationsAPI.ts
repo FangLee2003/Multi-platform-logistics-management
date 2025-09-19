@@ -13,11 +13,28 @@ interface OperationsSummary {
 
 interface Order {
   id: string;
+  orderCode: string;
+  description: string;
+  totalAmount: string;
   status: string;
-  priority: string;
-  customerId: string;
-  vehicleId?: string;
-  driverId?: string;
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  assignedVehicle: string;
+  assignedDriver: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
 }
 
 interface PerformanceMetrics {
@@ -171,6 +188,24 @@ export const operationsAPI = {
       body: JSON.stringify(params),
     });
     if (!response.ok) throw new Error('Failed to generate report');
+    return response.json();
+  },
+
+  // Maintenance requests count
+  getMaintenanceRequestsCount: async (): Promise<{ count: number; message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/operations/maintenance-requests/count`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch maintenance requests count');
+    return response.json();
+  },
+
+  // Get orders for operations dashboard with pagination
+  getOrdersForOperations: async (page: number = 0, size: number = 10): Promise<PaginatedResponse<Order>> => {
+    const response = await fetch(`${API_BASE_URL}/operations/orders?page=${page}&size=${size}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch orders');
     return response.json();
   },
 };
