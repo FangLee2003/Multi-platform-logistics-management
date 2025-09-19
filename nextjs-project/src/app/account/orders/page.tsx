@@ -26,8 +26,8 @@ import {
   PlusOutlined,
   EyeOutlined,
   HistoryOutlined,
-  FilePdfOutlined,
 } from "@ant-design/icons";
+import InvoiceButton from "@/components/InvoiceButton";
 import { useRouter } from "next/navigation";
 
 const { Title } = Typography;
@@ -321,9 +321,9 @@ export default function OrdersPage() {
       });
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleViewInvoice = (orderId: string) => {
-    // TODO: Implement invoice viewing functionality
+  const handleInvoiceCreated = (invoice: { invoiceNumber: string }) => {
+    // Refresh orders list or show success message
+    messageApi.success(`Hóa đơn ${invoice.invoiceNumber} đã được tạo thành công!`);
   };
 
   const columns = [
@@ -397,13 +397,12 @@ export default function OrdersPage() {
               onClick={() => showTrackingModal(record)}
             />
           </Tooltip>
-          <Tooltip title="Hoá đơn điện tử">
-            <Button
-              type="text"
-              icon={<FilePdfOutlined />}
-              onClick={() => handleViewInvoice(record.id)}
-            />
-          </Tooltip>
+          <InvoiceButton
+            orderId={parseInt(record.id)}
+            orderStatus={record.status?.name}
+            onInvoiceCreated={handleInvoiceCreated}
+            type="text"
+          />
         </Space>
       ),
     },
