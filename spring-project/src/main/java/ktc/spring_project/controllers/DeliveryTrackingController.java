@@ -2,6 +2,7 @@ package ktc.spring_project.controllers;
 import ktc.spring_project.services.DeliveryService;
 
 import ktc.spring_project.entities.DeliveryTracking;
+import ktc.spring_project.repositories.DeliveryRepository;
 
 import ktc.spring_project.services.DeliveryTrackingService;
 import ktc.spring_project.services.UserService;
@@ -12,12 +13,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +34,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/tracking")
+@Slf4j
 public class DeliveryTrackingController {
 
     // DTO for returning simple tracking info
@@ -64,6 +68,75 @@ public class DeliveryTrackingController {
 
     @Autowired
     private DeliveryService deliveryService;
+
+    @Autowired
+    private DeliveryRepository deliveryRepository;
+
+    /**
+     * Simple vehicle location update - chỉ cần vehicleId, latitude, longitude
+     * Endpoint đơn giản để lưu vị trí xe mà không cần delivery_id
+     */
+    @PostMapping("/vehicle-location")
+    @Transactional
+    public ResponseEntity<?> updateVehicleLocation(
+            @Valid @RequestBody Map<String, Object> locationData,
+            Authentication authentication) {
+        try {
+            // Kiểm tra các trường bắt buộc
+            if (!locationData.containsKey("vehicleId") || 
+                !locationData.containsKey("latitude") || 
+                !locationData.containsKey("longitude") ||
+                !locationData.containsKey("deliveryId")) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "vehicleId, latitude, longitude, deliveryId are required"));
+            }
+
+            DeliveryTracking tracking = new DeliveryTracking();
+            tracking.setLatitude(new BigDecimal(locationData.get("latitude").toString()));
+            tracking.setLongitude(new BigDecimal(locationData.get("longitude").toString()));
+            tracking.setTimestamp(Timestamp.from(Instant.now()));
+
+            // Set vehicle
+            Long vehicleId = Long.valueOf(locationData.get("vehicleId").toString());
+            tracking.setVehicle(vehicleService.getVehicleById(vehicleId));
+
+            // Set delivery
+            Long deliveryId = Long.valueOf(locationData.get("deliveryId").toString());
+            tracking.setDelivery(deliveryService.getDeliveryById(deliveryId));
+
+            // Set optional fields
+            if (locationData.containsKey("location")) {
+                tracking.setLocation((String) locationData.get("location"));
+            }
+            if (locationData.containsKey("notes")) {
+                tracking.setNotes((String) locationData.get("notes"));
+            }
+
+            // Set default status nếu cần
+            statusService.getStatusById((short) 1).ifPresent(tracking::setStatus);
+
+            log.info("🔍 About to save tracking: vehicleId={}, deliveryId={}, lat={}, lng={}", 
+                vehicleId, deliveryId, tracking.getLatitude(), tracking.getLongitude());
+            
+            DeliveryTracking saved = deliveryTrackingService.save(tracking);
+            
+            log.info("✅ Tracking saved successfully: id={}, vehicleId={}, deliveryId={}", 
+                saved.getId(), saved.getVehicle().getId(), saved.getDelivery().getId());
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Vehicle location updated successfully",
+                "trackingId", saved.getId(),
+                "vehicleId", vehicleId,
+                "latitude", saved.getLatitude(),
+                "longitude", saved.getLongitude(),
+                "timestamp", saved.getTimestamp()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to save vehicle location: " + e.getMessage()));
+        }
+    }
 
     /**
      * Update vehicle location and status

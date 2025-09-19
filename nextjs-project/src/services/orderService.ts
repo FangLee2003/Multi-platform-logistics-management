@@ -11,6 +11,16 @@ export interface OrderSummary {
   orderStatus: string;
 }
 
+export interface PaginatedOrderSummaryResponse {
+  data: OrderSummary[];
+  pageNumber: number;
+  pageSize: number;
+  totalRecords: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 const api = axios.create({
   baseURL: "/api",
 });
@@ -49,6 +59,50 @@ export const orderApi = {
     const { data } = await axios.get<OrderSummary[]>(
       `http://localhost:8080/api/orders/user/${userId}/summary`
     );
+    return data;
+  },
+
+  getOrdersByUserPaginated: async (
+    userId: number,
+    page: number = 1,
+    size: number = 10
+  ): Promise<PaginatedOrderSummaryResponse> => {
+    const { data } = await axios.get<PaginatedOrderSummaryResponse>(
+      `http://localhost:8080/api/orders/user/${userId}/summary/paginated?page=${page}&size=${size}`
+    );
+    return data;
+  },
+
+  searchOrdersByStoreAndOrderId: async (
+    storeId: number,
+    orderId: number,
+    page: number = 1,
+    size: number = 10
+  ): Promise<PaginatedOrderSummaryResponse> => {
+    const { data } = await axios.get<PaginatedOrderSummaryResponse>(
+      `http://localhost:8080/api/orders/search?storeId=${storeId}&orderId=${orderId}&page=${page}&size=${size}`
+    );
+    return data;
+  },
+
+  searchOrdersByStoreAndDateRange: async (
+    storeId: number,
+    page: number = 1,
+    size: number = 10,
+    fromDate?: string,
+    toDate?: string
+  ): Promise<PaginatedOrderSummaryResponse> => {
+    let url = `http://localhost:8080/api/orders/search-by-date?storeId=${storeId}&page=${page}&size=${size}`;
+
+    if (fromDate) {
+      url += `&fromDate=${fromDate}`;
+    }
+
+    if (toDate) {
+      url += `&toDate=${toDate}`;
+    }
+
+    const { data } = await axios.get<PaginatedOrderSummaryResponse>(url);
     return data;
   },
 
