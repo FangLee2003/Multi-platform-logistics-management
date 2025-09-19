@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:ktc_logistics_driver/data/env/environment.dart';
 import 'package:ktc_logistics_driver/data/local_secure/secure_storage.dart';
+import 'package:ktc_logistics_driver/data/network/http_client.dart';
 import 'package:ktc_logistics_driver/domain/models/order/order_details_response.dart';
 import 'package:ktc_logistics_driver/domain/models/order/orders_by_status_response.dart';
 import 'package:ktc_logistics_driver/domain/models/order/order_status_update.dart';
@@ -12,17 +11,39 @@ class OrdersServices {
   // Dependencies
   final Environment _env = Environment.getInstance();
   final SecureStorageFrave secureStorage = SecureStorageFrave();
+  late final HttpClient _httpClient;
 
   // Constructor
-  OrdersServices();
+  OrdersServices() {
+    _httpClient = HttpClient(baseUrl: _env.apiBaseUrl, secureStorage: secureStorage);
+  }
 
   /// Get driver ID from secure storage
   Future<int?> _getDriverId() async {
     final driverId = await secureStorage.readDriverId();
-    if (driverId == null) {
+    if (driverId == null || driverId.isEmpty) {
+      // Fallback: Try to use userId if available
+      final userId = await secureStorage.readUserId();
+      if (userId != null && userId.isNotEmpty) {
+        try {
+          final id = int.parse(userId);
+          // Save it as driverId for future use
+          await secureStorage.persistentDriverId(userId);
+          return id;
+        } catch (e) {
+          debugPrint('Error parsing userId: $e');
+          return null;
+        }
+      }
       return null;
     }
-    return int.parse(driverId);
+    
+    try {
+      return int.parse(driverId);
+    } catch (e) {
+      debugPrint('Error parsing driverId: $e');
+      return null;
+    }
   }
 
   /// Retrieves all orders assigned to the current driver
@@ -42,22 +63,16 @@ class OrdersServices {
     }
 
     try {
-      final resp = await http.get(
-        Uri.parse('${_env.apiBaseUrl}/driver/$driverId/orders'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
+      print('📦 OrdersService: Getting orders via HttpClient...');
+
+      final response = await _httpClient.get<List<dynamic>>(
+        '/drivers/$driverId/orders',
+        useCache: false,
+        timeout: const Duration(seconds: 45),
       );
 
-      if (resp.statusCode == 200) {
-        final List<dynamic> data = json.decode(resp.body);
-        return data.map((item) => OrdersResponse.fromJson(item)).toList();
-      } else {
-        debugPrint(
-            'Error getting driver orders: ${resp.statusCode} - ${resp.body}');
-        return [];
-      }
+      print('📦 OrdersService: Response received: ${response.length} items');
+      return response.map((item) => OrdersResponse.fromJson(item)).toList();
     } catch (e) {
       debugPrint('Error getting driver orders: $e');
       return [];
@@ -69,7 +84,7 @@ class OrdersServices {
   /// [orderId] The ID of the order to retrieve
   /// Returns [OrderDetailsResponse] object with order details
   Future<OrderDetailsResponse?> getDriverOrderDetail(int orderId) async {
-        final driverId = await _getDriverId();
+    final driverId = await _getDriverId();
     if (driverId == null) {
       debugPrint('Driver ID not found - cannot get orders');
       return null;
@@ -82,22 +97,15 @@ class OrdersServices {
     }
 
     try {
-      final resp = await http.get(
-        Uri.parse('${_env.apiBaseUrl}/driver/$driverId/orders/$orderId'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
+      print('📦 OrdersService: Getting order details via HttpClient...');
+
+      final response = await _httpClient.get<Map<String, dynamic>>(
+        '/drivers/$driverId/orders/$orderId',
+        useCache: false,
+        timeout: const Duration(seconds: 45),
       );
 
-      if (resp.statusCode == 200) {
-        final orderData = json.decode(resp.body);
-        return OrderDetailsResponse.fromJson(orderData);
-      } else {
-        debugPrint(
-            'Error getting order detail: ${resp.statusCode} - ${resp.body}');
-        return null;
-      }
+      return OrderDetailsResponse.fromJson(response);
     } catch (e) {
       debugPrint('Error getting order detail: $e');
       return null;
@@ -129,27 +137,13 @@ class OrdersServices {
     }
 
     try {
-      // Construct URL using the pattern api/driver/:driverId/orders/:orderId/status
-      final url = '${_env.apiBaseUrl}/driver/$dId/orders/$orderId/status';
-      debugPrint('Updating order status at: $url');
-      debugPrint('Request payload: ${statusUpdate.toJson()}');
-
-      final resp = await http.patch(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-        body: json.encode(statusUpdate.toJson())
+      await _httpClient.patch<Map<String, dynamic>>(
+        '/drivers/$dId/orders/$orderId/status',
+        body: statusUpdate.toJson(),
+        fromJson: (json) => json,
       );
 
-      if (resp.statusCode == 200) {
-        debugPrint('Order status updated successfully');
-        return true;
-      } else {
-        debugPrint('Error updating order status: ${resp.statusCode} - ${resp.body}');
-        return false;
-      }
+      return true;
     } catch (e) {
       debugPrint('Error updating order status: $e');
       return false;

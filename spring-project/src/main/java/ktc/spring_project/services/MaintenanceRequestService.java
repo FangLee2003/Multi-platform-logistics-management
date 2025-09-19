@@ -74,10 +74,14 @@ public class MaintenanceRequestService {
         maintenanceRequest.setNextDueDate(createDTO.getNextDueDate());
         maintenanceRequest.setNotes(createDTO.getNotes());
 
-        // Save the maintenance request
-        MaintenanceRequest savedRequest = maintenanceRequestRepository.save(maintenanceRequest);
+    // Save the maintenance request
+    MaintenanceRequest savedRequest = maintenanceRequestRepository.save(maintenanceRequest);
 
-        return convertToDTO(savedRequest);
+    // Sau khi tạo yêu cầu bảo trì, cập nhật trạng thái xe sang MAINTENANCE_PENDING (status_id=51)
+    // Có thể lấy statusId từ createDTO hoặc hardcode 51 nếu luôn là "Cần bảo trì"
+    vehicleRepository.updateStatus(vehicle.getId(), status.getId());
+
+    return convertToDTO(savedRequest);
     }
 
     /**
@@ -156,8 +160,9 @@ public class MaintenanceRequestService {
         if (updateDTO.getMaintenanceType() != null) {
             request.setMaintenanceType(updateDTO.getMaintenanceType());
         }
+        Status status = null;
         if (updateDTO.getStatusId() != null) {
-            Status status = statusRepository.findById(updateDTO.getStatusId().shortValue())
+            status = statusRepository.findById(updateDTO.getStatusId().shortValue())
                     .orElseThrow(() -> new EntityNotFoundException("Status not found with ID: " + updateDTO.getStatusId()));
             request.setStatus(status);
         }
@@ -175,6 +180,14 @@ public class MaintenanceRequestService {
         }
 
         MaintenanceRequest savedRequest = maintenanceRequestRepository.save(request);
+
+        // Đồng bộ trạng thái vehicle nếu statusId được cập nhật
+        if (status != null) {
+            Vehicle vehicle = request.getVehicle();
+            vehicle.setStatus(status);
+            vehicleRepository.save(vehicle);
+        }
+
         return convertToDTO(savedRequest);
     }
 

@@ -11,6 +11,7 @@ import ktc.spring_project.entities.Vehicle;
 import ktc.spring_project.entities.Status;
 import ktc.spring_project.entities.Route;
 import ktc.spring_project.entities.Delivery;
+import ktc.spring_project.entities.DeliveryTracking;
 import ktc.spring_project.services.OrderService;
 import ktc.spring_project.services.UserService;
 import ktc.spring_project.services.VehicleService;
@@ -100,6 +101,9 @@ public class OrderController {
             System.out.println("- Status ID: " + (createdOrder.getStatus() != null ? createdOrder.getStatus().getId() : "null"));
             System.out.println("- Created By ID: " + (createdOrder.getCreatedBy() != null ? createdOrder.getCreatedBy().getId() : "null"));
             System.out.println("- Address ID: " + (createdOrder.getAddress() != null ? createdOrder.getAddress().getId() : "null"));
+            if (dto.getPickupDate() != null) {
+                System.out.println("- Pickup Date: " + dto.getPickupDate() + " (will be handled by separate delivery creation)");
+            }
 
             return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
@@ -296,6 +300,7 @@ public ResponseEntity<Order> putOrder(
             @PathVariable Long id,
             @Valid @RequestBody UpdateOrderVehicleDTO dto) {
         try {
+            System.out.println("🚗 OrderController: Updating vehicle for order " + id + " with vehicleId: " + dto.vehicleId);
             Order order = orderService.getOrderById(id);
             
             if (dto.vehicleId != null && dto.vehicleId > 0) {
@@ -336,6 +341,10 @@ public ResponseEntity<Order> putOrder(
                         }
                         deliveryService.save(delivery);
                     }
+                    
+                    // 🚀 TỰ ĐỘNG TẠO TRACKING RECORD KHI ASSIGN VEHICLE
+                    createInitialTrackingForVehicleAssignment(vehicle, delivery, order);
+                    
                 } catch (Exception deliveryException) {
                     System.err.println("Error managing delivery: " + deliveryException.getMessage());
                     // Vẫn tiếp tục cập nhật order ngay cả khi delivery bị lỗi
@@ -464,6 +473,63 @@ public ResponseEntity<Order> putOrder(
             return ResponseEntity.ok(orderSummaries);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Tự động tạo tracking record khi assign vehicle cho order
+     */
+    private void createInitialTrackingForVehicleAssignment(Vehicle vehicle, Delivery delivery, Order order) {
+        try {
+            System.out.println("🚀 Creating initial tracking for vehicle assignment...");
+            
+            // Kiểm tra xem đã có tracking cho vehicle+delivery này chưa
+            List<DeliveryTracking> existingTrackings = deliveryTrackingService.findByVehicleIdAndDeliveryId(
+                vehicle.getId(), delivery.getId());
+            
+            if (existingTrackings != null && !existingTrackings.isEmpty()) {
+                System.out.println("✅ Tracking already exists for vehicle " + vehicle.getId() + 
+                    " and delivery " + delivery.getId() + ", skipping creation");
+                return;
+            }
+            
+            // Tạo tracking record mới với tọa độ store (pickup location)
+            DeliveryTracking tracking = new DeliveryTracking();
+            tracking.setVehicle(vehicle);
+            tracking.setDelivery(delivery);
+            
+            // Sử dụng tọa độ store làm vị trí ban đầu
+            if (order.getStore() != null && 
+                order.getStore().getLatitude() != null && 
+                order.getStore().getLongitude() != null) {
+                
+                tracking.setLatitude(order.getStore().getLatitude());
+                tracking.setLongitude(order.getStore().getLongitude());
+                tracking.setLocation("At store: " + order.getStore().getStoreName());
+            } else {
+                // Fallback coordinates (Hồ Chí Minh City center)
+                tracking.setLatitude(new java.math.BigDecimal("10.762622"));
+                tracking.setLongitude(new java.math.BigDecimal("106.660172"));
+                tracking.setLocation("Default location - Store coordinates not available");
+            }
+            
+            tracking.setNotes("Auto-created tracking for vehicle assignment - Order #" + order.getId());
+            tracking.setTimestamp(new java.sql.Timestamp(System.currentTimeMillis()));
+            
+            // Set default status if needed (status ID 1)
+            // statusService.getStatusById((short) 1).ifPresent(tracking::setStatus);
+            
+            DeliveryTracking saved = deliveryTrackingService.save(tracking);
+            
+            System.out.println("✅ Initial tracking created successfully: ID=" + saved.getId() + 
+                ", Vehicle=" + vehicle.getLicensePlate() + 
+                ", Delivery=" + delivery.getId() + 
+                ", Location=[" + tracking.getLatitude() + ", " + tracking.getLongitude() + "]");
+                
+        } catch (Exception e) {
+            System.err.println("❌ Error creating initial tracking: " + e.getMessage());
+            e.printStackTrace();
+            // Không throw exception để không làm gián đoạn vehicle assignment
         }
     }
 
