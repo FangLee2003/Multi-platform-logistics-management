@@ -17,6 +17,10 @@ configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
+	// Loại trừ commons-logging để tránh xung đột với spring-jcl
+	all {
+		exclude group: 'commons-logging', module: 'commons-logging'
+	}
 }
 
 repositories {
@@ -41,10 +45,7 @@ dependencies {
 	implementation 'org.jsoup:jsoup:1.16.1'
 
 	// Thư viện Google Authenticator
-	implementation 'com.warrenstrange:googleauth:1.4.0'
-
 	implementation 'com.warrenstrange:googleauth:1.5.0'
-
 	
 	implementation 'mysql:mysql-connector-java:8.0.33'
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
