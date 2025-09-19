@@ -6,10 +6,12 @@ import {
   Button,
   Select,
   InputNumber,
+  DatePicker,
 } from "antd";
 import { CloseCircleOutlined } from "@ant-design/icons";
 import { Store } from "@/types/Store";
 import { useState, useEffect } from "react";
+import React from "react";
 
 import {
   addressService,
@@ -55,6 +57,35 @@ export default function StepStoreInfo({ store }: Props) {
     longitude: form.getFieldValue("longitude") ?? null,
   })); // State cho tọa độ
   const [isGeocodingLoading, setIsGeocodingLoading] = useState(false); // State cho loading geocoding
+
+  // Validation function để kiểm tra form có đầy đủ dữ liệu không
+  const validateAddressData = () => {
+    const values = form.getFieldsValue();
+    console.log("Validating address data:", values);
+    
+    if (!values.address || values.address.trim() === "") {
+      console.error("Missing address field");
+      return false;
+    }
+    if (!values.city || values.city.trim() === "") {
+      console.error("Missing city field");
+      return false;
+    }
+    if (!values.receiver_name || values.receiver_name.trim() === "") {
+      console.error("Missing receiver_name field");
+      return false;
+    }
+    if (!values.receiver_phone || values.receiver_phone.trim() === "") {
+      console.error("Missing receiver_phone field");
+      return false;
+    }
+    return true;
+  };
+
+  // Expose validation function to parent
+  React.useImperativeHandle(React.createRef(), () => ({
+    validateAddressData
+  }));
 
   // Khi component mount, nếu form đã có dữ liệu thì khôi phục lại các state địa chỉ
   useEffect(() => {
@@ -291,6 +322,32 @@ export default function StepStoreInfo({ store }: Props) {
       <Form.Item name="longitude" style={{ display: "none" }}>
         <InputNumber style={{ width: "100%" }} />
       </Form.Item>
+
+      {/* Trường ngày lấy hàng và thời gian buổi lấy hàng */}
+      <Row gutter={[24, 16]}>
+        <Col xs={24} lg={12}>
+          <Form.Item
+            name="pickup_date"
+            label="Ngày lấy hàng"
+            rules={[{ required: true, message: "Vui lòng chọn ngày lấy hàng!" }]}
+          >
+            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" placeholder="Chọn ngày lấy hàng" />
+          </Form.Item>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Form.Item
+            name="pickup_time_period"
+            label="Thời gian buổi lấy hàng"
+            rules={[{ required: true, message: "Vui lòng chọn thời gian buổi lấy hàng!" }]}
+          >
+            <Select placeholder="Chọn buổi lấy hàng">
+              <Select.Option value="morning">Sáng (7h30 - 11h00)</Select.Option>
+              <Select.Option value="afternoon">Chiều (14h00 - 17h00)</Select.Option>
+              <Select.Option value="evening">Tối (18h00 - 21h00)</Select.Option>
+            </Select>
+          </Form.Item>
+        </Col>
+      </Row>
 
       <Row gutter={[24, 16]}>
         {/* Phần thông tin cửa hàng - Full width */}

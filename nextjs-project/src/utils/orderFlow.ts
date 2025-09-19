@@ -59,6 +59,8 @@ export interface OrderPayload {
   description?: string | null;
   totalAmount?: number | null;
   notes?: string | null;
+  pickupDate?: string | null;
+  pickupTimePeriod?: string | null;
 }
 
 /**
@@ -94,12 +96,45 @@ export interface DeliveryPayload {
  * Tạo address payload từ form values
  */
 export const createAddressPayload = (values: any): AddressPayload => {
+  // Map string sang enum AddressType
+  let addressType = "DELIVERY";
+  if (values.addressType) {
+    switch (values.addressType.toLowerCase()) {
+      case "home":
+        addressType = "HOME";
+        break;
+      case "store":
+        addressType = "STORE";
+        break;
+      case "office":
+        addressType = "OFFICE";
+        break;
+      default:
+        addressType = "DELIVERY";
+    }
+  }
+
+  // Validate required fields
+  if (!values.address || values.address.trim() === "") {
+    throw new Error("Địa chỉ là bắt buộc");
+  }
+  if (!values.city || values.city.trim() === "") {
+    throw new Error("Thành phố là bắt buộc");
+  }
+  if (!values.receiver_name || values.receiver_name.trim() === "") {
+    throw new Error("Tên người nhận là bắt buộc");
+  }
+  if (!values.receiver_phone || values.receiver_phone.trim() === "") {
+    throw new Error("Số điện thoại người nhận là bắt buộc");
+  }
+
+  // Chỉ trả về những field cần thiết cho address, không bao gồm pickup_date và pickup_time_period
   return {
-    addressType: values.addressType || "DELIVERY",
-    address: values.address,
-    city: values.city,
-    contactName: values.receiver_name,
-    contactPhone: values.receiver_phone,
+    addressType,
+    address: values.address.trim(),
+    city: values.city.trim(),
+    contactName: values.receiver_name.trim(),
+    contactPhone: values.receiver_phone.trim(),
     contactEmail: values.receiver_email || null,
     state: null,
     country: "Vietnam",
@@ -146,6 +181,15 @@ export const createOrderPayload = (
   values: any,
   userId: number
 ): OrderPayload => {
+  // Tạo notes từ pickup_time_period và notes gốc
+  let notes = values.notes || "";
+  if (values.pickup_time_period) {
+    const timePeriodText = values.pickup_time_period === "morning" ? "Sáng" :
+                          values.pickup_time_period === "afternoon" ? "Chiều" :
+                          values.pickup_time_period === "evening" ? "Tối" : values.pickup_time_period;
+    notes = notes ? `${notes} | Buổi lấy hàng: ${timePeriodText}` : `Buổi lấy hàng: ${timePeriodText}`;
+  }
+
   return {
     store: { id: store.id },
     address: { id: addressId },
@@ -154,7 +198,9 @@ export const createOrderPayload = (
     orderCode: null,
     description: values.description || null,
     totalAmount: null,
-    notes: values.notes || null,
+    notes: notes || null,
+    pickupDate: values.pickup_date ? values.pickup_date.format("YYYY-MM-DD") : null,
+    pickupTimePeriod: values.pickup_time_period || null,
   };
 };
 
@@ -258,7 +304,7 @@ export const createDeliveryPayload = (
 ): DeliveryPayload => {
   // Lấy thông tin thời gian lấy hàng từ form
   const pickupDate = form.getFieldValue("pickup_date");
-  const pickupTimeSlot = form.getFieldValue("pickup_time_slot");
+  const pickupTimePeriod = form.getFieldValue("pickup_time_period");
 
   // Format pickup date nếu có
   let formattedPickupDate = null;
@@ -266,18 +312,18 @@ export const createDeliveryPayload = (
     formattedPickupDate = pickupDate.format("YYYY-MM-DD");
   }
 
-  // Tạo schedule delivery time dựa trên pickup date và time slot
+  // Tạo schedule delivery time dựa trên pickup date và time period
   let scheduleDeliveryTime = null;
-  if (formattedPickupDate && pickupTimeSlot) {
-    switch (pickupTimeSlot) {
-      case "MORNING":
+  if (formattedPickupDate && pickupTimePeriod) {
+    switch (pickupTimePeriod) {
+      case "morning":
         scheduleDeliveryTime = `${formattedPickupDate} 10:00:00`;
         break;
-      case "AFTERNOON":
+      case "afternoon":
         scheduleDeliveryTime = `${formattedPickupDate} 15:00:00`;
         break;
-      case "ALL_DAY":
-        scheduleDeliveryTime = `${formattedPickupDate} 12:00:00`;
+      case "evening":
+        scheduleDeliveryTime = `${formattedPickupDate} 19:00:00`;
         break;
       default:
         scheduleDeliveryTime = `${formattedPickupDate} 10:00:00`;
