@@ -11,6 +11,12 @@ export interface OrderSummary {
   orderStatus: string;
 }
 
+export interface OrderStatsDto {
+  totalOrders: number;
+  processingOrders: number;
+  completedOrders: number;
+}
+
 export interface PaginatedOrderSummaryResponse {
   data: OrderSummary[];
   pageNumber: number;
@@ -149,6 +155,18 @@ export const orderApi = {
     }
 
     const { data } = await axios.get<PaginatedOrderSummaryResponse>(url);
+    return data;
+  },
+
+  /**
+   * Get order statistics for a user
+   * @param userId - the user ID to get statistics for
+   * @returns OrderStatsDto with total, processing, and completed order counts
+   */
+  getUserOrderStats: async (userId: number): Promise<OrderStatsDto> => {
+    const { data } = await axios.get<OrderStatsDto>(
+      `http://localhost:8080/api/orders/user/${userId}/stats`
+    );
     return data;
   },
 

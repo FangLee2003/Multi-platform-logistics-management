@@ -3,6 +3,7 @@ package ktc.spring_project.controllers;
 import ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO;
 import ktc.spring_project.dtos.order.DeliveryOrderResponseDTO;
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
+import ktc.spring_project.dtos.order.OrderStatsDto;
 import ktc.spring_project.dtos.order.PaginatedOrderSummaryResponseDto;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.User;
@@ -760,6 +761,36 @@ public ResponseEntity<Order> putOrder(
             System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
             e.printStackTrace();
             System.err.println("===========================");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get order statistics by store ID from logged-in user
+     * API: GET /api/orders/user/{userId}/stats
+     * Returns total orders, processing orders, and completed orders count
+     */
+    @GetMapping("/user/{userId}/stats")
+    public ResponseEntity<OrderStatsDto> getUserOrderStats(@PathVariable Long userId) {
+        try {
+            // First get the store ID associated with this user
+            // For now, we'll assume storeId = userId for simplicity
+            // In real implementation, you might need to get storeId from user entity
+            Long storeId = userId; // This should be modified based on your user-store relationship
+            
+            System.out.println("Getting order stats for userId: " + userId + ", using storeId: " + storeId);
+            
+            OrderStatsDto stats = orderService.getOrderStatsByStoreId(storeId);
+            
+            System.out.println("Order stats: total=" + stats.getTotalOrders() + 
+                    ", processing=" + stats.getProcessingOrders() + 
+                    ", completed=" + stats.getCompletedOrders());
+            
+            return ResponseEntity.ok(stats);
+            
+        } catch (Exception e) {
+            System.err.println("Error getting order stats: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

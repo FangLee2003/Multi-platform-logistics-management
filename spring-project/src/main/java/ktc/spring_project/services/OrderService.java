@@ -543,4 +543,31 @@ public class OrderService {
             throw new HttpException("Failed to search orders with filters: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * Get order statistics by store ID
+     * @param storeId - the store ID to get statistics for
+     * @return OrderStatsDto with counts for total, processing, and completed orders
+     */
+    public ktc.spring_project.dtos.order.OrderStatsDto getOrderStatsByStoreId(Long storeId) {
+        try {
+            validateId(storeId, "Store ID");
+            log.debug("Getting order stats for storeId: {}", storeId);
+            
+            long totalOrders = orderRepository.countTotalOrdersByStoreId(storeId);
+            long processingOrders = orderRepository.countProcessingOrdersByStoreId(storeId);
+            long completedOrders = orderRepository.countCompletedOrdersByStoreId(storeId);
+            
+            return ktc.spring_project.dtos.order.OrderStatsDto.builder()
+                    .totalOrders(totalOrders)
+                    .processingOrders(processingOrders)
+                    .completedOrders(completedOrders)
+                    .build();
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to get order statistics: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

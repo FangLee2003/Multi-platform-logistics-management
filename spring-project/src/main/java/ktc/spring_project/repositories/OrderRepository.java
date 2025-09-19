@@ -209,4 +209,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("toDate") LocalDateTime toDate,
         @Param("statusList") List<String> statusList,
         Pageable pageable);
+
+    /**
+     * Get order statistics by store ID
+     * Returns total orders, processing orders, and completed orders count
+     */
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.store.id = :storeId")
+    long countTotalOrdersByStoreId(@Param("storeId") Long storeId);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.store.id = :storeId AND o.status.name = 'Processing'")
+    long countProcessingOrdersByStoreId(@Param("storeId") Long storeId);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.store.id = :storeId AND o.status.name = 'Completed'")
+    long countCompletedOrdersByStoreId(@Param("storeId") Long storeId);
 }
