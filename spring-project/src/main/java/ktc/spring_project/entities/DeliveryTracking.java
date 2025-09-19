@@ -10,6 +10,21 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "delivery_tracking")
 public class DeliveryTracking {
+    // Hỗ trợ cập nhật statusId trực tiếp từ controller
+    public Integer getStatusId() {
+        return status != null && status.getId() != null ? Integer.valueOf(status.getId()) : null;
+    }
+
+    public void setStatusId(Integer statusId) {
+        // Không tạo mới Status, chỉ set reference
+        if (statusId != null) {
+            Status newStatus = new Status();
+            newStatus.setId(statusId.shortValue());
+            this.status = newStatus;
+        } else {
+            this.status = null;
+        }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
