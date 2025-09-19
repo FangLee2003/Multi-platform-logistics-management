@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Search, Filter, Plus } from "lucide-react";
 
-type VehicleStatus = "Hoạt động" | "Bảo trì" | "Cần bảo trì";
+type VehicleStatus = "AVAILABLE" | "IN_USE" | "MAINTENANCE" | "MAINTENANCE_PENDING";
 
 interface SearchAndFilterProps {
   searchTerm: string;
@@ -59,9 +59,10 @@ const SearchAndFilter = memo<SearchAndFilterProps>(({
             className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-3 pr-8 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors"
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="Hoạt động">Đang hoạt động</option>
-            <option value="Bảo trì">Đang bảo trì</option>
-            <option value="Cần bảo trì">Cần bảo trì</option>
+            <option value="AVAILABLE">Sẵn sàng sử dụng</option>
+            <option value="IN_USE">Đang sử dụng</option>
+            <option value="MAINTENANCE">Đang bảo trì</option>
+            <option value="MAINTENANCE_PENDING">Cần bảo trì</option>
           </select>
           <Filter size={20} className="absolute right-2 top-3.5 text-gray-400 pointer-events-none" />
         </div>

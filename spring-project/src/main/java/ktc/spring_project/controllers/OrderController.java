@@ -8,10 +8,13 @@ import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Vehicle;
 import ktc.spring_project.entities.Status;
 import ktc.spring_project.entities.Route;
+import ktc.spring_project.entities.Delivery;
+import ktc.spring_project.entities.DeliveryTracking;
 import ktc.spring_project.services.OrderService;
 import ktc.spring_project.services.UserService;
 import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.DeliveryTrackingService;
+import ktc.spring_project.services.DeliveryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -43,6 +46,9 @@ public class OrderController {
 
     @Autowired
     private DeliveryTrackingService deliveryTrackingService;
+
+    @Autowired
+    private DeliveryService deliveryService;
 
     /**
      * Get order by ID with items included
@@ -287,20 +293,82 @@ public ResponseEntity<Order> putOrder(
             @PathVariable Long id,
             @Valid @RequestBody UpdateOrderVehicleDTO dto) {
         try {
+            System.out.println("🚗 OrderController: Updating vehicle for order " + id + " with vehicleId: " + dto.vehicleId);
             Order order = orderService.getOrderById(id);
+            
             if (dto.vehicleId != null && dto.vehicleId > 0) {
-                // Assign vehicle
-                Vehicle vehicle = new Vehicle();
-                vehicle.setId(dto.vehicleId);
+                // Assign vehicle - lấy vehicle đầy đủ từ database
+                Vehicle vehicle = vehicleService.getVehicleById(dto.vehicleId);
+                if (vehicle == null) {
+                    return ResponseEntity.badRequest().build();
+                }
                 order.setVehicle(vehicle);
+                System.out.println("Assigning vehicle " + vehicle.getLicensePlate() + " to order " + id);
+                
+                // Tìm hoặc tạo delivery record để lưu driver
+                try {
+                    List<Delivery> deliveries = deliveryService.findByOrderId(id);
+                    Delivery delivery = null;
+                    if (deliveries != null && !deliveries.isEmpty()) {
+                        delivery = deliveries.get(0); // Lấy delivery đầu tiên
+                    }
+                    
+                    if (delivery == null) {
+                        // Tạo delivery mới
+                        delivery = new Delivery();
+                        delivery.setOrder(order);
+                        delivery.setVehicle(vehicle);
+                        if (vehicle.getCurrentDriver() != null) {
+                            delivery.setDriver(vehicle.getCurrentDriver());
+                            System.out.println("Creating new delivery with driver: " + vehicle.getCurrentDriver().getFullName());
+                        }
+                        delivery.setOrderDate(new java.sql.Timestamp(System.currentTimeMillis()));
+                        delivery.setLateDeliveryRisk(0);
+                        deliveryService.save(delivery);
+                    } else {
+                        // Cập nhật delivery hiện có
+                        delivery.setVehicle(vehicle);
+                        if (vehicle.getCurrentDriver() != null) {
+                            delivery.setDriver(vehicle.getCurrentDriver());
+                            System.out.println("Updating delivery with driver: " + vehicle.getCurrentDriver().getFullName());
+                        }
+                        deliveryService.save(delivery);
+                    }
+                    
+                    // 🚀 TỰ ĐỘNG TẠO TRACKING RECORD KHI ASSIGN VEHICLE
+                    createInitialTrackingForVehicleAssignment(vehicle, delivery, order);
+                    
+                } catch (Exception deliveryException) {
+                    System.err.println("Error managing delivery: " + deliveryException.getMessage());
+                    // Vẫn tiếp tục cập nhật order ngay cả khi delivery bị lỗi
+                }
+                
             } else {
                 // Unassign vehicle (vehicleId is null or 0)
                 order.setVehicle(null);
+                System.out.println("Unassigning vehicle from order " + id);
+                
+                // Cũng cần unassign driver từ delivery
+                try {
+                    List<Delivery> deliveries = deliveryService.findByOrderId(id);
+                    if (deliveries != null && !deliveries.isEmpty()) {
+                        Delivery delivery = deliveries.get(0);
+                        delivery.setVehicle(null);
+                        delivery.setDriver(null);
+                        deliveryService.save(delivery);
+                        System.out.println("Unassigned vehicle and driver from delivery");
+                    }
+                } catch (Exception deliveryException) {
+                    System.err.println("Error unassigning delivery: " + deliveryException.getMessage());
+                }
             }
-            Order updatedOrder = orderService.createOrder(order);
+            
+            Order updatedOrder = orderService.updateOrder(id, order);
             return ResponseEntity.ok(updatedOrder);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            System.err.println("Error updating order vehicle: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -371,6 +439,63 @@ public ResponseEntity<Order> putOrder(
             return ResponseEntity.ok(orderSummaries);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Tự động tạo tracking record khi assign vehicle cho order
+     */
+    private void createInitialTrackingForVehicleAssignment(Vehicle vehicle, Delivery delivery, Order order) {
+        try {
+            System.out.println("🚀 Creating initial tracking for vehicle assignment...");
+            
+            // Kiểm tra xem đã có tracking cho vehicle+delivery này chưa
+            List<DeliveryTracking> existingTrackings = deliveryTrackingService.findByVehicleIdAndDeliveryId(
+                vehicle.getId(), delivery.getId());
+            
+            if (existingTrackings != null && !existingTrackings.isEmpty()) {
+                System.out.println("✅ Tracking already exists for vehicle " + vehicle.getId() + 
+                    " and delivery " + delivery.getId() + ", skipping creation");
+                return;
+            }
+            
+            // Tạo tracking record mới với tọa độ store (pickup location)
+            DeliveryTracking tracking = new DeliveryTracking();
+            tracking.setVehicle(vehicle);
+            tracking.setDelivery(delivery);
+            
+            // Sử dụng tọa độ store làm vị trí ban đầu
+            if (order.getStore() != null && 
+                order.getStore().getLatitude() != null && 
+                order.getStore().getLongitude() != null) {
+                
+                tracking.setLatitude(order.getStore().getLatitude());
+                tracking.setLongitude(order.getStore().getLongitude());
+                tracking.setLocation("At store: " + order.getStore().getStoreName());
+            } else {
+                // Fallback coordinates (Hồ Chí Minh City center)
+                tracking.setLatitude(new java.math.BigDecimal("10.762622"));
+                tracking.setLongitude(new java.math.BigDecimal("106.660172"));
+                tracking.setLocation("Default location - Store coordinates not available");
+            }
+            
+            tracking.setNotes("Auto-created tracking for vehicle assignment - Order #" + order.getId());
+            tracking.setTimestamp(new java.sql.Timestamp(System.currentTimeMillis()));
+            
+            // Set default status if needed (status ID 1)
+            // statusService.getStatusById((short) 1).ifPresent(tracking::setStatus);
+            
+            DeliveryTracking saved = deliveryTrackingService.save(tracking);
+            
+            System.out.println("✅ Initial tracking created successfully: ID=" + saved.getId() + 
+                ", Vehicle=" + vehicle.getLicensePlate() + 
+                ", Delivery=" + delivery.getId() + 
+                ", Location=[" + tracking.getLatitude() + ", " + tracking.getLongitude() + "]");
+                
+        } catch (Exception e) {
+            System.err.println("❌ Error creating initial tracking: " + e.getMessage());
+            e.printStackTrace();
+            // Không throw exception để không làm gián đoạn vehicle assignment
         }
     }
 

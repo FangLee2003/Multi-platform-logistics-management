@@ -28,7 +28,7 @@ public class DeliveryTracking {
     private String notes;
 
     @ManyToOne
-    @JoinColumn(name = "delivery_id", nullable = false)
+    @JoinColumn(name = "delivery_id", nullable = true)
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Delivery delivery;
 
