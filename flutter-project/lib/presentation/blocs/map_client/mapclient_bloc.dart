@@ -6,7 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:meta/meta.dart';
 import 'package:ktc_logistics_driver/data/env/environment.dart';
 import 'package:ktc_logistics_driver/presentation/helpers/custom_markert.dart';
-import 'package:ktc_logistics_driver/presentation/themes/theme_maps.dart';
+import 'package:ktc_logistics_driver/presentation/design/theme_maps.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 part 'mapclient_event.dart';

@@ -5,37 +5,36 @@ import ktc.spring_project.exceptions.HttpException;
 // import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.dtos.DeliveryFeeBreakdown;
-import ktc.spring_project.dtos.order.DeliveryOrderResponseDTO;
-import ktc.spring_project.dtos.order.OrderDetailResponseDTO;
-import ktc.spring_project.dtos.orderitem.OrderItemResponseDTO;
-import ktc.spring_project.dtos.delivery.DeliveryResponseDTO;
 import ktc.spring_project.dtos.address.AddressResponseDTO;
-import ktc.spring_project.dtos.store.StoreResponseDTO;
-import ktc.spring_project.dtos.order.DriverOrderSimpleResponseDTO;
-import ktc.spring_project.dtos.user.UserResponseDTO;
-import ktc.spring_project.entities.Delivery;
-import ktc.spring_project.entities.Order;
-import ktc.spring_project.entities.Payment;
-
-
-import ktc.spring_project.dtos.DeliveryFeeBreakdown;
+import ktc.spring_project.dtos.delivery.DeliveryDetailResponseDTO;
+import ktc.spring_project.dtos.delivery.DeliveryResponseDTO;
 import ktc.spring_project.dtos.order.DeliveryOrderResponseDTO;
 import ktc.spring_project.dtos.order.DriverOrderSimpleResponseDTO;
+import ktc.spring_project.dtos.order.OrderDetailResponseDTO;
+import ktc.spring_project.dtos.order.OrderSimpleDTO;
+import ktc.spring_project.dtos.orderitem.OrderItemResponseDTO;
+import ktc.spring_project.dtos.store.StoreResponseDTO;
 import ktc.spring_project.dtos.user.UserResponseDTO;
+import ktc.spring_project.dtos.vehicle.VehicleSimpleDTO;
 import ktc.spring_project.entities.Delivery;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.Payment;
+import ktc.spring_project.entities.Store;
 import ktc.spring_project.repositories.DeliveryRepository;
-import ktc.spring_project.repositories.PaymentRepository;
 import ktc.spring_project.repositories.OrderItemRepository;
 import ktc.spring_project.services.OrderService;
 import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.UserService;
 import ktc.spring_project.services.RouteService;
+import ktc.spring_project.repositories.PaymentRepository;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -75,6 +74,20 @@ public class DeliveryService {
     
     @Autowired
     private ChecklistService checklistService;
+
+    /**
+     * Tìm delivery theo orderId
+     */
+    public List<Delivery> findByOrderId(Long orderId) {
+        return deliveryRepository.findByOrderId(orderId);
+    }
+
+    /**
+     * Lưu delivery
+     */
+    public Delivery save(Delivery delivery) {
+        return deliveryRepository.save(delivery);
+    }
 
     public Delivery createDelivery(Delivery delivery) {
         if (delivery.getDeliveryAttempts() != null && delivery.getDeliveryAttempts() < 0) {
@@ -317,6 +330,165 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
     return dto;
 }
 
+/**
+ * Get all deliveries for a driver
+ */
+public List<DeliveryResponseDTO> getDeliveriesByDriverId(Long driverId) {
+    List<Delivery> deliveries = deliveryRepository.findByDriverId(driverId);
+    return deliveries.stream()
+            .map(this::mapToDeliveryResponseDTO)
+            .collect(Collectors.toList());
+}
+
+/**
+ * Get detailed information about a specific delivery
+ */
+public DeliveryDetailResponseDTO getDeliveryDetailById(Long deliveryId) {
+    Delivery delivery = deliveryRepository.findById(deliveryId)
+            .orElseThrow(() -> new RuntimeException("Delivery not found with id: " + deliveryId));
+    
+    return mapToDeliveryDetailResponseDTO(delivery);
+}
+
+/**
+ * Map Delivery entity to DeliveryResponseDTO
+ */
+private DeliveryResponseDTO mapToDeliveryResponseDTO(Delivery delivery) {
+    DeliveryResponseDTO dto = new DeliveryResponseDTO();
+    dto.setId(delivery.getId());
+    
+    // Map other fields from delivery entity
+    if (delivery.getStatus() != null) {
+        dto.setStatusId(delivery.getStatus().getId().longValue());
+        dto.setDeliveryStatus(delivery.getStatus().getName());
+    }
+    
+    dto.setScheduleDeliveryTime(delivery.getScheduleDeliveryTime());
+    // Thêm scheduledTime cho backward compatibility
+    dto.setScheduledTime(delivery.getScheduleDeliveryTime());
+    dto.setActualDeliveryTime(delivery.getActualDeliveryTime());
+    dto.setDeliveryFee(delivery.getDeliveryFee());
+    
+    // Map order info if available
+    if (delivery.getOrder() != null) {
+        Order order = delivery.getOrder();
+        dto.setOrderId(order.getId());
+        
+        if (order.getAddress() != null) {
+            dto.setDeliveryAddress(order.getAddress().getAddress());
+        }
+    }
+    
+    // Map vehicle info if available
+    if (delivery.getVehicle() != null) {
+        dto.setVehicleId(delivery.getVehicle().getId());
+        dto.setLicensePlate(delivery.getVehicle().getLicensePlate());
+    }
+    
+    return dto;
+}
+
+/**
+ * Map Delivery entity to DeliveryDetailResponseDTO
+ */
+private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delivery) {
+    DeliveryDetailResponseDTO dto = new DeliveryDetailResponseDTO();
+    dto.setId(delivery.getId());
+    
+    // Map status info
+    if (delivery.getStatus() != null) {
+        dto.setStatusId(delivery.getStatus().getId());
+        dto.setStatus(delivery.getStatus().getName());
+    }
+    
+    // Map delivery info
+    dto.setScheduledTime(delivery.getScheduleDeliveryTime());
+    dto.setActualDeliveryTime(delivery.getActualDeliveryTime());
+    dto.setDeliveryFee(delivery.getDeliveryFee());
+    dto.setNotes(delivery.getNotes());
+    dto.setCreatedAt(delivery.getCreatedAt());
+    dto.setUpdatedAt(delivery.getUpdatedAt());
+    
+    // Map route info if available
+    if (delivery.getRoute() != null) {
+        dto.setRouteId(delivery.getRoute().getId());
+        dto.setRouteName(delivery.getRoute().getName());
+        dto.setEstimatedDistance(delivery.getRoute().getEstimatedDistance());
+        dto.setEstimatedDuration(delivery.getRoute().getEstimatedDuration());
+    }
+    
+    // Map driver info if available
+    if (delivery.getDriver() != null) {
+        UserResponseDTO driverDto = new UserResponseDTO();
+        driverDto.setId(delivery.getDriver().getId());
+        driverDto.setFullName(delivery.getDriver().getFullName());
+        driverDto.setEmail(delivery.getDriver().getEmail());
+        driverDto.setPhone(delivery.getDriver().getPhone());
+        dto.setDriver(driverDto);
+    }
+    
+    // Map vehicle info if available
+    if (delivery.getVehicle() != null) {
+        VehicleSimpleDTO vehicleDto = new VehicleSimpleDTO();
+        vehicleDto.setId(delivery.getVehicle().getId());
+        vehicleDto.setLicensePlate(delivery.getVehicle().getLicensePlate());
+        vehicleDto.setVehicleType(delivery.getVehicle().getVehicleType() != null ? 
+                delivery.getVehicle().getVehicleType().name() : null);
+        vehicleDto.setModel(delivery.getVehicle().getModel());
+        dto.setVehicle(vehicleDto);
+    }
+    
+    // Map orders if available
+    if (delivery.getOrder() != null) {
+        Order order = delivery.getOrder();
+        OrderSimpleDTO orderDto = new OrderSimpleDTO();
+        orderDto.setId(order.getId());
+        
+        if (order.getStatus() != null) {
+            orderDto.setStatusId(order.getStatus().getId());
+            orderDto.setStatus(order.getStatus().getName());
+        }
+        
+        if (order.getAddress() != null) {
+            orderDto.setDeliveryAddress(order.getAddress().getAddress());
+            orderDto.setRecipientName(order.getAddress().getContactName());
+            orderDto.setRecipientPhone(order.getAddress().getContactPhone());
+        }
+        
+        orderDto.setTotalAmount(order.getTotalAmount());
+        orderDto.setCreatedAt(order.getCreatedAt());
+        
+        dto.setOrders(List.of(orderDto));
+        
+        // Map store information if available
+        if (order.getStore() != null) {
+            StoreResponseDTO storeDto = new StoreResponseDTO();
+            storeDto.setId(order.getStore().getId());
+            storeDto.setStoreName(order.getStore().getStoreName());
+            storeDto.setAddress(order.getStore().getAddress());
+            storeDto.setPhone(order.getStore().getPhone());
+            storeDto.setEmail(order.getStore().getEmail());
+            
+            // Convert BigDecimal to Double for latitude and longitude
+            if (order.getStore().getLatitude() != null) {
+                storeDto.setLatitude(order.getStore().getLatitude().doubleValue());
+            }
+            if (order.getStore().getLongitude() != null) {
+                storeDto.setLongitude(order.getStore().getLongitude().doubleValue());
+            }
+            
+            storeDto.setNotes(order.getStore().getNotes());
+            storeDto.setIsActive(order.getStore().getIsActive());
+            storeDto.setCreatedAt(order.getStore().getCreatedAt());
+            storeDto.setUpdatedAt(order.getStore().getUpdatedAt());
+            
+            dto.setStore(storeDto);
+        }
+    }
+    
+    return dto;
+}
+
     // --- Các method nâng cao từ bản mới ---
 
     /**
@@ -361,10 +533,12 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
             } catch (Exception e) {
                 throw new EntityNotFoundException("Order not found with id: " + dto.getOrderId());
             }
-            try {
-                delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
-            } catch (Exception e) {
-                throw new EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId());
+            if (dto.getVehicleId() != null) {
+                try {
+                    delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
+                } catch (Exception e) {
+                    throw new EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId());
+                }
             }
             if (dto.getDriverId() != null) {
                 try {
@@ -382,12 +556,19 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
             }
             delivery.setTransportMode(dto.getTransportMode());
             delivery.setServiceType(dto.getServiceType());
-            delivery.setPickupDate(dto.getPickupDate());
+            delivery.setPickupDate(dto.getPickupDate() != null ? java.sql.Timestamp.valueOf(dto.getPickupDate().atStartOfDay()) : null);
             delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
             delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
             delivery.setDeliveryNotes(dto.getDeliveryNotes());
             delivery.setOrderDate(dto.getOrderDate());
-            if (delivery.getOrder() != null && delivery.getOrder().getAddress() != null) {
+            
+            // SỬ DỤNG DELIVERY FEE TỪ FRONTEND THAY VÌ TÍNH LẠI
+            if (dto.getDeliveryFee() != null) {
+                log.info("Using delivery fee from frontend: {}", dto.getDeliveryFee());
+                delivery.setDeliveryFee(dto.getDeliveryFee());
+                return createDelivery(delivery);
+            } else if (delivery.getOrder() != null && delivery.getOrder().getAddress() != null) {
+                log.info("Creating delivery with automatic fee calculation for Order ID: {}", dto.getOrderId());
                 return createDeliveryWithFeeCalculation(delivery);
             } else {
                 return createDelivery(delivery);
@@ -419,12 +600,12 @@ delivery.setTrackingPoints(deliveryDetails.getTrackingPoints());
         }
         delivery.setDeliveryFee(dto.getDeliveryFee());
         delivery.setTransportMode(dto.getTransportMode());
-        delivery.setServiceType(dto.getServiceType());
-        delivery.setPickupDate(dto.getPickupDate());
-        delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
-        delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
-        delivery.setDeliveryNotes(dto.getDeliveryNotes());
-        delivery.setOrderDate(dto.getOrderDate());
+    delivery.setServiceType(dto.getServiceType());
+    delivery.setPickupDate(dto.getPickupDate() != null ? java.sql.Timestamp.valueOf(dto.getPickupDate().atStartOfDay()) : null);
+    delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
+    delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
+    delivery.setDeliveryNotes(dto.getDeliveryNotes());
+    delivery.setOrderDate(dto.getOrderDate());
         if (dto.getVehicleId() != null) {
             delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
         }

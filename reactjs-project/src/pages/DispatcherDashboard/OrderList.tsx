@@ -1,26 +1,48 @@
 // ...existing code...
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { fetchOrders, fetchOrderById } from "../../services/OrderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
+import { useQuery } from "@tanstack/react-query";
 
 
 export default function OrderList() {
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
   const [searchId, setSearchId] = useState("");
   const [searching, setSearching] = useState(false);
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 5;
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  // const [totalRecords, setTotalRecords] = useState(0); // Không dùng
-  const [loading, setLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<Order[]>([]);
   const [error, setError] = useState("");
+
+  // Sử dụng React Query để fetch orders với pagination
+  const {
+    data: ordersResponse,
+    isLoading: loading,
+    error: fetchError
+  } = useQuery({
+    queryKey: ['ordersForList', page, PAGE_SIZE],
+    queryFn: async () => {
+      const token = localStorage.getItem("token") || "";
+      return await fetchOrders(page, PAGE_SIZE, token);
+    },
+    enabled: !isSearchMode, // Chỉ fetch khi không ở chế độ tìm kiếm
+    staleTime: 30 * 1000, // Cache 30 giây
+    refetchOnWindowFocus: true,
+  });
+
+  const orders = isSearchMode ? searchResults : (ordersResponse?.data || []);
+  const totalPages = isSearchMode ? 1 : (ordersResponse?.totalPages || 1);
 
   // Hàm chọn đơn hàng để hiển thị route
   const handleOrderClick = (order: Order) => {
+    console.log('OrderList: Selected order:', order);
+    console.log('OrderList: Vehicle info:', order.vehicle);
+    console.log('OrderList: Vehicle ID:', order.vehicle?.id);
+    console.log('OrderList: Current driver:', order.vehicle?.currentDriver);
     setSelectedOrder(order);
   };
 
@@ -33,12 +55,12 @@ export default function OrderList() {
       const token = localStorage.getItem("token") || "";
       const foundOrder = await fetchOrderById(searchId.trim(), token);
       if (foundOrder) {
-        setOrders([foundOrder]);
-        setTotalPages(1);
+        setSearchResults([foundOrder]);
+        setIsSearchMode(true);
         setPage(1);
       } else {
-        setOrders([]);
-        setTotalPages(1);
+        setSearchResults([]);
+        setIsSearchMode(true);
         setPage(1);
         setError("Không tìm thấy đơn hàng với ID đã nhập");
       }
@@ -49,36 +71,14 @@ export default function OrderList() {
     }
   };
 
-
-
-  const fetchOrdersCallback = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const token = localStorage.getItem("token") || "";
-      const res = await fetchOrders(page, PAGE_SIZE, token);
-      setOrders(res.data);
-      setTotalPages(res.totalPages);
-      // setTotalRecords(res.totalRecords); // Không dùng
-    } catch (err) {
-      setError("Không thể tải dữ liệu đơn hàng");
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
-
-  useEffect(() => {
-    fetchOrdersCallback();
-    // eslint-disable-next-line
-  }, [fetchOrdersCallback]);
-
   // Khi xóa nội dung ô tìm kiếm, tự động trả lại danh sách đơn hàng mặc định
   useEffect(() => {
     if (searchId.trim() === "") {
-      fetchOrdersCallback();
+      setIsSearchMode(false);
+      setSearchResults([]);
+      setError("");
     }
-    // eslint-disable-next-line
-  }, [searchId, fetchOrdersCallback]);
+  }, [searchId]);
 
   // const handleRefresh = () => {
   //   fetchOrdersCallback();
@@ -132,8 +132,10 @@ export default function OrderList() {
         </button> */}
       </div>
       
-      {error ? (
-        <div className="text-center py-8 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">{error}</div>
+      {error || fetchError ? (
+        <div className="text-center py-8 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
+          {error || (fetchError as Error)?.message || "Đã xảy ra lỗi"}
+        </div>
       ) : (
         <div className="relative">
           {/* Order list */}
@@ -182,7 +184,7 @@ export default function OrderList() {
                     </div>
                     <div>
                       <span className="font-semibold text-blue-700">Đến:</span>
-                      <span className="text-gray-700"> {order.address?.address}</span>
+                      <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
                     </div>
                   </div>
                 </div>

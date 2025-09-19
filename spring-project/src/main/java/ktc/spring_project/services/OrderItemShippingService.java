@@ -110,13 +110,11 @@ public class OrderItemShippingService {
      */
     private ShippingCalculationRequest buildShippingRequest(OrderItem orderItem, Product product, 
                                                           BigDecimal distance, ServiceType serviceType) {
-        // Chuyển đổi volume từ m³ sang cm³ và nhân với số lượng
+        // Chuyển đổi volume từ m³ sang cm³ (KHÔNG nhân với quantity, chỉ tính cho 1 sản phẩm)
         BigDecimal volumeInCm3 = BigDecimal.ZERO;
         if (product.getVolume() != null && product.getVolume().compareTo(BigDecimal.ZERO) > 0) {
-            // Chuyển từ m³ sang cm³: nhân với 1,000,000, rồi nhân với quantity
-            volumeInCm3 = product.getVolume()
-                .multiply(new BigDecimal("1000000"))
-                .multiply(new BigDecimal(orderItem.getQuantity()));
+            // Chuyển từ m³ sang cm³: nhân với 1,000,000
+            volumeInCm3 = product.getVolume().multiply(new BigDecimal("1000000"));
         }
 
         ShippingCalculationRequest request = new ShippingCalculationRequest();

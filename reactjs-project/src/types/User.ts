@@ -2,8 +2,15 @@ import type { ReactNode } from "react";
 
 export type Role = "ADMIN" | "DISPATCHER" | "FLEET" | "DRIVER" | "OPERATIONS";
 
+export interface UserStatus {
+  id: number;
+  name: string;
+  statusType: string;
+  description?: string;
+}
+
 export interface User {
-  id?: string;
+  id?: string | number;
   email: string;
   password?: string; // Optional for responses
   role: Role;
@@ -13,8 +20,8 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
   isActive?: boolean;
-  fullName: ReactNode;
-  status: string;
+  fullName?: string;
+  status: UserStatus;
 }
 
 export interface AuthUser {

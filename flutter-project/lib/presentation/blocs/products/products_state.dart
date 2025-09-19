@@ -33,7 +33,7 @@ class SuccessProductsState extends ProductsState {}
 class FailureProductsState extends ProductsState {
   final String error;
 
-  FailureProductsState(this.error);
+  const FailureProductsState(this.error);
 }
 
 

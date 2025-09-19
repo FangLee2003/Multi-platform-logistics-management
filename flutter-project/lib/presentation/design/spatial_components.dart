@@ -115,12 +115,16 @@ class SpatialComponents {
                   Icon(icon, color: Colors.white, size: 20),
                   const SizedBox(width: 12),
                 ],
-                Text(
-                  text,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                Flexible(
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -310,26 +314,24 @@ class SpatialComponents {
           Container(
             color: Colors.black.withValues(alpha: 0.3),
             child: Center(
-              child: glassContainer(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(SpatialTheme.primaryBlue),
-                    ),
-                    if (loadingText != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        loadingText,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: SpatialTheme.textSecondary,
-                        ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(SpatialTheme.primaryBlue),
+                  ),
+                  if (loadingText != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      loadingText,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ),

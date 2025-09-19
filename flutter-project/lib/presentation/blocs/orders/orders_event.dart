@@ -4,14 +4,12 @@ part of 'orders_bloc.dart';
 abstract class OrdersEvent {}
 
 class OnAddNewOrdersEvent extends OrdersEvent {
-
   final int uidAddress;
   final double total;
   final String typePayment;
   final List<ProductCart> products;
 
   OnAddNewOrdersEvent(this.uidAddress, this.total, this.typePayment, this.products);
-
 } 
 
 class OnUpdateStatusOrderToDispatchedEvent extends OrdersEvent {
@@ -35,5 +33,19 @@ class OnUpdateStatusOrderDeliveredEvent extends OrdersEvent {
   OnUpdateStatusOrderDeliveredEvent(this.idOrder);
 }
 
+// Sự kiện mới để tải danh sách đơn hàng của tài xế
+class LoadDriverOrdersEvent extends OrdersEvent {}
 
+// Sự kiện mới để tải chi tiết đơn hàng
+class LoadOrderDetailsEvent extends OrdersEvent {
+  final int orderId;
 
+  LoadOrderDetailsEvent(this.orderId);
+}
+
+// Sự kiện mới để tải thông tin đơn hàng cho một giao hàng
+class LoadOrderForDeliveryEvent extends OrdersEvent {
+  final int deliveryId;
+
+  LoadOrderForDeliveryEvent(this.deliveryId);
+}

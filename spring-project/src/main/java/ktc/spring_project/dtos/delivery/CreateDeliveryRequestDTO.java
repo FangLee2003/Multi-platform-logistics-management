@@ -5,6 +5,7 @@ import ktc.spring_project.enums.TransportMode;
 import ktc.spring_project.enums.ServiceType;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import jakarta.validation.constraints.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -24,10 +25,9 @@ public class CreateDeliveryRequestDTO {
     @NotNull(message = "Service type is required")
     private ServiceType serviceType = ServiceType.STANDARD;
     
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Timestamp pickupDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate pickupDate;
 
-    @NotNull(message = "Schedule delivery time is required")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp scheduleDeliveryTime;
 
@@ -37,7 +37,6 @@ public class CreateDeliveryRequestDTO {
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp orderDate;
-    @NotNull(message = "Vehicle ID is required")
     private Long vehicleId;
 
     private Long driverId;
@@ -65,8 +64,8 @@ public class CreateDeliveryRequestDTO {
     public ServiceType getServiceType() { return serviceType; }
     public void setServiceType(ServiceType serviceType) { this.serviceType = serviceType; }
     
-    public Timestamp getPickupDate() { return pickupDate; }
-    public void setPickupDate(Timestamp pickupDate) { this.pickupDate = pickupDate; }
+    public LocalDate getPickupDate() { return pickupDate; }
+    public void setPickupDate(LocalDate pickupDate) { this.pickupDate = pickupDate; }
     
     public Timestamp getScheduleDeliveryTime() { return scheduleDeliveryTime; }
     public void setScheduleDeliveryTime(Timestamp scheduleDeliveryTime) { this.scheduleDeliveryTime = scheduleDeliveryTime; }

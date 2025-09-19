@@ -9,6 +9,9 @@ class OnGetUserEvent extends UserEvent {
   OnGetUserEvent(this.user);
 }
 
+// Event mới để lấy thông tin người dùng từ API
+class OnFetchUserEvent extends UserEvent {}
+
 
 class OnSelectPictureEvent extends UserEvent {
   final String pictureProfilePath;

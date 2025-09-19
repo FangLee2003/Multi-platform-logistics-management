@@ -60,13 +60,11 @@ List<DeliveryTracking> findByStatus_Id(Short statusId);
     
     @Query("SELECT COUNT(dt) FROM DeliveryTracking dt WHERE dt.delivery.id = :deliveryId")
     long countTrackingPointsByDelivery(@Param("deliveryId") Long deliveryId);
+
+    // Find tracking by vehicle and delivery
+    @Query("SELECT dt FROM DeliveryTracking dt WHERE dt.vehicle.id = :vehicleId AND dt.delivery.id = :deliveryId ORDER BY dt.timestamp DESC")
+    List<DeliveryTracking> findByVehicleIdAndDeliveryId(@Param("vehicleId") Long vehicleId, @Param("deliveryId") Long deliveryId);
+
     
-    // Kiểm tra có delivery tracking nào cho driver không (thông qua delivery)
-    @Query("SELECT COUNT(dt) > 0 FROM DeliveryTracking dt WHERE dt.delivery.driver.id = :driverId")
-    boolean existsByDelivery_DriverId(@Param("driverId") Long driverId);
-    
-    // Kiểm tra có tracking nào với location cho driver
-    @Query("SELECT COUNT(dt) > 0 FROM DeliveryTracking dt WHERE dt.delivery.driver.id = :driverId AND (dt.latitude IS NOT NULL OR dt.longitude IS NOT NULL)")
-    boolean existsByDelivery_DriverIdAndLocationIsNotNull(@Param("driverId") Long driverId);
 }
 
