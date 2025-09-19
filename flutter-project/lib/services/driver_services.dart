@@ -179,7 +179,7 @@ class DriverServices {
       print('🚛 DriverService: Updating status via HttpClient...');
 
       final response = await _httpClient.patch<Map<String, dynamic>>(
-        '/driver/status',
+        '/drivers/status',
         body: {'statusId': statusId},
         fromJson: (json) => json,
       );

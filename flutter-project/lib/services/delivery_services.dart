@@ -83,7 +83,7 @@ class DeliveryServices {
       if (sortDirection != null) queryParams['sortDirection'] = sortDirection;
 
       final response = await _httpClient.get<List<dynamic>>(
-        '/driver/$driverId/deliveries',
+        '/drivers/$driverId/deliveries',
         queryParams: queryParams,
         useCache: false,
         timeout: const Duration(seconds: 30),
@@ -125,7 +125,7 @@ class DeliveryServices {
 
     try {
       final response = await _httpClient.get<Map<String, dynamic>>(
-        '/driver/$driverId/deliveries/$deliveryId',
+        '/drivers/$driverId/deliveries/$deliveryId',
         useCache: false,
         timeout: const Duration(seconds: 30),
       );
@@ -156,7 +156,7 @@ class DeliveryServices {
 
     try {
       final response = await _httpClient.get<Map<String, dynamic>>(
-        '/driver/$driverId/deliveries/$deliveryId/route',
+        '/drivers/$driverId/deliveries/$deliveryId/route',
         useCache: false,
         timeout: const Duration(seconds: 30),
       );
@@ -189,7 +189,7 @@ class DeliveryServices {
 
     try {
       final response = await _httpClient.patch<Map<String, dynamic>>(
-        '/driver/$driverId/deliveries/$deliveryId/status',
+        '/drivers/$driverId/deliveries/$deliveryId/status',
         body: statusUpdate.toJson(),
         fromJson: (json) => json,
       );

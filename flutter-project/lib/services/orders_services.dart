@@ -63,12 +63,15 @@ class OrdersServices {
     }
 
     try {
+      print('📦 OrdersService: Getting orders via HttpClient...');
+
       final response = await _httpClient.get<List<dynamic>>(
-        '/driver/$driverId/orders',
+        '/drivers/$driverId/orders',
         useCache: false,
-        timeout: const Duration(seconds: 30),
+        timeout: const Duration(seconds: 45),
       );
 
+      print('📦 OrdersService: Response received: ${response.length} items');
       return response.map((item) => OrdersResponse.fromJson(item)).toList();
     } catch (e) {
       debugPrint('Error getting driver orders: $e');
@@ -94,10 +97,12 @@ class OrdersServices {
     }
 
     try {
+      print('📦 OrdersService: Getting order details via HttpClient...');
+
       final response = await _httpClient.get<Map<String, dynamic>>(
-        '/driver/$driverId/orders/$orderId',
+        '/drivers/$driverId/orders/$orderId',
         useCache: false,
-        timeout: const Duration(seconds: 30),
+        timeout: const Duration(seconds: 45),
       );
 
       return OrderDetailsResponse.fromJson(response);
@@ -133,7 +138,7 @@ class OrdersServices {
 
     try {
       await _httpClient.patch<Map<String, dynamic>>(
-        '/driver/$dId/orders/$orderId/status',
+        '/drivers/$dId/orders/$orderId/status',
         body: statusUpdate.toJson(),
         fromJson: (json) => json,
       );
