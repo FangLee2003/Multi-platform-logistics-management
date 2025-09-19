@@ -179,4 +179,34 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         @Param("fromDate") LocalDateTime fromDate, 
         @Param("toDate") LocalDateTime toDate,
         Pageable pageable);
+
+    /**
+     * Unified search method that supports multiple search criteria:
+     * - orderId: exact match if provided
+     * - fromDate/toDate: date range if provided
+     * - statusList: multiple status names if provided (uses IN clause)
+     * - storeId: must belong to this store (required)
+     */
+    @Query("SELECT NEW ktc.spring_project.dtos.order.OrderSummaryDTO(" +
+           "o.id, " +
+           "o.store.id, " +
+           "o.createdAt, " +
+           "o.address.address, " +
+           "(SELECT COUNT(oi) FROM OrderItem oi WHERE oi.order = o), " +
+           "(SELECT MAX(d2.deliveryFee) FROM Delivery d2 WHERE d2.order = o), " +
+           "o.status.name) " +
+           "FROM Order o " +
+           "WHERE o.store.id = :storeId " +
+           "AND (:orderId IS NULL OR o.id = :orderId) " +
+           "AND (:fromDate IS NULL OR o.createdAt >= :fromDate) " +
+           "AND (:toDate IS NULL OR o.createdAt <= :toDate) " +
+           "AND (:#{#statusList} IS NULL OR :#{#statusList.size()} = 0 OR o.status.name IN :statusList) " +
+           "ORDER BY o.createdAt DESC")
+    Page<OrderSummaryDTO> findOrderSummariesByStoreIdWithFiltersPaginated(
+        @Param("storeId") Long storeId,
+        @Param("orderId") Long orderId,
+        @Param("fromDate") LocalDateTime fromDate, 
+        @Param("toDate") LocalDateTime toDate,
+        @Param("statusList") List<String> statusList,
+        Pageable pageable);
 }

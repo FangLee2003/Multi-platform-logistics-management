@@ -494,10 +494,97 @@ public ResponseEntity<Order> putOrder(
     }
 
     /**
+     * Unified search API for orders with multiple criteria
+     * API: GET /api/orders/search?storeId=xxx&orderId=xxx&fromDate=yyyy-MM-dd&toDate=yyyy-MM-dd&status=xxx,yyy&page=1&size=10
+     * All parameters except storeId are optional
+     * status parameter can accept multiple values separated by comma
+     */
+    @GetMapping("/search")
+    public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersUnified(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) Long orderId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) List<String> status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            LocalDateTime fromDateTime = null;
+            LocalDateTime toDateTime = null;
+            
+            // Parse fromDate nếu có
+            if (fromDate != null && !fromDate.trim().isEmpty()) {
+                try {
+                    fromDateTime = LocalDate.parse(fromDate.trim()).atStartOfDay();
+                } catch (Exception e) {
+                    System.err.println("Invalid fromDate format: " + fromDate);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            
+            // Parse toDate nếu có  
+            if (toDate != null && !toDate.trim().isEmpty()) {
+                try {
+                    toDateTime = LocalDate.parse(toDate.trim()).atTime(23, 59, 59);
+                } catch (Exception e) {
+                    System.err.println("Invalid toDate format: " + toDate);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+
+            // Filter out empty status values
+            List<String> statusList = null;
+            if (status != null && !status.isEmpty()) {
+                statusList = status.stream()
+                    .filter(s -> s != null && !s.trim().isEmpty())
+                    .collect(java.util.stream.Collectors.toList());
+                if (statusList.isEmpty()) {
+                    statusList = null;
+                }
+            }
+
+            System.out.println("Unified search with: storeId=" + storeId + ", orderId=" + orderId + 
+                    ", fromDate=" + fromDateTime + ", toDate=" + toDateTime + ", statusList=" + statusList +
+                    ", page=" + page + ", size=" + size);
+            
+            Page<OrderSummaryDTO> ordersPage = orderService.searchOrdersByStoreIdWithFiltersPaginated(
+                storeId, orderId, fromDateTime, toDateTime, statusList, page, size);
+            
+            PaginatedOrderSummaryResponseDto response = new PaginatedOrderSummaryResponseDto(
+                    ordersPage.getContent(),
+                    ordersPage.getNumber() + 1, // Convert 0-based to 1-based 
+                    ordersPage.getSize(),
+                    ordersPage.getTotalElements(),
+                    ordersPage.getTotalPages(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            System.out.println("Found " + ordersPage.getTotalElements() + " total orders, returning page " + page + " of " + ordersPage.getTotalPages());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("Bad request: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            System.err.println("===== DETAILED ERROR =====");
+            System.err.println("Error in unified search: " + e.getMessage());
+            System.err.println("Exception type: " + e.getClass().getName());
+            System.err.println("Cause: " + (e.getCause() != null ? e.getCause().getMessage() : "null"));
+            e.printStackTrace();
+            System.err.println("===========================");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * @deprecated Use searchOrdersUnified instead
      * Tìm kiếm đơn hàng theo ID đơn hàng với phân trang
      * API: GET /api/orders/search?storeId=xxx&orderId=xxx&page=1&size=10
      */
-    @GetMapping("/search")
+    @GetMapping("/search-by-order-id")
     public ResponseEntity<PaginatedOrderSummaryResponseDto> searchOrdersByOrderId(
             @RequestParam Long storeId,
             @RequestParam Long orderId,

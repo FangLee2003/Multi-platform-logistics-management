@@ -156,154 +156,121 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders(currentPage, pageSize);
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, fetchOrders]);
 
-  // Effect để xử lý tìm kiếm
+  // Effect để xử lý tìm kiếm thống nhất
   useEffect(() => {
-    const searchOrders = async () => {
-      if (searchText.trim() && storeId) {
-        // Kiểm tra xem searchText có phải là số không (orderId)
+    const performUnifiedSearch = async () => {
+      if (!storeId) return;
+
+      try {
+        setLoading(true);
+
+        // Prepare search parameters
+        let orderId: number | undefined;
+        let fromDate: string | undefined;
+        let toDate: string | undefined;
+
+        // Check if searchText is a valid orderId
         const orderIdNumber = parseInt(searchText.trim());
-        if (!isNaN(orderIdNumber)) {
-          try {
-            setLoading(true);
-            const searchResults = await orderApi.searchOrdersByStoreAndOrderId(
-              storeId,
-              orderIdNumber,
-              currentPage,
-              pageSize
-            );
-
-            // Format kết quả search giống như fetchOrders
-            const formattedSearchResults: Order[] = searchResults.data.map(
-              (order) => ({
-                id: order.orderId?.toString() || "N/A",
-                created_at: order.createdAt || new Date().toISOString(),
-                store_name: `Store ${order.storeId || "Unknown"}`,
-                shipping_address:
-                  order.deliveryAddress || "No address provided",
-                total_items: order.totalItems || 0,
-                cod_amount: 0,
-                shipping_fee: order.deliveryFee || 0,
-                status: {
-                  id: getStatusId(order.orderStatus || "PENDING"),
-                  name: order.orderStatus || "PENDING",
-                  color: getStatusColor(order.orderStatus || "PENDING"),
-                },
-                tracking_updates: [
-                  {
-                    time: order.createdAt || new Date().toISOString(),
-                    status: order.orderStatus || "PENDING",
-                    description: `Order ${(
-                      order.orderStatus || "PENDING"
-                    ).toLowerCase()}`,
-                  },
-                ],
-              })
-            );
-
-            setOrders(formattedSearchResults);
-            setTotalRecords(searchResults.totalRecords);
-            setLoading(false);
-          } catch (error) {
-            console.error("Search failed:", error);
-            setLoading(false);
-            messageApi.error("Tìm kiếm thất bại");
-          }
+        if (!isNaN(orderIdNumber) && searchText.trim()) {
+          orderId = orderIdNumber;
         }
-      } else if (searchText.trim() === "") {
-        // Logic sẽ được handle bởi useEffect khác
-        return;
+
+        // Prepare date range
+        if (dateRange && dateRange[0] && dateRange[1]) {
+          fromDate = dateRange[0].format("YYYY-MM-DD");
+          toDate = dateRange[1].format("YYYY-MM-DD");
+        }
+
+        // Prepare status filter - convert status IDs to status names (support multiple)
+        let statusList: string[] | undefined;
+        if (statusFilter.length > 0) {
+          const statusMap: { [key: number]: string } = {
+            1: "PENDING",
+            2: "PROCESSING",
+            3: "SHIPPED",
+            4: "DELIVERED",
+            5: "COMPLETED",
+            6: "CANCELLED",
+          };
+          statusList = statusFilter
+            .map((statusId) => statusMap[statusId])
+            .filter((statusName) => statusName); // Filter out undefined values
+        }
+
+        // Call unified search API
+        const searchResults = await orderApi.searchOrdersUnified(
+          storeId,
+          currentPage,
+          pageSize,
+          orderId,
+          fromDate,
+          toDate,
+          statusList
+        );
+
+        // Format results
+        const formattedSearchResults: Order[] = searchResults.data.map(
+          (order: OrderSummary) => ({
+            id: order.orderId?.toString() || "N/A",
+            created_at: order.createdAt || new Date().toISOString(),
+            store_name: `Store ${order.storeId || "Unknown"}`,
+            shipping_address: order.deliveryAddress || "No address provided",
+            total_items: order.totalItems || 0,
+            cod_amount: 0,
+            shipping_fee: order.deliveryFee || 0,
+            status: {
+              id: getStatusId(order.orderStatus || "PENDING"),
+              name: order.orderStatus || "PENDING",
+              color: getStatusColor(order.orderStatus || "PENDING"),
+            },
+            tracking_updates: [
+              {
+                time: order.createdAt || new Date().toISOString(),
+                status: order.orderStatus || "PENDING",
+                description: `Order ${(
+                  order.orderStatus || "PENDING"
+                ).toLowerCase()}`,
+              },
+            ],
+          })
+        );
+
+        setOrders(formattedSearchResults);
+        setTotalRecords(searchResults.totalRecords);
+        setLoading(false);
+      } catch (error) {
+        console.error("Unified search failed:", error);
+        setLoading(false);
+        messageApi.error("Tìm kiếm thất bại");
       }
     };
 
-    // Debounce search để tránh gọi API liên tục
-    const timeoutId = setTimeout(searchOrders, 500);
-    return () => clearTimeout(timeoutId);
-  }, [searchText, storeId, currentPage, pageSize, messageApi]);
+    // Determine if we should use unified search or load regular list
+    const hasSearchCriteria =
+      (searchText.trim() && !isNaN(parseInt(searchText.trim()))) || // Valid orderId
+      (dateRange && dateRange[0] && dateRange[1]) || // Date range selected
+      statusFilter.length > 0; // Status filter selected
 
-  // Effect để xử lý tìm kiếm theo khoảng thời gian
-  useEffect(() => {
-    // Chỉ thực hiện tìm kiếm theo date range khi:
-    // 1. Có date range được chọn
-    // 2. Không có search text (để tránh conflict)
-    // 3. Có storeId và dateRange không null
-    if (
-      dateRange &&
-      dateRange[0] &&
-      dateRange[1] &&
-      storeId &&
-      searchText.trim() === ""
-    ) {
-      const searchByDateRange = async () => {
-        try {
-          setLoading(true);
-
-          // Chuyển đổi Dayjs thành chuỗi định dạng yyyy-MM-dd
-          const fromDate = dateRange[0]!.format("YYYY-MM-DD");
-          const toDate = dateRange[1]!.format("YYYY-MM-DD");
-
-          const searchResults = await orderApi.searchOrdersByStoreAndDateRange(
-            storeId,
-            currentPage,
-            pageSize,
-            fromDate,
-            toDate
-          );
-
-          // Format kết quả search giống như fetchOrders
-          const formattedSearchResults: Order[] = searchResults.data.map(
-            (order: OrderSummary) => ({
-              id: order.orderId?.toString() || "N/A",
-              created_at: order.createdAt || new Date().toISOString(),
-              store_name: `Store ${order.storeId || "Unknown"}`,
-              shipping_address: order.deliveryAddress || "No address provided",
-              total_items: order.totalItems || 0,
-              cod_amount: 0,
-              shipping_fee: order.deliveryFee || 0,
-              status: {
-                id: getStatusId(order.orderStatus || "PENDING"),
-                name: order.orderStatus || "PENDING",
-                color: getStatusColor(order.orderStatus || "PENDING"),
-              },
-              tracking_updates: [
-                {
-                  time: order.createdAt || new Date().toISOString(),
-                  status: order.orderStatus || "PENDING",
-                  description: `Order ${(
-                    order.orderStatus || "PENDING"
-                  ).toLowerCase()}`,
-                },
-              ],
-            })
-          );
-
-          setOrders(formattedSearchResults);
-          setTotalRecords(searchResults.totalRecords);
-          setLoading(false);
-        } catch (error) {
-          console.error("Date range search failed:", error);
-          setLoading(false);
-          messageApi.error("Tìm kiếm theo khoảng thời gian thất bại");
-        }
-      };
-
-      // Debounce search để tránh gọi API liên tục
-      const timeoutId = setTimeout(searchByDateRange, 500);
+    if (hasSearchCriteria) {
+      // Use unified search
+      const timeoutId = setTimeout(performUnifiedSearch, 500);
       return () => clearTimeout(timeoutId);
-    }
-  }, [dateRange, storeId, currentPage, pageSize, messageApi, searchText]);
-
-  // Effect riêng để load lại list khi clear tất cả filters
-  useEffect(() => {
-    // Load lại list khi:
-    // 1. Không có search text
-    // 2. HOẶC không có date range (dateRange null hoặc một trong hai date bị null)
-    if (!searchText.trim() && (!dateRange || !dateRange[0] || !dateRange[1])) {
-      console.log("Loading normal list - filters cleared");
+    } else {
+      // Load regular list when no search criteria
       fetchOrders(currentPage, pageSize);
     }
-  }, [dateRange, searchText, currentPage, pageSize, fetchOrders]);
+  }, [
+    searchText,
+    dateRange,
+    statusFilter,
+    storeId,
+    currentPage,
+    pageSize,
+    messageApi,
+    fetchOrders,
+  ]);
 
   const showTrackingModal = (order: Order) => {
     setSelectedOrder(order);
@@ -448,25 +415,20 @@ export default function OrdersPage() {
           dataSource={orders}
           loading={loading}
           rowKey="id"
-          pagination={
-            // Luôn hiển thị pagination, chỉ ẩn khi có search text (orderId search)
-            searchText.trim() && !isNaN(parseInt(searchText.trim()))
-              ? false
-              : {
-                  current: currentPage,
-                  pageSize: pageSize,
-                  total: totalRecords,
-                  showTotal: (total, range) =>
-                    `${range[0]}-${range[1]} của ${total} đơn hàng`,
-                  position: ["bottomCenter"],
-                  onChange: (page, size) => {
-                    setCurrentPage(page);
-                    setPageSize(size || 10);
-                  },
-                  showSizeChanger: true,
-                  pageSizeOptions: ["10", "20", "50"],
-                }
-          }
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: totalRecords,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} của ${total} đơn hàng`,
+            position: ["bottomCenter"],
+            onChange: (page, size) => {
+              setCurrentPage(page);
+              setPageSize(size || 10);
+            },
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50"],
+          }}
         />
 
         {/* Tracking Modal */}

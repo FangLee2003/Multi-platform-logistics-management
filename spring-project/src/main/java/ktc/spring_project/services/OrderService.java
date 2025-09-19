@@ -512,4 +512,35 @@ public class OrderService {
             throw new HttpException("Failed to search orders by store ID and date range paginated: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * Unified search method that supports multiple search criteria
+     * @param storeId - required, orders must belong to this store
+     * @param orderId - optional, exact match if provided
+     * @param fromDate - optional, start date if provided
+     * @param toDate - optional, end date if provided  
+     * @param statusList - optional, list of status names if provided
+     * @param page - page number (1-based)
+     * @param size - page size
+     * @return paginated search results
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdWithFiltersPaginated(
+            Long storeId, Long orderId, LocalDateTime fromDate, LocalDateTime toDate, 
+            List<String> statusList, int page, int size) {
+        try {
+            validateId(storeId, "Store ID");
+            validatePaginationParams(page, size);
+            log.debug("Unified search orders: storeId={}, orderId={}, fromDate={}, toDate={}, statusList={}, page={}, size={}", 
+                storeId, orderId, fromDate, toDate, statusList, page, size);
+            
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+            return orderRepository.findOrderSummariesByStoreIdWithFiltersPaginated(
+                storeId, orderId, fromDate, toDate, statusList, pageable);
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to search orders with filters: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
