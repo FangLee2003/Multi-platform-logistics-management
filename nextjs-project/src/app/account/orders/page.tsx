@@ -20,6 +20,7 @@ import {
   type PaginatedOrderSummaryResponse,
   type OrderSummary,
 } from "@/services/orderService";
+import OrderDetailModal from "./components/OrderDetailModal";
 import { OrderFilters } from "./components/OrderFilters";
 import type { Dayjs } from "dayjs";
 import {
@@ -92,6 +93,10 @@ export default function OrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);
+
+  // Modal chi tiết đơn hàng
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   // Store ID để sử dụng cho search
   const [storeId, setStoreId] = useState<number | null>(null);
@@ -354,7 +359,10 @@ export default function OrdersPage() {
             <Button
               type="text"
               icon={<EyeOutlined />}
-              onClick={() => router.push(`/account/orders/${record.id}`)}
+              onClick={() => {
+                setDetailOrderId(record.id);
+                setIsDetailModalVisible(true);
+              }}
             />
           </Tooltip>
           <Tooltip title="Lịch sử vận chuyển">
@@ -378,7 +386,6 @@ export default function OrdersPage() {
 
   return (
     <>
-      {contextHolder}
       <Card className="orders-page" style={{ margin: "24px" }}>
         <div className="orders-header" style={{ marginBottom: "24px" }}>
           <Row
@@ -430,45 +437,55 @@ export default function OrdersPage() {
             pageSizeOptions: ["10", "20", "50"],
           }}
         />
-
-        {/* Tracking Modal */}
-        <Modal
-          title={
-            <Space>
-              <HistoryOutlined />
-              <span>Lịch sử vận chuyển</span>
-            </Space>
-          }
-          open={isTrackingModalVisible}
-          onCancel={() => setIsTrackingModalVisible(false)}
-          footer={null}
-          width={600}
-        >
-          {selectedOrder && (
-            <>
-              <p>
-                <strong>Mã đơn hàng:</strong> {selectedOrder.id}
-              </p>
-              <Timeline
-                items={selectedOrder.tracking_updates.map((update) => ({
-                  color: "blue",
-                  children: (
-                    <>
-                      <p style={{ margin: 0 }}>
-                        <strong>{update.status}</strong>
-                      </p>
-                      <p style={{ margin: 0 }}>{update.description}</p>
-                      <p style={{ margin: 0, color: "#8c8c8c" }}>
-                        {new Date(update.time).toLocaleString("vi-VN")}
-                      </p>
-                    </>
-                  ),
-                }))}
-              />
-            </>
-          )}
-        </Modal>
       </Card>
+
+      {/* Modal chi tiết đơn hàng */}
+      {isDetailModalVisible && detailOrderId && (
+        <OrderDetailModal
+          orderId={Number(detailOrderId)}
+          onClose={() => setIsDetailModalVisible(false)}
+        />
+      )}
+
+      {/* Tracking Modal */}
+      <Modal
+        title={
+          <Space>
+            <HistoryOutlined />
+            <span>Lịch sử vận chuyển</span>
+          </Space>
+        }
+        open={isTrackingModalVisible}
+        onCancel={() => setIsTrackingModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        {selectedOrder && (
+          <>
+            <p>
+              <strong>Mã đơn hàng:</strong> {selectedOrder.id}
+            </p>
+            <Timeline
+              items={selectedOrder.tracking_updates.map((update) => ({
+                color: "blue",
+                children: (
+                  <>
+                    <p style={{ margin: 0 }}>
+                      <strong>{update.status}</strong>
+                    </p>
+                    <p style={{ margin: 0 }}>{update.description}</p>
+                    <p style={{ margin: 0, color: "#8c8c8c" }}>
+                      {new Date(update.time).toLocaleString("vi-VN")}
+                    </p>
+                  </>
+                ),
+              }))}
+            />
+          </>
+        )}
+      </Modal>
+      {contextHolder}
     </>
   );
 }
+// ...existing code...

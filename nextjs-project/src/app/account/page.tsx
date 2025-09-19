@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   Typography,
   Card,
@@ -14,6 +13,7 @@ import {
   Tooltip,
   message,
 } from "antd";
+import Link from "next/link";
 import {
   PlusOutlined,
   BoxPlotOutlined,
@@ -28,6 +28,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { orderApi } from "@/services/orderService";
 import { storeService } from "@/services/storeService";
+import OrderDetailModal from "./orders/components/OrderDetailModal";
 
 const { Title, Text } = Typography;
 
@@ -80,6 +81,10 @@ export default function CustomerAccount() {
     shippingOrders: 0,
     completedOrders: 0,
   });
+
+  // Modal chi tiết đơn hàng
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   const fetchRecentOrders = useCallback(async () => {
     setLoading(true);
@@ -175,9 +180,15 @@ export default function CustomerAccount() {
       dataIndex: "id",
       key: "id",
       render: (text: string) => (
-        <Link href={`/account/orders/${text}`} style={{ color: "#1890ff" }}>
+        <a
+          onClick={() => {
+            setDetailOrderId(text);
+            setIsDetailModalVisible(true);
+          }}
+          style={{ cursor: "pointer", color: "#1890ff" }}
+        >
           {text}
-        </Link>
+        </a>
       ),
     },
     {
@@ -226,7 +237,10 @@ export default function CustomerAccount() {
             <Button
               type="text"
               icon={<EyeOutlined />}
-              onClick={() => router.push(`/account/orders/${record.id}`)}
+              onClick={() => {
+                setDetailOrderId(record.id);
+                setIsDetailModalVisible(true);
+              }}
             />
           </Tooltip>
         </Space>
@@ -393,6 +407,15 @@ export default function CustomerAccount() {
           </Card>
         </Col>
       </Row>
+
+      {/* Modal chi tiết đơn hàng */}
+      {isDetailModalVisible && detailOrderId && (
+        <OrderDetailModal
+          orderId={Number(detailOrderId)}
+          onClose={() => setIsDetailModalVisible(false)}
+        />
+      )}
+
       {contextHolder}
     </div>
   );
