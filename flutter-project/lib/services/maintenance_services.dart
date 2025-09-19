@@ -10,33 +10,51 @@ class MaintenanceServices {
   final Environment _env = Environment.getInstance();
   final SecureStorageFrave secureStorage = SecureStorageFrave();
   late final HttpClient _httpClient;
-  
+
   /// Base URL for API requests
   String get baseUrl => _env.apiBaseUrl;
-  
+
   /// Constructor
   MaintenanceServices() {
     _httpClient = HttpClient(baseUrl: baseUrl, secureStorage: secureStorage);
   }
 
   /// Retrieves the driver ID from secure storage
-  /// 
+  ///
   /// Returns null if driver ID is not found
   Future<int?> _getDriverId() async {
     final driverId = await secureStorage.readDriverId();
-    if (driverId == null) {
+
+    if (driverId == null || driverId.isEmpty || driverId == "0") {
+      // Fallback: Try to use userId if available
+      final userId = await secureStorage.readUserId();
+      if (userId != null && userId.isNotEmpty && userId != "0") {
+        try {
+          final parsedId = int.parse(userId);
+          // Save it as driverId for future use
+          await secureStorage.persistentDriverId(userId);
+          return parsedId;
+        } catch (e) {
+          return null;
+        }
+      }
       return null;
     }
-    return int.parse(driverId);
+
+    try {
+      return int.parse(driverId);
+    } catch (e) {
+      return null;
+    }
   }
 
   /// Step 1: Driver creates a maintenance request
-  /// 
+  ///
   /// [vehicleId] ID of the vehicle requiring maintenance
   /// [description] Detailed description of the maintenance issue
   /// [maintenanceType] Type of maintenance (ROUTINE, EMERGENCY, etc.)
   /// [notes] Optional additional notes
-  /// 
+  ///
   /// Returns the created [MaintenanceRequest]
   /// Throws exception if driver ID is not found or if API request fails
   Future<MaintenanceRequest> createMaintenanceRequest({
@@ -60,24 +78,27 @@ class MaintenanceServices {
       };
 
       final response = await _httpClient.post(
-        '/drivers/$driverId/maintenance-requests',
+        '/drivers/$driverId/maintenance-requests/emergency',
         body: createDto,
+        timeout: const Duration(seconds: 30),
       );
 
-      final data = response['data'] as Map<String, dynamic>;
-      return MaintenanceRequest.fromJson(data);
+      final responseData = response is Map<String, dynamic> ? response : {};
+      final data =
+          responseData['data'] as Map<String, dynamic>? ?? responseData;
+      return MaintenanceRequest.fromJson(data as Map<String, dynamic>);
     } catch (e) {
       throw Exception('Failed to create maintenance request: $e');
     }
   }
 
   /// Step 4: Driver views their maintenance requests
-  /// 
+  ///
   /// [page] Page number for pagination (starts at 0)
   /// [size] Number of items per page
   /// [status] Optional filter by status
   /// [maintenanceType] Optional filter by maintenance type
-  /// 
+  ///
   /// Returns a list of [MaintenanceRequest] objects
   /// Throws exception if driver ID is not found or if API request fails
   Future<List<MaintenanceRequest>> getDriverMaintenanceRequests({
@@ -85,17 +106,12 @@ class MaintenanceServices {
     int size = 10,
     String? status,
     String? maintenanceType,
-    bool useCache = true, // Thêm tham số useCache
+    bool useCache = true,
   }) async {
-    print('🌐 MaintenanceServices: getDriverMaintenanceRequests called');
-    print('🌐 MaintenanceServices: useCache = $useCache');
-    
     final driverId = await _getDriverId();
     if (driverId == null) {
-      print('❌ MaintenanceServices: Driver ID not found');
       throw Exception('Driver ID not found');
     }
-    print('✅ MaintenanceServices: Driver ID found: $driverId');
 
     try {
       final Map<String, String> queryParams = {
@@ -110,37 +126,31 @@ class MaintenanceServices {
         queryParams['maintenanceType'] = maintenanceType;
       }
 
-      final endpoint = '/drivers/$driverId/maintenance-requests';
-      print('🌐 MaintenanceServices: Making API call to: $baseUrl$endpoint');
-      print('🌐 MaintenanceServices: Query params: $queryParams');
-
       final response = await _httpClient.get(
-        endpoint,
+        '/drivers/$driverId/maintenance-requests',
         queryParams: queryParams,
-        useCache: useCache, // Sử dụng giá trị useCache
+        useCache: useCache,
+        timeout: const Duration(seconds: 30),
       );
 
-      print('✅ MaintenanceServices: API response received');
-      
-      final data = response['data'] as Map<String, dynamic>;
-      final content = data['content'] as List<dynamic>;
-      
-      final requests = content
-          .map((json) => MaintenanceRequest.fromJson(json as Map<String, dynamic>))
+      final responseData = response is Map<String, dynamic> ? response : {};
+      final data =
+          responseData['data'] as Map<String, dynamic>? ?? responseData;
+      final content = data['content'] as List<dynamic>? ?? [];
+
+      return content
+          .map((json) =>
+              MaintenanceRequest.fromJson(json as Map<String, dynamic>))
           .toList();
-      
-      print('✅ MaintenanceServices: Parsed ${requests.length} maintenance requests');
-      return requests;
     } catch (e) {
-      print('❌ MaintenanceServices: Error during API call: $e');
       throw Exception('Failed to fetch driver maintenance requests: $e');
     }
   }
 
   /// Driver views details of a specific maintenance request
-  /// 
+  ///
   /// [maintenanceId] ID of the maintenance request
-  /// 
+  ///
   /// Returns a [MaintenanceRequest] object with complete details
   /// Throws exception if driver ID is not found or if API request fails
   Future<MaintenanceRequest> getMaintenanceRequestDetail({
@@ -154,55 +164,26 @@ class MaintenanceServices {
     try {
       final response = await _httpClient.get(
         '/drivers/$driverId/maintenance-requests/$maintenanceId',
+        timeout: const Duration(seconds: 30),
       );
 
-      final data = response['data'] as Map<String, dynamic>;
-      return MaintenanceRequest.fromJson(data);
+      final responseData = response is Map<String, dynamic> ? response : {};
+      final data =
+          responseData['data'] as Map<String, dynamic>? ?? responseData;
+      return MaintenanceRequest.fromJson(data as Map<String, dynamic>);
     } catch (e) {
       throw Exception('Failed to fetch maintenance request detail: $e');
     }
   }
 
-  /// Step 5: Driver takes vehicle to garage for maintenance
-  /// 
+  /// Step 6: Driver picks up vehicle after maintenance completion or cancels maintenance request
+  ///
   /// [maintenanceId] ID of the maintenance request
   /// [notes] Optional additional notes
-  /// 
+  ///
   /// Returns the updated [MaintenanceRequest]
   /// Throws exception if driver ID is not found or if API request fails
-  Future<MaintenanceRequest> takeVehicleToGarage({
-    required int maintenanceId,
-    String? notes,
-  }) async {
-    final driverId = await _getDriverId();
-    if (driverId == null) {
-      throw Exception('Driver ID not found');
-    }
-
-    try {
-      String url = '/drivers/$driverId/maintenance-requests/$maintenanceId/to-garage';
-      
-      if (notes != null) {
-        url += '?notes=${Uri.encodeComponent(notes)}';
-      }
-
-      final response = await _httpClient.put(url);
-
-      final data = response['data'] as Map<String, dynamic>;
-      return MaintenanceRequest.fromJson(data);
-    } catch (e) {
-      throw Exception('Failed to update maintenance status: $e');
-    }
-  }
-
-  /// Step 7: Driver picks up vehicle after maintenance completion or cancels maintenance request
-  /// 
-  /// [maintenanceId] ID of the maintenance request
-  /// [notes] Optional additional notes
-  /// 
-  /// Returns the updated [MaintenanceRequest]
-  /// Throws exception if driver ID is not found or if API request fails
-  /// 
+  ///
   /// This method updates the status to IN_USE (18), which can be used both for
   /// picking up vehicle after maintenance or canceling a maintenance request
   Future<MaintenanceRequest> pickUpVehicle({
@@ -216,54 +197,25 @@ class MaintenanceServices {
 
     try {
       String url = '/maintenance-requests/$maintenanceId';
-      
-      // if (notes != null) {
-      //   url += '?notes=${Uri.encodeComponent(notes)}';
-      // }
 
       final body = {
         'statusId': 18,
+        if (notes != null) 'notes': notes,
       };
 
       final response = await _httpClient.put(url, body: body);
 
-      final data = response['data'] as Map<String, dynamic>;
-      return MaintenanceRequest.fromJson(data);
+      final responseData = response is Map<String, dynamic> ? response : {};
+      final data =
+          responseData['data'] as Map<String, dynamic>? ?? responseData;
+      return MaintenanceRequest.fromJson(data as Map<String, dynamic>);
     } catch (e) {
       throw Exception('Failed to update maintenance status: $e');
     }
   }
 
-  /// Cancel a pending maintenance request
-  /// 
-  /// [maintenanceId] ID of the maintenance request to cancel
-  /// [reason] Reason for cancellation
-  /// 
-  /// Returns the updated [MaintenanceRequest]
-  /// Throws exception if driver ID is not found or if API request fails
-  Future<MaintenanceRequest> cancelMaintenanceRequest({
-    required int maintenanceId,
-    required String reason,
-  }) async {
-    final driverId = await _getDriverId();
-    if (driverId == null) {
-      throw Exception('Driver ID not found');
-    }
-
-    try {
-      final response = await _httpClient.put(
-        '/drivers/$driverId/maintenance-requests/$maintenanceId/cancel?reason=${Uri.encodeComponent(reason)}',
-      );
-
-      final data = response['data'] as Map<String, dynamic>;
-      return MaintenanceRequest.fromJson(data);
-    } catch (e) {
-      throw Exception('Failed to cancel maintenance request: $e');
-    }
-  }
-
   /// Get maintenance request counts by status for driver dashboard
-  /// 
+  ///
   /// Returns a Map with status counts (pending, scheduled, in-progress, completed)
   /// Throws exception if driver ID is not found or if API request fails
   Future<Map<String, int>> getMaintenanceStatusCounts() async {
@@ -275,14 +227,18 @@ class MaintenanceServices {
     try {
       final response = await _httpClient.get(
         '/drivers/$driverId/maintenance-requests/counts',
+        timeout: const Duration(seconds: 30),
       );
 
-      final data = response['data'] as Map<String, dynamic>;
+      final responseData = response is Map<String, dynamic> ? response : {};
+      final data =
+          responseData['data'] as Map<String, dynamic>? ?? responseData;
+
       return {
-        'pending': data['pending'] as int,
-        'scheduled': data['scheduled'] as int,
-        'inProgress': data['inProgress'] as int,
-        'completed': data['completed'] as int,
+        'pending': data['pending'] as int? ?? 0,
+        'scheduled': data['scheduled'] as int? ?? 0,
+        'inProgress': data['inProgress'] as int? ?? 0,
+        'completed': data['completed'] as int? ?? 0,
       };
     } catch (e) {
       throw Exception('Failed to fetch maintenance status counts: $e');

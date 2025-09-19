@@ -96,9 +96,9 @@ class _MaintenanceScreenContentState extends State<MaintenanceScreenContent>
             ),
             onPressed: () {
               print('🔄 UI: Maintenance refresh button pressed!');
-              // Reload maintenance from API (same as deliveries)
-              context.read<MaintenanceBloc>().add(LoadMaintenanceRequests());
-              print('🔄 UI: LoadMaintenanceRequests dispatched');
+              // Reload maintenance from API using the specific refresh event
+              context.read<MaintenanceBloc>().add(const RefreshMaintenanceRequests());
+              print('🔄 UI: RefreshMaintenanceRequests dispatched');
               
               // Show loading indicator
               ScaffoldMessenger.of(context).showSnackBar(

@@ -3,11 +3,17 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../data/env/environment.dart';
 import '../data/local_secure/secure_storage.dart';
+import '../data/network/http_client.dart';
 import '../domain/models/auth/auth_response.dart';
 import '../domain/models/common/response_default.dart';
 
 class UserServices {
   final Environment _env = Environment.getInstance();
+  late final HttpClient _httpClient;
+
+  UserServices() {
+    _httpClient = HttpClient(baseUrl: _env.apiBaseUrl, secureStorage: secureStorage);
+  }
 
   /// Get current user by ID from secure token
   Future<User> getUserById() async {
@@ -36,27 +42,31 @@ class UserServices {
     debugPrint('Fetching user details with ID: $finalId');
     
     try {
-      final response = await http.get(
-        Uri.parse('${_env.endpointApi}/auth/users/$finalId'),
-        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'}
+      print('👤 UserService: Getting user via HttpClient...');
+
+      final response = await _httpClient.get<Map<String, dynamic>>(
+        '/auth/users/$finalId',
+        useCache: false,
+        timeout: const Duration(seconds: 45),
       );
       
-      final data = jsonDecode(response.body);
-      debugPrint('User API response: ${response.statusCode}');
+      print('👤 UserService: User response received');
+      debugPrint('User API response: success');
       
       // Chuyển đổi từ API response mới sang model User
       return User(
-        uid: data['id'].toString(),
-        name: data['fullName'] ?? '',
-        email: data['email'] ?? '',
-        phone: data['phone'] ?? '',
+        uid: response['id'].toString(),
+        name: response['fullName'] ?? '',
+        email: response['email'] ?? '',
+        phone: response['phone'] ?? '',
         image: '', // API không trả về image
-        role: data['role'] != null ? data['role']['roleName'] ?? '' : '',
-        isActive: data['status'] != null ? data['status']['name'] != 'Inactive' : true,
+        role: response['role'] != null ? response['role']['roleName'] ?? '' : '',
+        isActive: response['status'] != null ? response['status']['name'] != 'Inactive' : true,
         permissions: [], // API không trả về permissions
-        username: data['username'] ?? '', // Thêm username
+        username: response['username'] ?? '', // Thêm username
       );
     } catch (e) {
+      print('❌ UserService: Error getting user: $e');
       // Trả về user mặc định khi có lỗi
       return User(
         uid: finalId,
@@ -74,35 +84,47 @@ class UserServices {
 
   /// Edit user profile information
   Future<ResponseDefault> editProfile(String name, String lastname, String phone) async {
-    final token = await secureStorage.readToken();
+    try {
+      print('👤 UserService: Editing profile via HttpClient...');
 
-    final response = await http.put(
-      Uri.parse('${_env.endpointApi}/edit-profile'),
-      headers: {'Accept': 'application/json', 'xx-token': token!},
-      body: {
-        'firstname': name,
-        'lastname': lastname,
-        'phone': phone
-      }
-    );
-    
-    return ResponseDefault.fromJson(jsonDecode(response.body));
+      final response = await _httpClient.put<Map<String, dynamic>>(
+        '/edit-profile',
+        body: {
+          'firstname': name,
+          'lastname': lastname,
+          'phone': phone
+        },
+        fromJson: (json) => json,
+      );
+      
+      print('👤 UserService: Profile edit response received');
+      return ResponseDefault.fromJson(response);
+    } catch (e) {
+      print('❌ UserService: Error editing profile: $e');
+      return ResponseDefault(resp: false, msg: 'Error: $e');
+    }
   }
 
   /// Change user password
   Future<ResponseDefault> changePassword(String currentPassword, String newPassword) async {
-    final token = await secureStorage.readToken();
+    try {
+      print('👤 UserService: Changing password via HttpClient...');
 
-    final response = await http.put(
-      Uri.parse('${_env.endpointApi}/change-password'),
-      headers: {'Accept': 'application/json', 'xx-token': token!},
-      body: {
-        'currentPassword': currentPassword,
-        'newPassword': newPassword
-      }
-    );
+      final response = await _httpClient.put<Map<String, dynamic>>(
+        '/change-password',
+        body: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword
+        },
+        fromJson: (json) => json,
+      );
 
-    return ResponseDefault.fromJson(jsonDecode(response.body));
+      print('👤 UserService: Password change response received');
+      return ResponseDefault.fromJson(response);
+    } catch (e) {
+      print('❌ UserService: Error changing password: $e');
+      return ResponseDefault(resp: false, msg: 'Error: $e');
+    }
   }
 
   /// Change user profile image

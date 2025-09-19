@@ -191,7 +191,7 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
       emit(const MaintenanceLoading());
       print('🔄 MaintenanceBloc: Loading state emitted, calling API...');
 
-      final requests = await _apiService.getDriverMaintenanceRequests();
+      final requests = await _apiService.getDriverMaintenanceRequests(useCache: false);
       print('🔄 MaintenanceBloc: API call successful, received ${requests.length} requests');
 
       emit(MaintenanceLoaded(
@@ -241,16 +241,9 @@ class MaintenanceBloc extends Bloc<MaintenanceEvent, MaintenanceState> {
     UpdateMaintenanceRequest event,
     Emitter<MaintenanceState> emit,
   ) async {
-    try {
-      // For taking vehicle to garage
-      if (event.updateDto.statusId == 19) { // MAINTENANCE status
-        await _apiService.takeVehicleToGarage(
-          maintenanceId: event.maintenanceId,
-          notes: event.updateDto.notes,
-        );
-      } 
+    try { 
       // For picking up vehicle or canceling maintenance
-      else if (event.updateDto.statusId == 18 || event.updateDto.statusId == 17) { // IN_USE or AVAILABLE status
+      if (event.updateDto.statusId == 18 || event.updateDto.statusId == 17) { // IN_USE or AVAILABLE status
         await _apiService.pickUpVehicle(
           maintenanceId: event.maintenanceId,
           notes: event.updateDto.notes,

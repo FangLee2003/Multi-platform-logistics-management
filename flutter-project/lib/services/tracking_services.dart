@@ -206,7 +206,7 @@ class LocationService {
     
     try {
       final resp = await http.post(
-          Uri.parse('$baseUrl/driver/$driverId/deliveries/$deliveryId/tracking'),
+          Uri.parse('$baseUrl/drivers/$driverId/deliveries/$deliveryId/tracking'),
           headers: {
             'Accept': 'application/json',
             'Authorization': 'Bearer $token',
@@ -259,7 +259,7 @@ class LocationService {
     try {
       final resp = await http.post(
           Uri.parse(
-              '$baseUrl/driver/$driverId/deliveries/$deliveryId/tracking'),
+              '$baseUrl/drivers/$driverId/deliveries/$deliveryId/tracking'),
           headers: {
             'Accept': 'application/json',
             'Authorization': 'Bearer $token',
