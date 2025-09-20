@@ -65,6 +65,12 @@ cd PROJECT_KTC_2025/spring-project
 - Multiple chart types: Area, Bar, Pie, Scatter, Bubble, and Radar Chart
 - Light/Dark mode for all charts
 
+### 🔧 Vehicle Maintenance
+- Create emergency maintenance requests
+- Track maintenance status
+- Receive notifications when vehicle is ready
+- View maintenance history
+
 ## Main Screens
 
 ### 🏠 Dashboard Screen
