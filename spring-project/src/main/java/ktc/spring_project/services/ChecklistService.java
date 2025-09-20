@@ -1,4 +1,7 @@
+
 package ktc.spring_project.services;
+
+import ktc.spring_project.enums.ChecklistActionType;
 
 import ktc.spring_project.dtos.ChecklistProgressResponse;
 import ktc.spring_project.dtos.ChecklistStepResponse;
@@ -17,6 +20,20 @@ import ktc.spring_project.entities.Status;
 
 @Service
 public class ChecklistService {
+    // Logger for writing checklist logs to a file
+    private static final org.slf4j.Logger checklistLogger = org.slf4j.LoggerFactory.getLogger("ChecklistLog");
+    /**
+     * Tìm ChecklistActionType theo stepCode (enum lookup)
+     */
+    private ChecklistActionType findActionTypeByStepCode(String stepCode) {
+        if (stepCode == null) return null;
+        for (ChecklistActionType type : ChecklistActionType.values()) {
+            if (type.name().equalsIgnoreCase(stepCode) || type.getActionCode().equalsIgnoreCase(stepCode)) {
+                return type;
+            }
+        }
+        return null;
+    }
     @Autowired
     private ChecklistStepRepository checklistStepRepository;
 
@@ -219,39 +236,37 @@ public class ChecklistService {
      * Đánh dấu một bước đã hoàn thành
      */
     public void markStepCompleted(Long userId, Long orderId, String stepCode, String details) {
-        System.out.println("=== ChecklistService.markStepCompleted ===");
-        System.out.println("userId: " + userId);
-        System.out.println("orderId: " + orderId);
-        System.out.println("stepCode: " + stepCode);
-        System.out.println("details: " + details);
+        checklistLogger.info("ChecklistStepCompleted | userId={} | orderId={} | stepCode={} | details={}", userId, orderId, stepCode, details);
         try {
             User user = userRepository.findById(userId).orElse(null);
             Order order = orderRepository.findById(orderId).orElse(null);
             ChecklistStep step = checklistStepRepository.findAll().stream()
                 .filter(s -> s.getStepCode().equals(stepCode)).findFirst().orElse(null);
             if (user == null || order == null || step == null) {
-                System.err.println("ERROR: User, Order, or Step not found");
+                checklistLogger.error("ERROR: User, Order, or Step not found | userId={} | orderId={} | stepCode={}", userId, orderId, stepCode);
                 return;
             }
-            ChecklistProgress progress = checklistProgressRepository.findByUserAndOrderAndStep(user, order, step).orElse(null);
+            // Tìm log trùng orderId và stepCode (bất kể user)
+            ChecklistProgress progress = checklistProgressRepository.findByOrder(order).stream()
+                .filter(p -> p.getStep().equals(step)).findFirst().orElse(null);
             if (progress == null) {
                 progress = new ChecklistProgress();
-                progress.setUser(user);
-                progress.setOrder(order);
-                progress.setStep(step);
-                System.out.println("Created new ChecklistProgress entity");
+                checklistLogger.info("Created new ChecklistProgress entity for orderId={} stepCode={}", orderId, stepCode);
             } else {
-                System.out.println("Updating existing ChecklistProgress entity");
+                checklistLogger.info("Overwriting ChecklistProgress entity for orderId={} stepCode={}", orderId, stepCode);
             }
+            // Ghi đè user, details, completedAt
+            progress.setUser(user);
+            progress.setOrder(order);
+            progress.setStep(step);
             progress.setCompleted(true);
             progress.setCompletedAt(java.time.LocalDateTime.now());
             progress.setDetails(details);
             ChecklistProgress saved = checklistProgressRepository.save(progress);
-            System.out.println("Saved ChecklistProgress with ID: " + saved.getId());
-            System.out.println("=== markStepCompleted COMPLETED ===");
+            checklistLogger.info("Saved ChecklistProgress with ID: {} for orderId={} stepCode={}", saved.getId(), orderId, stepCode);
+            checklistLogger.info("=== markStepCompleted COMPLETED ===");
         } catch (Exception e) {
-            System.err.println("ERROR in markStepCompleted: " + e.getMessage());
-            e.printStackTrace();
+            checklistLogger.error("ERROR in markStepCompleted: {}", e.getMessage(), e);
         }
     }
 
@@ -368,33 +383,23 @@ public class ChecklistService {
      * Lấy checklist cho customer - sử dụng unified logic
      */
     private List<ChecklistStepResponse> getCustomerSteps(Long customerId) {
-        return getChecklistStepsByRole(customerId, "customer");
+    return getChecklistStepsByRole(customerId, "CUSTOMER");
     }
 
     /**
      * Lấy checklist cho dispatcher - sử dụng unified logic
      */
     private List<ChecklistStepResponse> getDispatcherSteps(Long dispatcherId) {
-        return getChecklistStepsByRole(dispatcherId, "dispatcher");
+        return getChecklistStepsByRole(dispatcherId, "DISPATCHER");
     }
 
-    /**
-     * Tìm ChecklistActionType theo stepCode (enum lookup)
-     */
-    private ChecklistActionType findActionTypeByStepCode(String stepCode) {
-        for (ChecklistActionType type : ChecklistActionType.values()) {
-            if (type.name().equalsIgnoreCase(stepCode)) {
-                return type;
-            }
-        }
-        return null;
-    }
+    // Removed duplicate findActionTypeByStepCode method
 
     /**
      * Lấy các bước checklist cho driver
      */
     private List<ChecklistStepResponse> getDriverSteps(Long driverId) {
-        return getChecklistStepsByRole(driverId, "driver");
+    return getChecklistStepsByRole(driverId, "DRIVER");
     }
 
     /**
@@ -458,24 +463,17 @@ public class ChecklistService {
                 case "CUSTOMER_CREATE_ORDER":
                     setCustomerOrderStatus(response, userId, validOrderStatuses);
                     break;
-                case "CUSTOMER_RECEIVE_ORDER":
-                    setCustomerReceiveStatus(response, userId, validDeliveryStatuses);
-                    break;
                 case "CUSTOMER_PAYMENT":
                     setCustomerPaymentStatus(response, userId, validPaymentStatuses);
                     break;
                 case "DISPATCHER_RECEIVE_ORDER":
-                case "DISPATCHER_SELECT_DRIVER":
-                case "DISPATCHER_HANDOVER_TO_DRIVER":
-                case "DISPATCHER_UPDATE_STATUS_DELIVERING":
-                case "DISPATCHER_RECEIVE_DELIVERY_RESULT":
-                case "DISPATCHER_UPDATE_STATUS_COMPLETE":
+                case "DISPATCHER_ASSIGN_DRIVER":
+                case "DISPATCHER_RECEIVE_RESULT":
                     setDispatcherStatus(response, userId, stepCode);
                     break;
-                case "DRIVER_RECEIVE_DELIVERY_ORDER":
-                case "DRIVER_UPDATE_STATUS_IN_TRANSIT":
-                case "DRIVER_COLLECT_DELIVERY_PROOF":
-                case "DRIVER_UPDATE_STATUS_DELIVERED":
+                case "DRIVER_RECEIVE_ORDER":
+                case "DRIVER_START_DELIVERY":
+                case "DRIVER_COMPLETE_DELIVERY":
                     setDriverStatus(response, userId, stepCode);
                     break;
                 default:
@@ -588,6 +586,7 @@ public class ChecklistService {
         // Build response
         OrderTimelineResponse response = OrderTimelineResponse.builder()
             .orderId(order.getId())
+            .orderCode(order.getOrderCode())
             .createdAt(order.getCreatedAt() != null ? order.getCreatedAt().toLocalDateTime() : null)
             .updatedAt(order.getUpdatedAt() != null ? order.getUpdatedAt().toLocalDateTime() : null)
             .build();
@@ -635,16 +634,10 @@ public class ChecklistService {
      * Xây dựng danh sách các bước timeline cho một đơn hàng
      */
     private List<TimelineStepDto> buildTimelineSteps(Long orderId) {
-        // Lấy tất cả các bước checklist có thể có
-        List<ChecklistStep> allSteps = checklistStepRepository.findAll();
-        
-        // Lấy tất cả progress liên quan đến orderId này
+        // Lấy tất cả progress liên quan đến orderId này (cho mọi user thực hiện hành động)
         Order order = orderRepository.findById(orderId).orElse(null);
         if (order == null) return new ArrayList<>();
         List<ChecklistProgress> progresses = checklistProgressRepository.findByOrder(order);
-        Map<String, ChecklistProgress> progressMap = progresses.stream()
-            .collect(Collectors.toMap(p -> p.getStep().getStepCode(), p -> p));
-
         List<TimelineStepDto> timeline = new ArrayList<>();
         for (ChecklistProgress progress : progresses) {
             ChecklistStep stepDef = progress.getStep();
@@ -660,11 +653,17 @@ public class ChecklistService {
                     .status(progress.getCompleted() ? "Completed" : "Pending")
                     .build();
                 User actor = progress.getUser();
+                String actorRole = "UNKNOWN";
+                if (actor != null && actor.getRole() != null) {
+                    actorRole = actor.getRole().getRoleName();
+                } else if (stepDef.getRole() != null) {
+                    actorRole = stepDef.getRole();
+                }
                 if (actor != null) {
                     ActorDto actorDto = ActorDto.builder()
                         .userId(actor.getId())
                         .fullName(actor.getFullName())
-                        .role(actor.getRole() != null ? actor.getRole().getRoleName() : "UNKNOWN")
+                        .role(actorRole)
                         .phone(actor.getPhone())
                         .build();
                     step.setActor(actorDto);
@@ -672,10 +671,8 @@ public class ChecklistService {
                 timeline.add(step);
             }
         }
-
         // Sắp xếp theo stepOrder
         timeline.sort((s1, s2) -> Integer.compare(s1.getStepOrder(), s2.getStepOrder()));
-
         return timeline;
     }
 }

@@ -8,7 +8,12 @@ import ktc.spring_project.dtos.timeline.OrderStatusDto;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.Status;
 import ktc.spring_project.entities.Vehicle;
+import ktc.spring_project.entities.User;
 import ktc.spring_project.repositories.OrderRepository;
+import ktc.spring_project.repositories.UserRepository;
+import ktc.spring_project.repositories.VehicleRepository;
+import ktc.spring_project.repositories.StoreRepository;
+import ktc.spring_project.repositories.StatusRepository;
 import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.HttpException;
@@ -36,6 +41,18 @@ public class OrderService {
 
     @Autowired
     private OrderRepository orderRepository;
+    @Autowired
+    private ChecklistService checklistService;
+    @Autowired
+    private StatusService statusService;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private VehicleRepository vehicleRepository;
+    @Autowired
+    private StoreRepository storeRepository;
+    @Autowired
+    private StatusRepository statusRepository;
     
     public Order createOrderFromDTO(ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO dto) {
         try {

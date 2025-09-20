@@ -15,6 +15,7 @@ import ktc.spring_project.services.UserService;
 import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.DeliveryTrackingService;
 import ktc.spring_project.services.DeliveryService;
+import ktc.spring_project.services.ChecklistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -55,8 +56,9 @@ public class OrderController {
     @Autowired
     private DeliveryTrackingService deliveryTrackingService;
 
+
     @Autowired
-    private DeliveryService deliveryService;
+    private ChecklistService checklistService;
 
     /**
      * Get order by ID with items included
@@ -306,26 +308,42 @@ public ResponseEntity<Order> putOrder(
         try {
             System.out.println("🚗 OrderController: Updating vehicle for order " + id + " with vehicleId: " + dto.vehicleId);
             Order order = orderService.getOrderById(id);
-            
+
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            ktc.spring_project.entities.User actor = null;
+            if (auth != null && auth.getPrincipal() instanceof ktc.spring_project.entities.User) {
+                actor = (ktc.spring_project.entities.User) auth.getPrincipal();
+            }
+
             if (dto.vehicleId != null && dto.vehicleId > 0) {
-                // Assign vehicle - lấy vehicle đầy đủ từ database
                 Vehicle vehicle = vehicleService.getVehicleById(dto.vehicleId);
                 if (vehicle == null) {
                     return ResponseEntity.badRequest().build();
                 }
                 order.setVehicle(vehicle);
                 System.out.println("Assigning vehicle " + vehicle.getLicensePlate() + " to order " + id);
-                
+
+                // Ghi log checklist: luôn lấy actor là user thực hiện thao tác
+                String vehicleInfo = (vehicle != null) ? ("Vehicle: " + vehicle.getLicensePlate()) : "Vehicle: null";
+                String driverInfo = (vehicle != null && vehicle.getCurrentDriver() != null) ? ("Driver: " + vehicle.getCurrentDriver().getFullName() + " (" + vehicle.getCurrentDriver().getPhone() + ")") : "Driver: null";
+                String details = "Assigned " + vehicleInfo + " to order " + id + ". " + driverInfo;
+                if (actor != null) {
+                    checklistService.markStepCompleted(actor.getId(), id, "DISPATCHER_ASSIGN_DRIVER", details);
+                }
+
+                // Cập nhật driver vào order
+                if (vehicle != null && vehicle.getCurrentDriver() != null) {
+                    order.setDriver(vehicle.getCurrentDriver());
+                }
+
                 // Tìm hoặc tạo delivery record để lưu driver
                 try {
                     List<Delivery> deliveries = deliveryService.findByOrderId(id);
                     Delivery delivery = null;
                     if (deliveries != null && !deliveries.isEmpty()) {
-                        delivery = deliveries.get(0); // Lấy delivery đầu tiên
+                        delivery = deliveries.get(0);
                     }
-                    
                     if (delivery == null) {
-                        // Tạo delivery mới
                         delivery = new Delivery();
                         delivery.setOrder(order);
                         delivery.setVehicle(vehicle);
@@ -337,7 +355,6 @@ public ResponseEntity<Order> putOrder(
                         delivery.setLateDeliveryRisk(0);
                         deliveryService.save(delivery);
                     } else {
-                        // Cập nhật delivery hiện có
                         delivery.setVehicle(vehicle);
                         if (vehicle.getCurrentDriver() != null) {
                             delivery.setDriver(vehicle.getCurrentDriver());
@@ -345,21 +362,13 @@ public ResponseEntity<Order> putOrder(
                         }
                         deliveryService.save(delivery);
                     }
-                    
-                    // 🚀 TỰ ĐỘNG TẠO TRACKING RECORD KHI ASSIGN VEHICLE
                     createInitialTrackingForVehicleAssignment(vehicle, delivery, order);
-                    
                 } catch (Exception deliveryException) {
                     System.err.println("Error managing delivery: " + deliveryException.getMessage());
-                    // Vẫn tiếp tục cập nhật order ngay cả khi delivery bị lỗi
                 }
-                
             } else {
-                // Unassign vehicle (vehicleId is null or 0)
                 order.setVehicle(null);
                 System.out.println("Unassigning vehicle from order " + id);
-                
-                // Cũng cần unassign driver từ delivery
                 try {
                     List<Delivery> deliveries = deliveryService.findByOrderId(id);
                     if (deliveries != null && !deliveries.isEmpty()) {
@@ -373,8 +382,14 @@ public ResponseEntity<Order> putOrder(
                     System.err.println("Error unassigning delivery: " + deliveryException.getMessage());
                 }
             }
-            
+
             Order updatedOrder = orderService.updateOrder(id, order);
+            if (dto.vehicleId != null && dto.vehicleId > 0) {
+                Vehicle responseVehicle = order.getVehicle();
+                if (responseVehicle != null && responseVehicle.getCurrentDriver() != null) {
+                    updatedOrder.setDriver(responseVehicle.getCurrentDriver());
+                }
+            }
             return ResponseEntity.ok(updatedOrder);
         } catch (Exception e) {
             System.err.println("Error updating order vehicle: " + e.getMessage());
