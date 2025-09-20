@@ -21,9 +21,7 @@ public class Delivery {
     @JoinColumn(name = "order_id")
     private Order order;
 
-    @ManyToOne
-    @JoinColumn(name = "status_id")
-    private Status status;
+
 
     @Column(name = "delivery_fee")
     private BigDecimal deliveryFee;
@@ -94,8 +92,7 @@ private ServiceType serviceType;
     public Order getOrder() { return order; }
     public void setOrder(Order order) { this.order = order; }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    // Removed duplicate getter/setter for status
 
     public BigDecimal getDeliveryFee() { return deliveryFee; }
     public void setDeliveryFee(BigDecimal deliveryFee) { this.deliveryFee = deliveryFee; }
