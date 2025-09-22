@@ -6,66 +6,56 @@ KTC Logistics 2025 is a logistics management platform designed to revolutionize 
 
 - [🚚 KTC Logistics 2025 Management System](#-ktc-logistics-2025-management-system)
   - [📋 Table of Contents](#-table-of-contents)
-  - [1. 🎯 Target Users \& Business Value](#1--target-users--business-value)
+  - [🎯 Target Users \& Business Value](#-target-users--business-value)
     - [👔 **Corporate Customers (B2B)**](#-corporate-customers-b2b)
     - [🏢 **Enterprise Operations Teams**](#-enterprise-operations-teams)
-    - [� **Field Drivers**](#-field-drivers)
-  - [2. 🧩 System Components](#2--system-components)
+    - [🚗 **Field Drivers**](#-field-drivers)
+  - [🧩 System Components](#-system-components)
     - [🌐 B2B Customer Portal (Next.js)](#-b2b-customer-portal-nextjs)
     - [🖥️ Operations Dashboard (React.js)](#️-operations-dashboard-reactjs)
     - [📱 Driver Mobile App (Flutter)](#-driver-mobile-app-flutter)
     - [⚙️ Backend API Services (Spring Boot)](#️-backend-api-services-spring-boot)
-  - [3. 🔄 Business Workflows](#3--business-workflows)
+  - [🔄 Business Workflows](#-business-workflows)
     - [📋 **Order-to-Delivery Process**](#-order-to-delivery-process)
     - [🚚 **Fleet Management Cycle**](#-fleet-management-cycle)
     - [📊 **Analytics \& Reporting Workflow**](#-analytics--reporting-workflow)
-  - [4. 👥 User Roles \& Responsibilities](#4--user-roles--responsibilities)
-  - [5. 📞 Contact \& Support](#5--contact--support)
+  - [👥 User Roles \& Responsibilities](#-user-roles--responsibilities)
+  - [📞 Contact \& Support](#-contact--support)
     - [💼 **Business Inquiries**](#-business-inquiries)
     - [🛠️ **Technical Support**](#️-technical-support)
 
-## 1. 🎯 Target Users & Business Value
+## 🎯 Target Users & Business Value
 
 ### 👔 **Corporate Customers (B2B)**
-- **Primary Need:** Streamlined order placement and comprehensive shipment visibility
-- **Value Delivered:** 
-  - Simplified bulk order management with ERP integration
-  - Real-time tracking with automated notifications
-  - Automated invoicing and payment processing
-  - Performance analytics for logistics optimization
-- **Business Benefits:**
-  - **Cost Reduction:** 20-30% savings through optimized routing and bulk pricing
-  - **Transparency:** Real-time visibility into entire logistics chain
-  - **Efficiency:** Automated processes reduce manual coordination by 70%
+
+  - **Streamlined Ordering:** Simplified bulk order management with ERP integration (70% reduction in manual coordination)
+  - **Real-time Visibility:** Complete tracking with automated notifications across the logistics chain
+  - **Cost Efficiency:** 20-30% savings through optimized routing and bulk pricing
+  - **Automated Finance:** Integrated invoicing and payment processing
+  - **Data-driven Decisions:** Performance analytics for logistics optimization
   - **Scalability:** Platform grows with business needs without operational overhead
 
 ### 🏢 **Enterprise Operations Teams**
-- **Primary Need:** Centralized control and performance monitoring
-- **Value Delivered:**
+
   - **Dispatchers:** Efficient order allocation and exception management
   - **Fleet Managers:** Vehicle utilization optimization and maintenance tracking  
   - **Operations Managers:** Performance analytics and strategic insights
   - **Administrators:** User management and system configuration
-- **Business Benefits:**
   - **Productivity:** 40% improvement in operational efficiency through automation
   - **Decision Making:** Data-driven insights enable proactive management
   - **Resource Optimization:** AI-assisted planning maximizes fleet utilization
   - **Customer Satisfaction:** 95% on-time delivery rate with exception management
 
-### � **Field Drivers**
-- **Primary Need:** Simple, efficient delivery execution tools
-- **Value Delivered:**
-  - Turn-by-turn navigation with route optimization
-  - Streamlined proof of delivery capture
-  - Real-time communication with dispatch
-  - Offline capabilities for uninterrupted operations
-- **Business Benefits:**
-  - **Driver Productivity:** 25% faster delivery completion with optimized routes  
-  - **Reduced Errors:** Digital proof of delivery eliminates paperwork discrepancies
-  - **Better Communication:** Real-time updates keep all stakeholders informed
-  - **Work-Life Balance:** Efficient routing reduces overtime and improves driver satisfaction
+### 🚗 **Field Drivers**
 
-## 2. 🧩 System Components
+  - **Simple, Efficient Tools:** Turn-by-turn navigation with route optimization
+  - **Digital Documentation:** Streamlined proof of delivery capture eliminates paperwork
+  - **Communication:** Real-time messaging with dispatch keeps all stakeholders informed
+  - **Offline Capabilities:** Uninterrupted operations in areas with poor connectivity
+  - **Driver Productivity:** 25% faster delivery completion with optimized routes
+  - **Work-Life Balance:** Efficient routing reduces overtime and improves satisfaction
+
+## 🧩 System Components
 
 ### 🌐 B2B Customer Portal (Next.js)
 **Purpose:** Self-service platform for business customers to manage their logistics needs
@@ -116,7 +106,7 @@ KTC Logistics 2025 is a logistics management platform designed to revolutionize 
 
 **Business Impact:** Ensures 99.9% system uptime and processes 10,000+ orders daily
 
-## 3. 🔄 Business Workflows
+## 🔄 Business Workflows
 
 The platform supports end-to-end logistics operations through integrated workflows:
 
@@ -147,7 +137,7 @@ The platform supports end-to-end logistics operations through integrated workflo
 
 *Comprehensive workflow diagram showing interaction between all system components and user roles*
 
-## 4. 👥 User Roles & Responsibilities
+## 👥 User Roles & Responsibilities
 
 | Role                     | Primary Responsibilities                       | Key Activities                                                         | System Access        |
 | ------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------- | -------------------- |
@@ -158,7 +148,9 @@ The platform supports end-to-end logistics operations through integrated workflo
 | **Driver**               | Field delivery execution                       | Accept orders, navigate routes, capture delivery proof, update status  | Mobile App           |
 | **System Administrator** | Platform management & security                 | User management, system configuration, security monitoring             | Operations Dashboard |
 
-## 5. 📞 Contact & Support
+## 📞 Contact & Support
+
+© 2025 KTC Logistics. All rights reserved.
 
 ### 💼 **Business Inquiries**
 - **Sales Team:** sales@ktclogistics.com
@@ -169,7 +161,3 @@ The platform supports end-to-end logistics operations through integrated workflo
 - **Customer Support:** support@ktclogistics.com
 - **Developer Resources:** dev@ktclogistics.com
 - **API Documentation:** [Developer Portal](https://api.ktclogistics.com/docs)
-
----
-
-© 2025 KTC Logistics. All rights reserved.
