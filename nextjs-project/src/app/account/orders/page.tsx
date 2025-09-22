@@ -296,6 +296,12 @@ export default function OrdersPage() {
   const handleInvoiceCreated = (invoice: { invoiceNumber: string }) => {
     // Refresh orders list or show success message
     messageApi.success(`Hóa đơn ${invoice.invoiceNumber} đã được tạo thành công!`);
+    
+    // Optionally refresh the orders list to reflect any changes
+    // This can help ensure the UI is in sync with the backend state
+    setTimeout(() => {
+      fetchOrders(currentPage, pageSize);
+    }, 1500); // Small delay to ensure backend is updated
   };
 
   const columns = [

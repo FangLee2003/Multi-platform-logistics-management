@@ -9,7 +9,6 @@ import {
 	Input,
 	Space,
 	message,
-	Spin,
 	Typography,
 	Divider,
 	Tag,
@@ -36,97 +35,118 @@ export default function InvoiceButton({
 	disabled = false,
 }: InvoiceButtonProps) {
 	const [loading, setLoading] = useState(false)
-	const [checkingEligibility, setCheckingEligibility] = useState(false)
 	const [invoice, setInvoice] = useState<InvoiceResponse | null>(null)
 	const [isModalVisible, setIsModalVisible] = useState(false)
 	const [isEmailModalVisible, setIsEmailModalVisible] = useState(false)
+	const [lastClickTime, setLastClickTime] = useState<number>(0)
 	const [form] = Form.useForm()
 	const [emailForm] = Form.useForm()
 	const [messageApi, contextHolder] = message.useMessage()
 
-	// Check if order is eligible for invoice creation
-	const checkEligibility = async () => {
-		if (disabled) return false
-
-		setCheckingEligibility(true)
-		try {
-			// First check if invoice already exists
-			const existingInvoice = await invoiceService.getInvoiceByOrderId(orderId)
-			if (existingInvoice) {
-				setInvoice(existingInvoice)
-				return true
-			}
-
-			// Check eligibility for new invoice
-			const eligibility = await invoiceService.checkEligibility(orderId)
-			return eligibility.eligible
-		} catch (error: unknown) {
-			console.error('Error checking eligibility:', error)
-			return false
-		} finally {
-			setCheckingEligibility(false)
-		}
-	}
 
 	// Handle button click - Auto create and download invoice
 	const handleClick = async () => {
-		const isEligible = await checkEligibility()
-		if (isEligible) {
-			if (invoice) {
-				// Invoice exists, download directly
-				await handleDownloadPdf()
-			} else {
-				// Auto create invoice and download
-				await handleAutoCreateAndDownload()
-			}
-		} else {
-			messageApi.warning('Đơn hàng chưa đủ điều kiện để xuất hóa đơn')
+		// Prevent rapid clicks (debounce for 2 seconds)
+		const currentTime = Date.now()
+		if (currentTime - lastClickTime < 2000) {
+			messageApi.warning('Vui lòng đợi một chút trước khi thử lại')
+			return
 		}
-	}
+		setLastClickTime(currentTime)
 
-	// Auto create invoice and download PDF
-	const handleAutoCreateAndDownload = async () => {
 		setLoading(true)
 		try {
-			messageApi.loading('Đang tạo hóa đơn...', 0)
+			// Always check for existing invoice first
+			messageApi.loading('Đang kiểm tra hóa đơn...', 0)
 			
-			// Create invoice with minimal data
+			const existingInvoice = await invoiceService.getInvoiceByOrderId(orderId)
+			if (existingInvoice) {
+				// Invoice exists, download directly
+				setInvoice(existingInvoice)
+				messageApi.destroy()
+				messageApi.success(`Tìm thấy hóa đơn ${existingInvoice.invoiceNumber}!`)
+				
+				// Download immediately
+				try {
+					await invoiceService.downloadInvoicePdf(existingInvoice.id, existingInvoice.invoiceNumber)
+					messageApi.success('Đang tải xuống hóa đơn PDF...')
+				} catch (error: unknown) {
+					console.error('Error downloading PDF:', error)
+					messageApi.error('Không thể tải xuống hóa đơn PDF')
+				}
+				return
+			}
+
+			// No existing invoice, check eligibility and create new one
+			messageApi.loading('Đang kiểm tra điều kiện...', 0)
+			const eligibility = await invoiceService.checkEligibility(orderId)
+			
+			if (!eligibility.eligible) {
+				messageApi.destroy()
+				messageApi.warning('Đơn hàng chưa đủ điều kiện để xuất hóa đơn')
+				return
+			}
+
+			// Create new invoice
+			messageApi.loading('Đang tạo hóa đơn...', 0)
 			const newInvoice = await invoiceService.createInvoice({
 				orderId,
-				// Auto-fill basic info, no user input needed
 				customerEmail: undefined,
 				customerName: undefined,
 				notes: `Hóa đơn tự động cho đơn hàng #${orderId}`,
 			})
 
 			setInvoice(newInvoice)
-			messageApi.destroy() // Clear loading message
+			messageApi.destroy()
 			messageApi.success(`Hóa đơn ${newInvoice.invoiceNumber} đã được tạo thành công!`)
 
 			// Notify parent component
 			onInvoiceCreated?.(newInvoice)
 
-			// Auto download PDF
-			setTimeout(async () => {
-				try {
-					await invoiceService.downloadInvoicePdf(newInvoice.id, newInvoice.invoiceNumber)
-					messageApi.success('Đang tải xuống hóa đơn PDF...')
-				} catch (error: unknown) {
-					console.error('Error downloading PDF:', error)
-					messageApi.error('Không thể tải xuống hóa đơn PDF')
-				}
-			}, 1000) // Small delay to ensure PDF is ready
+			// Download immediately after creation
+			try {
+				await invoiceService.downloadInvoicePdf(newInvoice.id, newInvoice.invoiceNumber)
+				messageApi.success('Đang tải xuống hóa đơn PDF...')
+			} catch (error: unknown) {
+				console.error('Error downloading PDF:', error)
+				messageApi.error('Không thể tải xuống hóa đơn PDF')
+			}
 
 		} catch (error: unknown) {
 			messageApi.destroy()
-			console.error('Error creating invoice:', error)
+			console.error('Error in handleClick:', error)
 			const errorMessage = (error as { response?: { data?: { message?: string } } })
-				.response?.data?.message || 'Không thể tạo hóa đơn'
-			messageApi.error(errorMessage)
+				.response?.data?.message || 'Không thể xử lý yêu cầu'
+			
+			// Handle specific case where invoice was created by another process
+			if (errorMessage.includes('đã có hóa đơn') || errorMessage.includes('already has')) {
+				try {
+					const existingInvoice = await invoiceService.getInvoiceByOrderId(orderId)
+					if (existingInvoice) {
+						setInvoice(existingInvoice)
+						messageApi.success(`Đã tìm thấy hóa đơn ${existingInvoice.invoiceNumber}!`)
+						
+						// Download the existing invoice
+						try {
+							await invoiceService.downloadInvoicePdf(existingInvoice.id, existingInvoice.invoiceNumber)
+							messageApi.success('Đang tải xuống hóa đơn PDF...')
+						} catch (downloadError: unknown) {
+							console.error('Error downloading PDF:', downloadError)
+							messageApi.error('Không thể tải xuống hóa đơn PDF')
+						}
+						return
+					}
+				} catch (fetchError: unknown) {
+					console.error('Error fetching existing invoice:', fetchError)
+				}
+			}
+			
+			messageApi.error(`Lỗi hệ thống: ${errorMessage}`)
 		} finally {
 			setLoading(false)
 		}
 	}
+
 
 	// Show invoice actions modal
 	const showInvoiceActions = () => {
@@ -286,9 +306,9 @@ export default function InvoiceButton({
 				<Button
 					type={type}
 					size={size}
-					icon={checkingEligibility ? <Spin size="small" /> : <FilePdfOutlined />}
+					icon={<FilePdfOutlined />}
 					onClick={handleClick}
-					disabled={disabled || checkingEligibility}
+					disabled={disabled}
 					loading={loading}
 				/>
 			</Tooltip>
