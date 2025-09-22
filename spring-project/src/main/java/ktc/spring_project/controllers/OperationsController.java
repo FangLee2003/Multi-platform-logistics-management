@@ -227,10 +227,20 @@ public class OperationsController {
     public ResponseEntity<Map<String, Object>> getOrdersForOperations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String status,
             Authentication authentication) {
         try {
-            // Get all orders with pagination
-            Page<Order> orderPage = orderService.getAllOrdersPaginated(page, size);
+            Page<Order> orderPage;
+            
+            // If status filter is provided, get filtered orders
+            if (status != null && !status.isEmpty() && !status.equals("Tất cả")) {
+                // Map Vietnamese status back to English for database query
+                String dbStatus = mapVietnameseToEnglishStatus(status);
+                orderPage = orderService.getOrdersByStatusPaginated(dbStatus, page, size);
+            } else {
+                // Get all orders with pagination
+                orderPage = orderService.getAllOrdersPaginated(page, size);
+            }
             
             // Convert to dashboard format
             List<Map<String, Object>> orderDTOs = orderPage.getContent().stream().map(order -> {
@@ -346,6 +356,30 @@ public class OperationsController {
         }
     }
 
+    /**
+     * Map Vietnamese status display names back to English database status names
+     */
+    private String mapVietnameseToEnglishStatus(String vietnameseStatus) {
+        switch (vietnameseStatus) {
+            case "Chờ xử lý":
+                return "Pending";
+            case "Đang xử lý":
+                return "Processing";
+            case "Đang giao":
+                return "Shipped";
+            case "Đã giao":
+                return "Delivered";
+            case "Hoàn thành":
+                return "Completed";
+            case "Đã hủy":
+                return "Cancelled";
+            case "Thất bại":
+                return "FAILED";
+            default:
+                return vietnameseStatus; // Return as is if no mapping found
+        }
+    }
+
     private String mapRoleToDepartment(String roleName) {
         switch (roleName) {
             case "DRIVER":
@@ -369,6 +403,22 @@ public class OperationsController {
                 return "TERMINATED";
             default:
                 return "ACTIVE";
+        }
+    }
+
+    /**
+     * Get performance metrics calculated from real database data
+     */
+    @GetMapping("/performance-metrics")
+    public ResponseEntity<Map<String, Object>> getPerformanceMetrics(Authentication authentication) {
+        try {
+            Map<String, Object> metrics = orderService.calculatePerformanceMetrics();
+            return ResponseEntity.ok(metrics);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to calculate performance metrics");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
 }

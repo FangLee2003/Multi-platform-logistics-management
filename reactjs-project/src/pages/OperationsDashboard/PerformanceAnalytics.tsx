@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import GlassCard from '../../components/GlassCard';
 import PerformanceStatCards from './PerformanceStatCards';
 import RecentOrdersTable from './RecentOrdersTable';
@@ -6,27 +6,39 @@ import GlassButton from '../../components/GlassButton';
 import { operationsAPI} from '../../services/operationsAPI';
 import type { Order } from '../../types/dashboard';
 
+const ITEMS_PER_PAGE = 10;
+
 interface PerformanceMetrics {
   deliverySuccessRate: number;
   avgDeliveryTime: number;
   costPerKm: number;
-  customerSatisfaction: number;
+  totalDistanceKm: number;
   onTimeDeliveryRate: number;
   fuelEfficiency: number;
   target: {
     deliverySuccessRate: number;
     avgDeliveryTime: number;
     costPerKm: number;
-    customerSatisfaction: number;
   };
 }
 
 export default function PerformanceAnalytics() {
-  const [selectedMetric, setSelectedMetric] = useState('delivery');
-  const [timeRange, setTimeRange] = useState('7d');
+  // Hàm làm mới dữ liệu hiệu suất và đơn hàng
+  const handleRefresh = async () => {
+    setLoading(true);
+    setOrdersLoading(true);
+    await Promise.all([
+      fetchMetricsData(),
+      fetchOrdersData(0, selectedStatus)
+    ]);
+    setLoading(false);
+    setOrdersLoading(false);
+    setCurrentPage(0);
+  };
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Trạng thái filter (khớp với backend status mapping)
@@ -42,59 +54,94 @@ export default function PerformanceAnalytics() {
 
   // Server-side pagination states
   const [currentPage, setCurrentPage] = useState(0); // 0-based for API
-  const [ordersPerPage] = useState(50); // Tăng lên 50 để lấy nhiều dữ liệu hơn
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  const fetchPerformanceData = async (page: number = 0) => {
+  const fetchMetricsData = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Get paginated orders from API
-      const ordersResponse = await operationsAPI.getOrdersForOperations(page, ordersPerPage);
-      setRecentOrders(ordersResponse.content);
-      setTotalPages(ordersResponse.totalPages);
-      setTotalElements(ordersResponse.totalElements);
-      setCurrentPage(page);
+      // Call real API endpoint for performance metrics
+      const response = await fetch('http://localhost:8080/api/operations/performance-metrics', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
-      // For now, still use fallback metrics data since we haven't implemented the metrics API yet
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metrics: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setMetrics(data);
+      setError('');
+      
+      console.log('📊 Performance metrics from API:', data);
+      
+    } catch (error) {
+      console.error('Failed to fetch metrics data:', error);
+      
+      // Fallback to sample data if API fails
       setMetrics({
         deliverySuccessRate: 94.5,
-        avgDeliveryTime: 28,
+        avgDeliveryTime: 45, // 45 minutes
         costPerKm: 12500,
-        customerSatisfaction: 4.6,
+        totalDistanceKm: 2500, // 2500 km total transported
         onTimeDeliveryRate: 87.3,
         fuelEfficiency: 8.5,
         target: {
           deliverySuccessRate: 95,
-          avgDeliveryTime: 30,
+          avgDeliveryTime: 60, // 60 minutes target
           costPerKm: 13000,
-          customerSatisfaction: 4.5,
         }
       });
-      
-      setError('');
-    } catch (error) {
-      console.error('Failed to fetch performance data:', error);
-      setError('Không thể tải dữ liệu hiệu suất.');
-      // Don't set any fallback data - keep empty arrays/null values
-      setMetrics(null);
-      setRecentOrders([]);
-      setTotalPages(0);
-      setTotalElements(0);
+      setError('Đang sử dụng dữ liệu mẫu do lỗi kết nối API.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Function to fetch orders data separately
+  const fetchOrdersData = useCallback(async (page: number, status?: string) => {
+    try {
+      setOrdersLoading(true);
+      const ordersResponse = await operationsAPI.getOrdersForOperations(page, ITEMS_PER_PAGE, status);
+      
+      setRecentOrders(ordersResponse.content);
+      setTotalPages(ordersResponse.totalPages);
+      setTotalElements(ordersResponse.totalElements);
+    } catch (err) {
+      setError('Lỗi khi tải danh sách đơn hàng');
+      console.error('Error fetching orders:', err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
 
   // Function to handle page change
-  const handlePageChange = (newPage: number) => {
-    fetchPerformanceData(newPage);
-  };
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
+    fetchOrdersData(newPage, selectedStatus);
+  }, [selectedStatus, fetchOrdersData]);
+
+  // Function to handle status filter change
+  const handleStatusChange = useCallback((status: string) => {
+    setSelectedStatus(status);
+    setCurrentPage(0); // Reset to first page when filter changes
+    fetchOrdersData(0, status); // Fetch with new filter
+  }, [fetchOrdersData]);
 
   useEffect(() => {
-    fetchPerformanceData(0); // Start from page 0
-  }, [timeRange]); // fetchPerformanceData is stable, no need to add
+    // Fetch metrics data on initial load and when timeRange changes
+    fetchMetricsData();
+  }, [fetchMetricsData]);
+
+  useEffect(() => {
+    // Fetch orders data when selectedStatus changes
+    fetchOrdersData(0, selectedStatus);
+    setCurrentPage(0); // Reset page when status changes
+  }, [selectedStatus, fetchOrdersData]);
 
   if (loading) {
     return (
@@ -121,76 +168,54 @@ export default function PerformanceAnalytics() {
       metric: 'Chi phí vận chuyển/km', 
       current: metrics.costPerKm, 
       target: metrics.target.costPerKm, 
-      trend: Number((((metrics.target.costPerKm - metrics.costPerKm) / metrics.target.costPerKm) * 100).toFixed(1))
+      trend: Number((((metrics.costPerKm - metrics.target.costPerKm) / metrics.target.costPerKm) * 100).toFixed(1))
     },
     { 
-      metric: 'Mức độ hài lòng KH', 
-      current: metrics.customerSatisfaction, 
-      target: metrics.target.customerSatisfaction, 
-      trend: Number((((metrics.customerSatisfaction - metrics.target.customerSatisfaction) / metrics.target.customerSatisfaction) * 100).toFixed(1))
+      metric: 'Tổng số km đã vận chuyển', 
+      current: metrics.totalDistanceKm, 
+      target: 0, // No target for total distance as it's cumulative
+      trend: 0 // No trend for total distance as it's cumulative
     },
   ] : [];
 
   return (
-    <GlassCard className="space-y-6">
+  <GlassCard className="space-y-6">
       {error && (
         <div className="bg-yellow-500/30 border border-yellow-400/50 text-yellow-800 p-4 rounded-lg">
           ⚠️ {error}
         </div>
       )}
 
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-800">Phân tích hiệu suất</h2>
-        <div className="flex gap-2">
-          {[
-            { key: 'delivery', label: 'Giao hàng' },
-            { key: 'cost', label: 'Chi phí' },
-            { key: 'time', label: 'Thời gian' },
-            { key: 'quality', label: 'Chất lượng' }
-          ].map((metric) => (
-            <GlassButton
-              key={metric.key}
-              size="sm"
-              variant={selectedMetric === metric.key ? 'primary' : 'secondary'}
-              onClick={() => setSelectedMetric(metric.key)}
-            >
-              {metric.label}
-            </GlassButton>
-          ))}
-          {['24h', '7d', '30d'].map((range) => (
-            <GlassButton
-              key={range}
-              size="sm"
-              variant={timeRange === range ? 'primary' : 'secondary'}
-              onClick={() => setTimeRange(range)}
-            >
-              {range}
-            </GlassButton>
-          ))}
+        <div className="flex items-center gap-4">
+          <div className="flex flex-wrap gap-2">
+            {statusOptions.map((status) => (
+              <GlassButton
+                key={status}
+                size="sm"
+                variant={selectedStatus === status ? 'primary' : 'secondary'}
+                onClick={() => handleStatusChange(status)}
+              >
+                {status}
+              </GlassButton>
+            ))}
+          </div>
+          <GlassButton onClick={handleRefresh} size="sm" variant="primary" className="ml-2 whitespace-nowrap" disabled={loading || ordersLoading}>
+            <span className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4.93 19.07a10 10 0 1 0 0-14.14M4 4v5h5"/></svg>
+              Làm mới
+            </span>
+          </GlassButton>
         </div>
       </div>
 
-  <PerformanceStatCards performanceData={performanceData} />
+      <PerformanceStatCards performanceData={performanceData} />
 
-  {/* Filter trạng thái */}
-  <div className="flex flex-wrap gap-2 mb-2">
-    {statusOptions.map((status) => (
-      <GlassButton
-        key={status}
-        size="sm"
-        variant={selectedStatus === status ? 'primary' : 'secondary'}
-        onClick={() => setSelectedStatus(status)}
-      >
-        {status}
-      </GlassButton>
-    ))}
-  </div>
-
-  {/* Bảng đơn hàng với filter trạng thái */}
+  {/* Bảng đơn hàng - không cần filter nữa vì đã filter ở backend */}
   <RecentOrdersTable
-    orders={selectedStatus === 'Tất cả' ? recentOrders : recentOrders.filter(o => o.status === selectedStatus)}
-    onRefresh={() => fetchPerformanceData(currentPage)}
-    loading={loading}
+    orders={recentOrders}
   />
   
   {/* Pagination Controls */}

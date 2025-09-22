@@ -200,9 +200,13 @@ export const operationsAPI = {
     return response.json();
   },
 
-  // Get orders for operations dashboard with pagination
-  getOrdersForOperations: async (page: number = 0, size: number = 10): Promise<PaginatedResponse<Order>> => {
-    const response = await fetch(`${API_BASE_URL}/operations/orders?page=${page}&size=${size}`, {
+  // Get orders for operations dashboard with pagination and status filter
+  getOrdersForOperations: async (page: number = 0, size: number = 10, statusFilter?: string): Promise<PaginatedResponse<Order>> => {
+    let url = `${API_BASE_URL}/operations/orders?page=${page}&size=${size}`;
+    if (statusFilter && statusFilter !== 'Tất cả') {
+      url += `&status=${encodeURIComponent(statusFilter)}`;
+    }
+    const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch orders');

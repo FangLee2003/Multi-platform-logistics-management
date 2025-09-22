@@ -86,4 +86,41 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
         """, nativeQuery = true)
     List<Map<String, Object>> getMonthlyRevenueLast12Months();
 
+    /**
+     * Lấy thời gian từ lúc tạo order đến lúc giao thành công cho tính avgDeliveryTime
+     */
+    @Query(value = """
+        SELECT o.created_at, d.actual_delivery_time 
+        FROM orders o 
+        JOIN deliveries d ON o.id = d.order_id 
+        WHERE d.actual_delivery_time IS NOT NULL 
+        AND o.created_at IS NOT NULL
+        """, nativeQuery = true)
+    List<Object[]> findDeliveryTimesForCompletedOrders();
+
+    /**
+     * Lấy dữ liệu delivery fee và khoảng cách để tính cost per km
+     */
+    @Query(value = """
+        SELECT d.delivery_fee, r.estimated_distance_km 
+        FROM deliveries d 
+        JOIN routes r ON d.route_id = r.id 
+        WHERE d.delivery_fee IS NOT NULL 
+        AND d.delivery_fee > 0 
+        AND r.estimated_distance_km IS NOT NULL 
+        AND r.estimated_distance_km > 0
+        """, nativeQuery = true)
+    List<Object[]> findCostPerKmData();
+
+    /**
+     * Lấy tổng số km đã vận chuyển (tổng estimated_distance_km của các deliveries có route)
+     */
+    @Query(value = """
+        SELECT COALESCE(SUM(r.estimated_distance_km), 0)
+        FROM deliveries d
+        JOIN routes r ON d.route_id = r.id
+        WHERE r.estimated_distance_km IS NOT NULL AND r.estimated_distance_km > 0
+        """, nativeQuery = true)
+    Double getTotalDistanceKm();
+
 }

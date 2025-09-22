@@ -45,9 +45,12 @@ public class VehicleMaintenanceService {
     }
 
     /**
-     * Count total maintenance requests
+     * Count pending/active maintenance requests only (not completed ones)
      */
     public long countMaintenanceRequests() {
-        return repository.count();
+        // Chỉ đếm những yêu cầu bảo trì chưa hoàn thành
+        // Giả sử status có thể là: "Scheduled", "In Progress", "Pending", etc.
+        // Không đếm "Completed", "Cancelled"
+        return repository.countByStatusNotIn(List.of("Completed", "Cancelled"));
     }
 }

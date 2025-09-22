@@ -1,11 +1,8 @@
 import DataTable, { TableRow, TableCell } from '../../components/DataTable';
-import GlassButton from '../../components/GlassButton';
 import type { Order } from '../../types/dashboard';
 
 interface RecentOrdersTableProps {
   orders: Order[];
-  onRefresh: () => void;
-  loading: boolean;
 }
 
 // Trả về class màu cho status tiếng Việt từ backend
@@ -56,14 +53,11 @@ function formatDateTime(dateString: string) {
   };
 }
 
-export default function RecentOrdersTable({ orders, onRefresh, loading }: RecentOrdersTableProps) {
+export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center">
         <h3 className="text-lg font-medium">Đơn hàng gần đây</h3>
-        <GlassButton size="sm" variant="secondary" onClick={onRefresh} disabled={loading}>
-          🔄 Làm mới
-        </GlassButton>
       </div>
       <DataTable headers={['Mã đơn', 'Khách hàng', 'Tuyến đường', 'Thời gian tạo', 'Trạng thái']}>
         {orders.map((order) => {
