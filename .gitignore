@@ -21,5 +21,7 @@ hs_err_pid*.log
 spring-project/src/main/resources/application.properties
 spring-project/gradle.properties
 
+/logs
 slides/
 *.pptx
+
