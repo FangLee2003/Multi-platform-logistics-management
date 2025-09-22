@@ -53,6 +53,9 @@ public class UserService {
     private RoleRepository roleRepository;
 
     @Autowired
+    private ktc.spring_project.repositories.StoreRepository storeRepository;
+
+    @Autowired
     private RestTemplate restTemplate;
 
     @Autowired
@@ -401,7 +404,15 @@ User user = getUserById(id);
         user.setTotpEnabled(false);
         userRepository.save(user);
     }
-
+     /**
+     * Lấy danh sách store thuộc về user
+     */
+    public List<ktc.spring_project.entities.Store> getStoresByUserId(Long userId) {
+        if (userId == null) {
+            throw new HttpException("User ID cannot be null", HttpStatus.BAD_REQUEST);
+        }
+        return storeRepository.findByCreatedById(userId);
+    }
     // Tìm user theo username
     public User findByUsername(String username) {
         return userRepository.findByUsername(username).orElse(null);

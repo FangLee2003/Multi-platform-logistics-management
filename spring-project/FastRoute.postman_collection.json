@@ -1907,7 +1907,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/deliveries",
+							"raw": "http://localhost:8080/api/drivers/20696/deliveries",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -1915,7 +1915,7 @@
 							"port": "8080",
 							"path": [
 								"api",
-								"driver",
+								"drivers",
 								"20696",
 								"deliveries"
 							]
@@ -1940,7 +1940,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/deliveries/85796",
+							"raw": "http://localhost:8080/api/drivers/20696/deliveries/85796",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -1948,7 +1948,7 @@
 							"port": "8080",
 							"path": [
 								"api",
-								"driver",
+								"drivers",
 								"20696",
 								"deliveries",
 								"85796"
@@ -1974,7 +1974,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/orders",
+							"raw": "http://localhost:8080/api/drivers/20696/orders",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -1982,7 +1982,7 @@
 							"port": "8080",
 							"path": [
 								"api",
-								"driver",
+								"drivers",
 								"20696",
 								"orders"
 							]
@@ -2007,7 +2007,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/orders/26013",
+							"raw": "http://localhost:8080/api/drivers/20696/orders/26013",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -2015,7 +2015,7 @@
 							"port": "8080",
 							"path": [
 								"api",
-								"driver",
+								"drivers",
 								"20696",
 								"orders",
 								"26013"
@@ -2050,7 +2050,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/orders/26013/status",
+							"raw": "http://localhost:8080/api/drivers/20696/orders/26013/status",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -2058,7 +2058,7 @@
 							"port": "8080",
 							"path": [
 								"api",
-								"driver",
+								"drivers",
 								"20696",
 								"orders",
 								"26013",
@@ -2085,7 +2085,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/deliveries/85794/route",
+							"raw": "http://localhost:8080/api/drivers/20696/deliveries/85794/route",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -2093,7 +2093,7 @@
 							"port": "8080",
 							"path": [
 								"api",
-								"driver",
+								"drivers",
 								"20696",
 								"deliveries",
 								"85794",
@@ -2129,7 +2129,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/deliveries/26009/tracking",
+							"raw": "http://localhost:8080/api/drivers/20696/deliveries/26009/tracking",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -2137,7 +2137,7 @@
 							"port": "8080",
 							"path": [
 								"api",
-								"driver",
+								"drivers",
 								"20696",
 								"deliveries",
 								"26009",
@@ -2173,7 +2173,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8080/api/driver/20696/status",
+							"raw": "http://localhost:8080/api/drivers/20696/status",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -2181,7 +2181,7 @@
 							"port": "8080",
 							"path": [
 								"api",
-								"driver",
+								"drivers",
 								"20696",
 								"status"
 							]
@@ -2797,7 +2797,7 @@
 												"{{maintenanceId}}"
 											]
 										},
-										"description": "Driver picks up vehicle after maintenance completed - changes status to IN_USE (Step 7)"
+										"description": "Driver picks up vehicle after maintenance completed - changes status to IN_USE (Step 6)"
 									},
 									"response": []
 								}
@@ -2985,7 +2985,7 @@
 												"{{maintenanceId}}"
 											]
 										},
-										"description": "Fleet manager completes maintenance and sets next due date (Step 6). Notes preserved from scheduling."
+										"description": "Fleet manager completes maintenance and sets next due date (Step 5). Notes preserved from scheduling."
 									},
 									"response": []
 								}
@@ -3144,7 +3144,7 @@
 					"description": "General maintenance management APIs"
 				}
 			],
-			"description": "Vehicle Maintenance Management APIs - Supporting 7-step workflow:\nStep 1: Driver creates request (POST) | Step 2: Fleet views pending (GET) | Step 3a/3b: Fleet schedules regular/monthly (PUT) | Step 4: Driver views scheduled (GET) | Step 5: Driver takes to garage (PUT) | Step 6: Fleet completes (PUT) | Step 7: Driver picks up (PUT)"
+			"description": "Vehicle Maintenance Management APIs - Supporting 6-step workflow:\nStep 1: Driver creates request (POST) | Step 2: Fleet views pending (GET) | Step 3: Fleet schedules maintenance (PUT) | Step 4: Driver views scheduled (GET) | Step 5: Fleet completes maintenance (PUT) | Step 6: Driver picks up vehicle (PUT)"
 		},
 		{
 			"name": "Payments",

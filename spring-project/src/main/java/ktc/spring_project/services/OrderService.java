@@ -12,6 +12,7 @@ import ktc.spring_project.entities.User;
 import ktc.spring_project.repositories.OrderRepository;
 import ktc.spring_project.repositories.UserRepository;
 import ktc.spring_project.repositories.VehicleRepository;
+import ktc.spring_project.repositories.DeliveryRepository;
 import ktc.spring_project.repositories.StoreRepository;
 import ktc.spring_project.repositories.StatusRepository;
 import ktc.spring_project.exceptions.EntityDuplicateException;
@@ -21,6 +22,7 @@ import ktc.spring_project.enums.StatusType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -50,10 +52,15 @@ public class OrderService {
     @Autowired
     private VehicleRepository vehicleRepository;
     @Autowired
+    private DeliveryRepository deliveryRepository;
+
+    @Autowired
     private StoreRepository storeRepository;
+    
     @Autowired
     private StatusRepository statusRepository;
     
+
     public Order createOrderFromDTO(ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO dto) {
         try {
             log.debug("Creating order from DTO: {}", dto);
@@ -355,8 +362,17 @@ public class OrderService {
         Map<String, Object> tracking = new HashMap<>();
         tracking.put("orderId", order.getId());
         tracking.put("status", order.getStatus() != null ? order.getStatus().getName() : null);
-        tracking.put("address", order.getAddress() != null ? order.getAddress().getAddress() : null);
-        tracking.put("currentLocation", order.getNotes());
+    tracking.put("address", order.getAddress() != null ? order.getAddress().getAddress() : null);
+    tracking.put("storeAddress", order.getStore() != null ? order.getStore().getAddress() : null);
+
+        // Lấy thông tin estimatedDelivery từ bảng Delivery
+        List<ktc.spring_project.entities.Delivery> deliveries = deliveryRepository.findByOrderId(order.getId());
+        if (deliveries != null && !deliveries.isEmpty()) {
+            ktc.spring_project.entities.Delivery delivery = deliveries.get(0);
+            tracking.put("estimatedDelivery", delivery.getScheduleDeliveryTime());
+        } else {
+            tracking.put("estimatedDelivery", null);
+        }
         tracking.put("updatedAt", order.getUpdatedAt() != null ? order.getUpdatedAt() : LocalDateTime.now());
         return tracking;
     }
@@ -389,18 +405,28 @@ public class OrderService {
     // Missing methods needed by OrderController
     public List<Order> getOrdersByStoreId(Long storeId) {
         validateId(storeId, "Store ID");
-        // Implement logic to get orders by store ID
-        // For now, return all orders (you can customize this based on your business
-        // logic)
-        return orderRepository.findAll();
+        return orderRepository.findByStore_Id(storeId);
     }
 
     public List<OrderSummaryDTO> getOrderSummariesByStoreId(Long storeId) {
         validateId(storeId, "Store ID");
-        List<Order> orders = getOrdersByStoreId(storeId);
-        return orders.stream()
-                .map(this::convertToSummaryDTO)
-                .toList();
+        return orderRepository.findOrderSummariesByStoreId(storeId);
+    }
+
+    public Page<OrderSummaryDTO> getOrderSummariesByStoreIdPaginated(Long storeId, int page, int size) {
+        try {
+            validateId(storeId, "Store ID");
+            validatePaginationParams(page, size);
+            log.debug("Getting order summaries by store ID paginated: storeId={}, page={}, size={}", storeId, page, size);
+            
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+            return orderRepository.findOrderSummariesByStoreIdPaginated(storeId, pageable);
+            
+        } catch (HttpException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpException("Failed to get paginated order summaries by store ID: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     public List<OrderSummaryDTO> getOrderSummariesByUserId(Long userId) {
@@ -412,175 +438,6 @@ public class OrderService {
         return orders.stream()
                 .map(this::convertToSummaryDTO)
                 .toList();
-    }
-
-
-    /**
-     * Lấy danh sách đơn hàng theo status động (pending, shipped, delivered, ...)
-     */
-    public Page<OrderTimelineResponse> getOrdersByStatusPaginated(String status, int page, int size) {
-        try {
-            validatePaginationParams(page, size);
-            log.debug("Getting orders paginated by status: {} page={}, size={}", status, page, size);
-            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
-            String normalizedStatus = status.substring(0,1).toUpperCase() + status.substring(1).toLowerCase();
-            Optional<Status> statusOpt = statusService.getStatusByTypeAndName("ORDER", normalizedStatus);
-            log.info("[DEBUG] status input: '{}', normalized: '{}', statusOpt: {}", status, normalizedStatus, statusOpt.isPresent() ? ("id=" + statusOpt.get().getId() + ", name=" + statusOpt.get().getName()) : "NOT FOUND");
-            if (statusOpt.isPresent()) {
-                Page<Order> ordersPage = orderRepository.findByStatus(statusOpt.get(), pageable);
-                log.info("[DEBUG] Found {} orders for status '{}' (id={})", ordersPage.getTotalElements(), normalizedStatus, statusOpt.get().getId());
-                return ordersPage.map(this::convertToOrderTimelineResponse);
-            } else {
-                log.warn("[DEBUG] Status '{}' (normalized: '{}') not found in DB", status, normalizedStatus);
-                return Page.empty(pageable);
-            }
-        } catch (HttpException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("[DEBUG] Exception in getOrdersByStatusPaginated: {}", e.getMessage(), e);
-            throw new HttpException("Failed to get orders by status: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * Dispatcher nhận đơn hàng và chuyển sang trạng thái "Processing"
-     */
-    public OrderTimelineResponse acceptOrderByDispatcher(Long orderId, Long dispatcherId) {
-        try {
-            log.debug("Dispatcher {} accepting order {}", dispatcherId, orderId);
-            
-            Order order = getOrderById(orderId);
-            
-            // Kiểm tra đơn hàng có ở trạng thái "Pending" không
-            if (order.getStatus() == null || !"Pending".equals(order.getStatus().getName())) {
-                throw new HttpException("Order is not in pending status", HttpStatus.BAD_REQUEST);
-            }
-            
-            // Cập nhật status sang "Processing"
-            Optional<Status> processingStatus = statusService.getStatusByTypeAndName("ORDER", "Processing");
-            if (processingStatus.isPresent()) {
-                order.setStatus(processingStatus.get());
-                log.info("Order {} accepted by dispatcher {} and moved to Processing status", orderId, dispatcherId);
-            } else {
-                throw new HttpException("Processing status not found", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            
-            Order savedOrder = orderRepository.save(order);
-            return convertToOrderTimelineResponse(savedOrder);
-            
-        } catch (EntityNotFoundException | HttpException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpException("Failed to accept order: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * Dispatcher gán tài xế cho đơn hàng và chuyển sang trạng thái "Shipped"
-     */
-    public OrderTimelineResponse assignDriverToOrder(Long orderId, Long driverId, Long vehicleId, Long dispatcherId) {
-        try {
-            log.debug("Dispatcher {} assigning driver {} to order {}", dispatcherId, driverId, orderId);
-            
-            Order order = getOrderById(orderId);
-            
-            // Kiểm tra đơn hàng có ở trạng thái "Processing" không
-            if (order.getStatus() == null || !"Processing".equals(order.getStatus().getName())) {
-                throw new HttpException("Order is not in processing status", HttpStatus.BAD_REQUEST);
-            }
-            
-            // Tìm và kiểm tra driver
-            User driver = userRepository.findById(driverId)
-                .orElseThrow(() -> new EntityNotFoundException("Driver not found with id: " + driverId));
-            
-            // Tìm và kiểm tra vehicle
-            Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new EntityNotFoundException("Vehicle not found with id: " + vehicleId));
-            
-            // Gán driver và vehicle
-            order.setDriver(driver);
-            order.setVehicle(vehicle);
-            
-            // Cập nhật status sang "Shipped"
-            Optional<Status> shippedStatus = statusService.getStatusByTypeAndName("ORDER", "Shipped");
-            if (shippedStatus.isPresent()) {
-                order.setStatus(shippedStatus.get());
-                log.info("Order {} assigned to driver {} by dispatcher {} and moved to Shipped status", 
-                    orderId, driverId, dispatcherId);
-            } else {
-                throw new HttpException("Shipped status not found", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            
-            Order savedOrder = orderRepository.save(order);
-            
-            // ✅ Log checklist step: Dispatcher đã gán driver
-            try {
-                checklistService.markStepCompleted(
-                    dispatcherId, 
-                    savedOrder.getId(),
-                    "DISPATCHER_SELECT_DRIVER", 
-                    "Driver assigned: " + driver.getFullName() + " (ID: " + driverId + ") to Order: " + orderId
-                );
-                
-                // ✅ Log checklist step: Dispatcher đã cập nhật status sang Delivering/Shipped
-                checklistService.markStepCompleted(
-                    dispatcherId, 
-                    savedOrder.getId(),
-                    "DISPATCHER_UPDATE_STATUS_DELIVERING", 
-                    "Order status updated to Shipped for Order: " + orderId
-                );
-            } catch (Exception e) {
-                log.warn("Failed to log checklist steps: {}", e.getMessage());
-            }
-            
-            return convertToOrderTimelineResponse(savedOrder);
-            
-        } catch (EntityNotFoundException | HttpException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpException("Failed to assign driver to order: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    
-    /**
-     * Simple method for assigning driver to order (used by controller)
-     */
-    public Order assignDriverToOrder(Long orderId, Long driverId) {
-        System.out.println("=== OrderService.assignDriverToOrder (simple) ===");
-        System.out.println("orderId: " + orderId + ", driverId: " + driverId);
-        try {
-            Order order = getOrderById(orderId);
-            User driver = userRepository.findById(driverId)
-                .orElseThrow(() -> new EntityNotFoundException("Driver not found with id: " + driverId));
-            // Find vehicle for the driver
-            Vehicle vehicle = vehicleRepository.findFirstByCurrentDriverId(driverId)
-                .orElseThrow(() -> new EntityNotFoundException("No vehicle assigned to driver: " + driverId));
-            // Assign driver and vehicle
-            order.setDriver(driver);
-            order.setVehicle(vehicle);
-            // Update status to Shipped
-            Optional<Status> shippedStatus = statusService.getStatusByTypeAndName("ORDER", "Shipped");
-            if (shippedStatus.isPresent()) {
-                order.setStatus(shippedStatus.get());
-            }
-            Order savedOrder = orderRepository.save(order);
-            System.out.println("Order saved successfully");
-            // Log checklist step for dispatcher (if available)
-            try {
-                Long dispatcherId = 1L; // Default dispatcher ID, có thể cải thiện logic này
-                if (dispatcherId != null) {
-                    checklistService.markStepCompleted(dispatcherId, orderId, "DISPATCHER_SELECT_DRIVER", "Driver assigned to Order: " + orderId + " via vehicle update");
-                }
-            } catch (Exception e) {
-                System.err.println("Failed to log checklist step: " + e.getMessage());
-                e.printStackTrace();
-            }
-            return savedOrder;
-        } catch (Exception e) {
-            System.err.println("Error in assignDriverToOrder: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
     }
 
     // Helper method to convert Order to OrderSummaryDTO
