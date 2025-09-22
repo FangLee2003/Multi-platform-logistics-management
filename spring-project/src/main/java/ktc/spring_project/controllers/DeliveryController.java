@@ -17,10 +17,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import ktc.spring_project.exceptions.EntityNotFoundException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ktc.spring_project.services.OrderService; // Add this import if missing
+import ktc.spring_project.services.OrderService;
+import ktc.spring_project.dtos.delivery.CreateDeliveryRequestDTO;
+import ktc.spring_project.dtos.delivery.UpdateDeliveryRequestDTO;
 
 import jakarta.validation.Valid;
 import java.util.ArrayList;
@@ -118,39 +121,43 @@ public class DeliveryController {
     /**
      * Get delivery by ID
      */
-    // @GetMapping("/{id}")
-    // public ResponseEntity<Map<String, Object>> getDeliveryById(@PathVariable Long id) {
-    //     // Lấy thông tin giao hàng
-    //     Delivery delivery = deliveryService.getDeliveryById(id);
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> getDeliveryById(@PathVariable Long id) {
+        Delivery delivery = deliveryService.getDeliveryById(id);
+        // Sử dụng ObjectMapper để convert entity sang Map
+        Map<String, Object> deliveryMap = new com.fasterxml.jackson.databind.ObjectMapper()
+                .convertValue(delivery, Map.class);
+        return ResponseEntity.ok(deliveryMap);
+    }
 
-    //     // Chuyển đổi thành Map
-    //     Map<String, Object> deliveryMap = new HashMap<>();
-    //     deliveryMap.put("id", delivery.getId());
-    //     deliveryMap.put("orderId", delivery.getOrder() != null ? delivery.getOrder().getId() : null);
-    //     deliveryMap.put("deliveryFee", delivery.getDeliveryFee());
-    //     deliveryMap.put("transportMode", delivery.getTransportMode());
-    //     deliveryMap.put("serviceType", delivery.getServiceType());
-    //     deliveryMap.put("orderDate", delivery.getOrderDate());
-    //     deliveryMap.put("pickupDate", delivery.getPickupDate());
-    //     deliveryMap.put("scheduleDeliveryTime", delivery.getScheduleDeliveryTime());
-    //     deliveryMap.put("actualDeliveryTime", delivery.getActualDeliveryTime());
-    //     deliveryMap.put("orderStatus", delivery.getOrder() != null && delivery.getOrder().getStatus() != null ?
-    //         delivery.getOrder().getStatus().getName() : null);
-    //     deliveryMap.put("driverId", delivery.getDriver() != null ? delivery.getDriver().getId() : null);
-    //     deliveryMap.put("vehicleId", delivery.getVehicle() != null ? delivery.getVehicle().getId() : null);
-    //     deliveryMap.put("deliveryAttempts", delivery.getDeliveryAttempts());
-    //     deliveryMap.put("deliveryNotes", delivery.getDeliveryNotes());
-
-    //     return ResponseEntity.ok(deliveryMap);
-    // }
-@GetMapping("/{id}")
-public ResponseEntity<Map<String, Object>> getDeliveryById(@PathVariable Long id) {
-    Delivery delivery = deliveryService.getDeliveryById(id);
-    // Sử dụng ObjectMapper để convert entity sang Map
-    Map<String, Object> deliveryMap = new com.fasterxml.jackson.databind.ObjectMapper()
-            .convertValue(delivery, Map.class);
-    return ResponseEntity.ok(deliveryMap);
-}
+    /**
+     * Get deliveries by order ID
+     */
+    @GetMapping("/order/{orderId}")
+    public ResponseEntity<List<Map<String, Object>>> getDeliveriesByOrderId(@PathVariable Long orderId) {
+        List<Delivery> deliveries = deliveryService.findByOrderId(orderId);
+        
+        List<Map<String, Object>> deliveriesMap = new ArrayList<>();
+        for (Delivery delivery : deliveries) {
+            Map<String, Object> deliveryMap = new HashMap<>();
+            deliveryMap.put("id", delivery.getId());
+            deliveryMap.put("orderId", delivery.getOrder() != null ? delivery.getOrder().getId() : null);
+            deliveryMap.put("deliveryFee", delivery.getDeliveryFee());
+            deliveryMap.put("transportMode", delivery.getTransportMode());
+            deliveryMap.put("serviceType", delivery.getServiceType());
+            deliveryMap.put("orderDate", delivery.getOrderDate());
+            deliveryMap.put("pickupDate", delivery.getPickupDate());
+            deliveryMap.put("scheduleDeliveryTime", delivery.getScheduleDeliveryTime());
+            deliveryMap.put("actualDeliveryTime", delivery.getActualDeliveryTime());
+            deliveryMap.put("driverId", delivery.getDriver() != null ? delivery.getDriver().getId() : null);
+            deliveryMap.put("vehicleId", delivery.getVehicle() != null ? delivery.getVehicle().getId() : null);
+            deliveryMap.put("deliveryAttempts", delivery.getDeliveryAttempts());
+            deliveryMap.put("deliveryNotes", delivery.getDeliveryNotes());
+            deliveriesMap.add(deliveryMap);
+        }
+        
+        return ResponseEntity.ok(deliveriesMap);
+    }
 
 @DeleteMapping("/{id}")
 public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id) {
@@ -167,17 +174,47 @@ public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id)
     public ResponseEntity<Map<String, Object>> createDelivery(
             @Valid @RequestBody CreateDeliveryRequestDTO dto,
             Authentication authentication) {
+        
+        // Chuyển logic tạo delivery vào service
+        Delivery createdDelivery = deliveryService.createDeliveryFromDTO(dto);
+        
+        Map<String, Object> result = new ObjectMapper().convertValue(createdDelivery, Map.class);
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
+    }
 
-        Delivery delivery = new Delivery();
-        // Map DTO sang entity
-        delivery.setOrder(orderService.getOrderById(dto.getOrderId()));
-        delivery.setTransportMode(dto.getTransportMode());
-        delivery.setServiceType(dto.getServiceType());
-        delivery.setPickupDate(dto.getPickupDate());
-        delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
-        delivery.setOrderDate(dto.getOrderDate());
-        delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() != null && dto.getLateDeliveryRisk() ? 1 : 0);
-        delivery.setDeliveryNotes(dto.getDeliveryNotes());
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> updateDelivery(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateDeliveryRequestDTO dto,
+            Authentication authentication) {
+        Delivery delivery = deliveryService.getDeliveryById(id);
+        if (dto.getDeliveryFee() != null) {
+            delivery.setDeliveryFee(dto.getDeliveryFee());
+        }
+        if (dto.getTransportMode() != null) {
+            delivery.setTransportMode(dto.getTransportMode());
+        }
+        if (dto.getServiceType() != null) {
+            delivery.setServiceType(dto.getServiceType());
+        }
+        if (dto.getPickupDate() != null) {
+            delivery.setPickupDate(dto.getPickupDate());
+        }
+        if (dto.getScheduleDeliveryTime() != null) {
+            delivery.setScheduleDeliveryTime(dto.getScheduleDeliveryTime());
+        }
+        if (dto.getActualDeliveryTime() != null) {
+            delivery.setActualDeliveryTime(dto.getActualDeliveryTime());
+        }
+        if (dto.getLateDeliveryRisk() != null) {
+            delivery.setLateDeliveryRisk(dto.getLateDeliveryRisk() ? 1 : 0);
+        }
+        if (dto.getDeliveryAttempts() != null) {
+            delivery.setDeliveryAttempts(dto.getDeliveryAttempts());
+        }
+        if (dto.getDeliveryNotes() != null) {
+            delivery.setDeliveryNotes(dto.getDeliveryNotes());
+        }
         if (dto.getVehicleId() != null) {
             delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
         }
@@ -187,71 +224,10 @@ public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id)
         if (dto.getRouteId() != null) {
             delivery.setRoute(routeService.getRouteById(dto.getRouteId()));
         }
-
-        // Sử dụng method với auto-calculation thay vì createDelivery thông thường
-        Delivery createdDelivery = deliveryService.createDeliveryWithFeeCalculation(delivery);
-
-        // Chuyển đổi kết quả thành Map
-        Map<String, Object> result = new ObjectMapper().convertValue(createdDelivery, Map.class);
-        return new ResponseEntity<>(result, HttpStatus.CREATED);
+        Delivery updatedDelivery = deliveryService.createDelivery(delivery);
+        Map<String, Object> result = new ObjectMapper().convertValue(updatedDelivery, Map.class);
+        return ResponseEntity.ok(result);
     }
-
-   @PutMapping("/{id}")
-public ResponseEntity<Map<String, Object>> updateDelivery(
-        @PathVariable Long id,
-        @Valid @RequestBody Map<String, Object> deliveryData,
-        Authentication authentication) {
-
-    Delivery delivery = deliveryService.getDeliveryById(id); // Lấy entity cũ
-
-    if (deliveryData.get("orderId") != null) {
-        delivery.setOrder(orderService.getOrderById(Long.valueOf(deliveryData.get("orderId").toString())));
-    }
-    if (deliveryData.get("deliveryFee") != null) {
-        delivery.setDeliveryFee(new java.math.BigDecimal(deliveryData.get("deliveryFee").toString()));
-    }
-    if (deliveryData.get("transportMode") != null) {
-        delivery.setTransportMode(ktc.spring_project.enums.TransportMode.valueOf(deliveryData.get("transportMode").toString()));
-    }
-    if (deliveryData.get("serviceType") != null) {
-        delivery.setServiceType(ktc.spring_project.enums.ServiceType.valueOf(deliveryData.get("serviceType").toString()));
-    }
-    if (deliveryData.get("pickupDate") != null) {
-        delivery.setPickupDate(java.sql.Timestamp.valueOf(deliveryData.get("pickupDate").toString()));
-    }
-    if (deliveryData.get("scheduleDeliveryTime") != null) {
-        delivery.setScheduleDeliveryTime(java.sql.Timestamp.valueOf(deliveryData.get("scheduleDeliveryTime").toString()));
-    }
-    if (deliveryData.get("actualDeliveryTime") != null) {
-        delivery.setActualDeliveryTime(java.sql.Timestamp.valueOf(deliveryData.get("actualDeliveryTime").toString()));
-    }
-    if (deliveryData.get("lateDeliveryRisk") != null) {
-        delivery.setLateDeliveryRisk(Integer.valueOf(deliveryData.get("lateDeliveryRisk").toString()));
-    }
-    if (deliveryData.get("deliveryAttempts") != null) {
-        delivery.setDeliveryAttempts(Integer.valueOf(deliveryData.get("deliveryAttempts").toString()));
-    }
-    if (deliveryData.get("deliveryNotes") != null) {
-        delivery.setDeliveryNotes(deliveryData.get("deliveryNotes").toString());
-    }
-    if (deliveryData.get("orderDate") != null) {
-        delivery.setOrderDate(java.sql.Timestamp.valueOf(deliveryData.get("orderDate").toString()));
-    }
-    if (deliveryData.get("vehicleId") != null) {
-        delivery.setVehicle(vehicleService.getVehicleById(Long.valueOf(deliveryData.get("vehicleId").toString())));
-    }
-    if (deliveryData.get("driverId") != null) {
-        delivery.setDriver(userService.getUserById(Long.valueOf(deliveryData.get("driverId").toString())));
-    }
-    if (deliveryData.get("routeId") != null) {
-        delivery.setRoute(routeService.getRouteById(Long.valueOf(deliveryData.get("routeId").toString())));
-    }
-
-    Delivery updatedDelivery = deliveryService.createDelivery(delivery); // hoặc save/update
-
-    Map<String, Object> result = new com.fasterxml.jackson.databind.ObjectMapper().convertValue(updatedDelivery, Map.class);
-    return ResponseEntity.ok(result);
-}
 
 // @PostMapping("/{id}/proof")
 // public ResponseEntity<Map<String, Object>> uploadDeliveryProof(

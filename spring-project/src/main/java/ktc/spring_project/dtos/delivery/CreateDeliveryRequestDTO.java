@@ -5,38 +5,38 @@ import ktc.spring_project.enums.TransportMode;
 import ktc.spring_project.enums.ServiceType;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * DTO for creating a new delivery
  */
 public class CreateDeliveryRequestDTO {
-
+    
     @NotNull(message = "Order ID is required")
     private Long orderId;
 
+    @DecimalMin(value = "0.0", inclusive = true, message = "Delivery fee must be >= 0")
     private BigDecimal deliveryFee;
 
-    @NotNull(message = "Transport mode is required")
     private TransportMode transportMode = TransportMode.ROAD;
 
     @NotNull(message = "Service type is required")
     private ServiceType serviceType = ServiceType.STANDARD;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate pickupDate;
 
-    private Timestamp pickupDate;
-
-    // @NotNull(message = "Schedule delivery time is required")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp scheduleDeliveryTime;
 
-    @NotNull(message = "Late delivery risk is required")
     private Boolean lateDeliveryRisk = false;
-
+    @Size(max = 500, message = "Delivery notes must not exceed 500 characters")
     private String deliveryNotes;
-
-    @NotNull(message = "Order date is required")
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Timestamp orderDate;
-
-    @NotNull(message = "Vehicle ID is required")
     private Long vehicleId;
 
     private Long driverId;
@@ -64,8 +64,8 @@ public class CreateDeliveryRequestDTO {
     public ServiceType getServiceType() { return serviceType; }
     public void setServiceType(ServiceType serviceType) { this.serviceType = serviceType; }
     
-    public Timestamp getPickupDate() { return pickupDate; }
-    public void setPickupDate(Timestamp pickupDate) { this.pickupDate = pickupDate; }
+    public LocalDate getPickupDate() { return pickupDate; }
+    public void setPickupDate(LocalDate pickupDate) { this.pickupDate = pickupDate; }
     
     public Timestamp getScheduleDeliveryTime() { return scheduleDeliveryTime; }
     public void setScheduleDeliveryTime(Timestamp scheduleDeliveryTime) { this.scheduleDeliveryTime = scheduleDeliveryTime; }

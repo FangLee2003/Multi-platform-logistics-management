@@ -1,4 +1,5 @@
 package ktc.spring_project.services;
+import ktc.spring_project.exceptions.HttpException;
 
 import ktc.spring_project.entities.*;
 import ktc.spring_project.enums.InvoiceStatus;
@@ -22,7 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Service xử lý logic nghiệp vụ cho hóa đơn điện tử
+ * Service xử lý logic nghiệp vụ cho hóa đơn thanh toán
  * Bao gồm: tạo hóa đơn, kiểm tra điều kiện, quản lý trạng thái, và tích hợp với hệ thống khác
  */
 @Service
@@ -83,7 +84,7 @@ public class InvoiceService {
 
         // 2. Kiểm tra đơn hàng đã có hóa đơn chưa
         if (invoiceRepository.existsByOrderId(orderId)) {
-            return new ValidationResult(false, "Đơn hàng đã có hóa đơn điện tử");
+            return new ValidationResult(false, "Đơn hàng đã có hóa đơn thanh toán");
         }
 
         // 3. Kiểm tra trạng thái đơn hàng hợp lệ
@@ -125,7 +126,7 @@ public class InvoiceService {
     }
 
     /**
-     * Tạo hóa đơn điện tử cho đơn hàng
+     * Tạo hóa đơn thanh toán cho đơn hàng
      * 
      * @param orderId ID đơn hàng
      * @param createdByUserId ID người tạo hóa đơn
@@ -136,12 +137,12 @@ public class InvoiceService {
     @Transactional
     public ElectronicInvoice createInvoice(Long orderId, Long createdByUserId, 
                                          String customerEmail, String customerName) {
-        log.info("Bắt đầu tạo hóa đơn điện tử cho order {}", orderId);
+        log.info("Bắt đầu tạo hóa đơn thanh toán cho order {}", orderId);
 
         // 1. Kiểm tra điều kiện nghiệp vụ
         ValidationResult validation = validateInvoiceEligibility(orderId);
         if (!validation.isValid()) {
-            throw new IllegalArgumentException("Không thể tạo hóa đơn: " + validation.getMessage());
+            throw new HttpException("Không thể tạo hóa đơn: " + validation.getMessage(), org.springframework.http.HttpStatus.BAD_REQUEST);
         }
 
         // 2. Lấy thông tin đơn hàng, delivery và người tạo
@@ -163,7 +164,7 @@ public class InvoiceService {
         // 4. Lấy số tiền từ delivery fee
         BigDecimal totalAmount = delivery.getDeliveryFee();
         if (totalAmount == null) {
-            throw new IllegalStateException("Phí giao hàng chưa được thiết lập cho đơn hàng này");
+            throw new HttpException("Phí giao hàng chưa được thiết lập cho đơn hàng này", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
 
         // 5. Tạo hóa đơn
@@ -197,7 +198,7 @@ public class InvoiceService {
             activityLogService.logUserActivity(
                 createdByUserId,
                 "CREATE",
-                String.format("Tạo hóa đơn điện tử %s cho đơn hàng %d", 
+                String.format("Tạo hóa đơn thanh toán %s cho đơn hàng %d", 
                     invoiceNumber, orderId)
             );
         } catch (Exception e) {
@@ -267,7 +268,7 @@ public class InvoiceService {
             log.info("✅ Đã tạo file PDF thật sự: {}", pdfFile.getAbsolutePath());
         } catch (IOException e) {
             log.error("❌ Lỗi tạo file PDF cho hóa đơn {}: ", invoice.getInvoiceNumber(), e);
-            throw new RuntimeException("Không thể tạo file PDF: " + e.getMessage());
+            throw new HttpException("Không thể tạo file PDF: " + e.getMessage(), org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         
         // Cập nhật thông tin file trong database
@@ -292,14 +293,14 @@ public class InvoiceService {
         ElectronicInvoice invoice = getInvoiceById(invoiceId);
 
         if (invoice.getInvoiceStatus() == InvoiceStatus.CANCELLED) {
-            throw new IllegalStateException("Không thể gửi hóa đơn đã bị hủy");
+            throw new HttpException("Không thể gửi hóa đơn đã bị hủy", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
 
         // GỬI EMAIL THỰC SỰ thông qua EmailService
         boolean emailSent = emailService.sendInvoiceEmail(invoice, emailAddress);
         
         if (!emailSent) {
-            throw new RuntimeException("Không thể gửi email hóa đơn. Vui lòng kiểm tra cấu hình email.");
+            throw new HttpException("Không thể gửi email hóa đơn. Vui lòng kiểm tra cấu hình email.", org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         }
         
         // Cập nhật trạng thái đã gửi chỉ khi email thành công
@@ -423,7 +424,7 @@ public class InvoiceService {
         BigDecimal totalAmount = order.getTotalAmount();
         
         if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Đơn hàng không có giá trị hợp lệ");
+            throw new HttpException("Đơn hàng không có giá trị hợp lệ", org.springframework.http.HttpStatus.BAD_REQUEST);
         }
         
         return totalAmount;

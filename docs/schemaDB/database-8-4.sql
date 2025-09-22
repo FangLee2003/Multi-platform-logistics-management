@@ -87,7 +87,7 @@ create index idx_roles_name
 	on roles (role_name)
 	comment 'Tìm vai trò theo tên';
 
-create table payments
+create table status
 (
 	id tinyint unsigned auto_increment comment 'Mã định danh trạng thái duy nhất (1-255)'
 		primary key,
@@ -635,7 +635,7 @@ create table products
 		check ((`weight` >= 0) and (`volume` >= 0))
 );
 
-create table order_checklist
+create table order_items
 (
 	id bigint auto_increment comment 'Mã định danh duy nhất của mục hàng'
 		primary key,
@@ -1124,5 +1124,4 @@ from ((((`fastroute_test`.`warehouse_transactions` `wt` left join `fastroute_tes
 -- comment on column vw_warehouse_transaction_history.created_by not supported: ID người dùng tạo giao dịch
 
 -- comment on column vw_warehouse_transaction_history.creator_name not supported: Họ tên đầy đủ để hiển thị
-
 

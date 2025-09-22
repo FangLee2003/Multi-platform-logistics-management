@@ -5,6 +5,8 @@ import ktc.spring_project.enums.AddressType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 
 import java.math.BigDecimal;
 
@@ -20,8 +22,21 @@ import jakarta.validation.constraints.NotNull;
 @AllArgsConstructor
 public class CreateAddressRequestDTO {
 
-    @NotNull(message = "Address type is required")
     private AddressType addressType;
+    
+    // Custom setter để convert string thành enum
+    @JsonSetter("addressType")
+    public void setAddressTypeFromString(String addressTypeStr) {
+        if (addressTypeStr != null) {
+            try {
+                this.addressType = AddressType.valueOf(addressTypeStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                this.addressType = AddressType.DELIVERY; // Default fallback
+            }
+        } else {
+            this.addressType = AddressType.DELIVERY;
+        }
+    }
 
     @NotBlank(message = "Address is required")
     private String address;
@@ -34,12 +49,15 @@ public class CreateAddressRequestDTO {
 
     private String state;
 
-    @NotBlank(message = "Country is required")
     private String country;
 
     private String region;
     private String postalCode;
+
+    @NotBlank(message = "Contact name is required")
     private String contactName;
+
+    @NotBlank(message = "Contact phone is required")
     private String contactPhone;
 
     @Email(message = "Contact email must be valid")

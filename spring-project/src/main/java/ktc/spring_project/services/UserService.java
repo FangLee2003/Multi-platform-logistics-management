@@ -1,4 +1,6 @@
 package ktc.spring_project.services;
+import ktc.spring_project.exceptions.HttpException;
+import ktc.spring_project.exceptions.EntityDuplicateException;
 
 import ktc.spring_project.entities.User;
 import ktc.spring_project.entities.Role;
@@ -7,6 +9,8 @@ import ktc.spring_project.repositories.UserJpaRepository;
 import ktc.spring_project.dtos.auth.GoogleLoginRequestDto;
 import ktc.spring_project.dtos.auth.GoogleLoginWithCredentialRequestDto;
 import jakarta.persistence.EntityNotFoundException;
+import ktc.spring_project.exceptions.HttpException;
+import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -49,6 +53,9 @@ public class UserService {
     private RoleRepository roleRepository;
 
     @Autowired
+    private ktc.spring_project.repositories.StoreRepository storeRepository;
+
+    @Autowired
     private RestTemplate restTemplate;
 
     @Autowired
@@ -62,37 +69,34 @@ public class UserService {
         
         // Check if email already exists
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            throw new RuntimeException("Email đã được sử dụng");
+            throw new EntityDuplicateException("Email");
         }
         
-        // Gán username nếu chưa có (dùng email)
+        // Gán username nếu chưa có (dùng email), chỉ kiểm tra trùng lặp
         if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
             String baseUsername = user.getEmail();
             String username = baseUsername;
             int counter = 1;
-            
-            // Ensure username is unique
             while (userRepository.findByUsername(username).isPresent()) {
                 username = baseUsername + "_" + counter;
                 counter++;
             }
             user.setUsername(username);
-            // ...existing code...
+            System.out.println("==> Đã gán username: " + username);
         } else {
             // Check if provided username already exists
             if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-                throw new RuntimeException("Username đã được sử dụng");
+                throw new EntityDuplicateException("Username đã được sử dụng");
             }
         }
         
         // Gán role mặc định nếu chưa có
         if (user.getRole() == null) {
-            // Gán role CUSTOMER cho tất cả user đăng ký từ Next.js
             Role customerRole = roleRepository.findByRoleName("CUSTOMER")
                 .orElseGet(() -> roleRepository.findByRoleName("USER")
                     .orElseThrow(() -> new RuntimeException("No default role found")));
             user.setRole(customerRole);
-            // ...existing code...
+            System.out.println("==> Đã gán role: " + customerRole.getRoleName());
         }
         
         // Encode password
@@ -116,8 +120,8 @@ public class UserService {
         }
 
     public User getUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+    return userRepository.findById(id)
+        .orElseThrow(() -> new ktc.spring_project.exceptions.EntityNotFoundException("User not found with id: " + id));
     }
 
     public User updateUser(Long id, User userDetails) {
@@ -176,7 +180,7 @@ User user = getUserById(id);
 
     public User getCurrentUser(Authentication authentication) {
         if (authentication == null) {
-            throw new RuntimeException("No authentication provided");
+            throw new HttpException("No authentication provided", org.springframework.http.HttpStatus.UNAUTHORIZED);
         }
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -237,7 +241,7 @@ User user = getUserById(id);
             @SuppressWarnings("unchecked")
             Map<String, Object> userInfo = (Map<String, Object>) response.getBody();
             if (userInfo == null) {
-                throw new RuntimeException("Google API returned null response");
+                throw new HttpException("Google API returned null response", org.springframework.http.HttpStatus.BAD_REQUEST);
             }
 
             String email = (String) userInfo.get("email");
@@ -245,7 +249,7 @@ User user = getUserById(id);
             String googleId = (String) userInfo.get("id");
 
             if (email == null || name == null || googleId == null) {
-                throw new RuntimeException("Missing required fields from Google API response");
+                throw new HttpException("Missing required fields from Google API response", org.springframework.http.HttpStatus.BAD_REQUEST);
             }
         // Sinh mã OTP 6 số cho xác thực qua email
         String otp = String.valueOf(100000 + (int)(Math.random() * 900000));
@@ -299,7 +303,7 @@ User user = getUserById(id);
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Google login failed: " + e.getMessage());
+            throw new HttpException("Google login failed: " + e.getMessage(), org.springframework.http.HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -316,7 +320,7 @@ User user = getUserById(id);
             Map<String, Object> tokenInfo = (Map<String, Object>) response.getBody();
 
             if (tokenInfo == null) {
-                throw new RuntimeException("Google token validation returned null response");
+                throw new HttpException("Google token validation returned null response", org.springframework.http.HttpStatus.BAD_REQUEST);
             }
 
             String email = (String) tokenInfo.get("email");
@@ -324,13 +328,13 @@ User user = getUserById(id);
             String googleId = (String) tokenInfo.get("sub");
 
             if (email == null || name == null || googleId == null) {
-                throw new RuntimeException("Missing required fields from Google token response");
+                throw new HttpException("Missing required fields from Google token response", org.springframework.http.HttpStatus.BAD_REQUEST);
             }
 
             if (request.getClientId() != null) {
                 String aud = (String) tokenInfo.get("aud");
                 if (!request.getClientId().equals(aud)) {
-                    throw new RuntimeException("Invalid client ID in credential");
+                    throw new HttpException("Invalid client ID in credential", org.springframework.http.HttpStatus.BAD_REQUEST);
                 }
             }
 
@@ -365,7 +369,7 @@ User user = getUserById(id);
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Google credential login failed: " + e.getMessage());
+            throw new HttpException("Google credential login failed: " + e.getMessage(), org.springframework.http.HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -399,5 +403,15 @@ User user = getUserById(id);
         User user = findByEmail(email);
         user.setTotpEnabled(false);
         userRepository.save(user);
+    }
+
+    /**
+     * Lấy danh sách store thuộc về user
+     */
+    public List<ktc.spring_project.entities.Store> getStoresByUserId(Long userId) {
+        if (userId == null) {
+            throw new HttpException("User ID cannot be null", HttpStatus.BAD_REQUEST);
+        }
+        return storeRepository.findByCreatedById(userId);
     }
 }
