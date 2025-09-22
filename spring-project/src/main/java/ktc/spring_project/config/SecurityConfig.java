@@ -118,7 +118,7 @@ public class SecurityConfig {
             //     .requestMatchers("/api/auth/**").permitAll()        // Login, register, forgot password
             //     .requestMatchers("/api/public/**").permitAll()      // Public APIs
 
-
+        
             //     //tEST 
             //     .requestMatchers("/actuator/**").permitAll()
 
@@ -142,6 +142,8 @@ public class SecurityConfig {
     .requestMatchers("/api/auth/**").permitAll()
     .requestMatchers("/api/public/**").permitAll()
     .requestMatchers("/actuator/**").permitAll()
+    .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
+
     .requestMatchers("/api/admin/**").hasRole("ADMIN")
     .requestMatchers("/api/dispatcher/**").hasAnyRole("ADMIN", "DISPATCHER")
     .requestMatchers("/api/driver/**").hasAnyRole("ADMIN", "DRIVER")
