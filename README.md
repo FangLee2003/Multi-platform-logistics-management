@@ -86,6 +86,7 @@ Offline-first execution assistant.
 | Proof | Photo / e-sign / notes capture |
 | Messaging | Low-friction dispatcher comms |
 | Offline | Automatic sync when reconnected |
+
 Impact: ↓ average stop time; ↑ delivery accuracy.
 
 ### ⚙️ Backend API Services (Spring Boot)
