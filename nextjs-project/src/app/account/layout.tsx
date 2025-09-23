@@ -102,10 +102,10 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
     },
     { key: "/account/orders", label: "Đơn hàng", icon: <ShoppingOutlined /> },
 
-    { key: "/account/estimate", label: "Tính phí", icon: <WalletOutlined /> },
+    { key: "/account/estimate", label: "Ước tính cước phí", icon: <WalletOutlined /> },
     {
       key: "/account/profile",
-      label: "Thông tin cá nhân",
+      label: "Thông tin cửa hàng",
       icon: <UserOutlined />,
     },
   ];
