@@ -2,6 +2,7 @@ package ktc.spring_project.controllers;
 import ktc.spring_project.services.DeliveryService;
 
 import ktc.spring_project.entities.DeliveryTracking;
+import ktc.spring_project.entities.Delivery;
 import ktc.spring_project.repositories.DeliveryRepository;
 
 import ktc.spring_project.services.DeliveryTrackingService;
@@ -142,6 +143,98 @@ public class DeliveryTrackingController {
         }
     }
 
+    @GetMapping("/{trackingId}")
+    public ResponseEntity<?> getTrackingById(@PathVariable Long trackingId) {
+        try {
+            DeliveryTracking tracking = deliveryTrackingService.findById(trackingId)
+                .orElse(null);
+            if (tracking == null) {
+                return ResponseEntity.notFound().build();
+            }
+            // Trả về DTO chi tiết, bao gồm các trường lồng nhau cần thiết
+            TrackingDetailDTO dto = new TrackingDetailDTO(tracking);
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to get tracking: " + e.getMessage()));
+        }
+    }
+
+    // DTO chi tiết cho tracking, bao gồm các trường lồng nhau
+    public static class TrackingDetailDTO {
+        public Long id;
+        public Double latitude;
+        public Double longitude;
+        public String location;
+        public String notes;
+        public Long vehicleId;
+        public VehicleInfo vehicle;
+        public Long deliveryId;
+        public DeliveryInfo delivery;
+        public StatusInfo status;
+        public String timestamp;
+        public String createdAt;
+        public String updatedAt;
+        public Integer statusId;
+
+        public TrackingDetailDTO(DeliveryTracking t) {
+            this.id = t.getId();
+            this.latitude = t.getLatitude() != null ? t.getLatitude().doubleValue() : null;
+            this.longitude = t.getLongitude() != null ? t.getLongitude().doubleValue() : null;
+            this.location = t.getLocation();
+            this.notes = t.getNotes();
+            this.vehicleId = t.getVehicle() != null ? t.getVehicle().getId() : null;
+            this.vehicle = t.getVehicle() != null ? new VehicleInfo(t.getVehicle()) : null;
+            this.deliveryId = t.getDelivery() != null ? t.getDelivery().getId() : null;
+            this.delivery = t.getDelivery() != null ? new DeliveryInfo(t.getDelivery()) : null;
+            this.status = t.getStatus() != null ? new StatusInfo(t.getStatus()) : null;
+            this.timestamp = t.getTimestamp() != null ? t.getTimestamp().toString() : null;
+            this.createdAt = t.getCreatedAt() != null ? t.getCreatedAt().toString() : null;
+            this.updatedAt = t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : null;
+            this.statusId = t.getStatusId();
+        }
+        // Nested DTOs
+        public static class VehicleInfo {
+            public Long id;
+            public String licensePlate;
+            public String vehicleType;
+            public String model;
+            public Double capacityWeightKg;
+            public Double capacityVolumeM3;
+            public VehicleInfo(ktc.spring_project.entities.Vehicle v) {
+                this.id = v.getId();
+                this.licensePlate = v.getLicensePlate();
+                this.vehicleType = v.getVehicleType() != null ? v.getVehicleType().toString() : null;
+                this.model = v.getModel();
+                this.capacityWeightKg = v.getCapacityWeightKg() != null ? v.getCapacityWeightKg().doubleValue() : null;
+                this.capacityVolumeM3 = v.getCapacityVolumeM3() != null ? v.getCapacityVolumeM3().doubleValue() : null;
+            }
+        }
+        public static class DeliveryInfo {
+            public Long id;
+            public String code;
+            public String notes;
+            public Long orderId;
+            public DeliveryInfo(ktc.spring_project.entities.Delivery d) {
+                this.id = d.getId();
+                // Sửa lại getter cho code nếu không phải getCode()
+                this.notes = d.getDeliveryNotes();
+                // Lấy orderId từ entity Delivery
+                this.orderId = d.getOrder() != null ? d.getOrder().getId() : null;
+            }
+        }
+        public static class StatusInfo {
+            public Short id;
+            public String name;
+            public String description;
+            public StatusInfo(ktc.spring_project.entities.Status s) {
+                this.id = s.getId();
+                this.name = s.getName();
+                this.description = s.getDescription();
+            }
+        }
+    }
+
     /**
      * Update vehicle location and status
      * US-DRIVER-STATUS-UPDATE-01
@@ -197,6 +290,63 @@ public class DeliveryTrackingController {
         // TO-DO: This endpoint needs implementation in the service layer
         // Will be integrated with tracking history database and possible AI analytics
         return ResponseEntity.ok(new ArrayList<>());
+    }
+
+    /**
+     * Get current tracking for a delivery
+     * Fetch tracking data by delivery_id from delivery_tracking table
+     */
+    @GetMapping("/delivery/{deliveryId}/current")
+    public ResponseEntity<TrackingPointDTO> getCurrentDeliveryLocation(@PathVariable Long deliveryId) {
+        try {
+            // Kiểm tra delivery có tồn tại không
+            if (!deliveryRepository.existsById(deliveryId)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Tìm tracking record mới nhất cho delivery này
+            List<DeliveryTracking> trackingList = deliveryTrackingService.findByDeliveryId(deliveryId);
+            
+            if (trackingList == null || trackingList.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Lấy tracking record mới nhất (theo timestamp)
+            DeliveryTracking latestTracking = trackingList.stream()
+                .filter(t -> t.getTimestamp() != null)
+                .max((t1, t2) -> t1.getTimestamp().compareTo(t2.getTimestamp()))
+                .orElse(trackingList.get(trackingList.size() - 1));
+
+            TrackingPointDTO dto = new TrackingPointDTO(latestTracking);
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            log.error("Error getting current delivery location for deliveryId {}: {}", deliveryId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get current tracking for an order
+     * Fetch tracking data by order_id via delivery relationship
+     */
+    @GetMapping("/order/{orderId}/current")
+    public ResponseEntity<TrackingPointDTO> getCurrentOrderLocation(@PathVariable Long orderId) {
+        try {
+            // Tìm delivery cho order này
+            List<Delivery> deliveries = deliveryService.findByOrderId(orderId);
+            if (deliveries == null || deliveries.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Lấy delivery đầu tiên (mỗi order thường có 1 delivery)
+            Delivery delivery = deliveries.get(0);
+
+            // Delegate to delivery tracking
+            return getCurrentDeliveryLocation(delivery.getId());
+        } catch (Exception e) {
+            log.error("Error getting current order location for orderId {}: {}", orderId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**

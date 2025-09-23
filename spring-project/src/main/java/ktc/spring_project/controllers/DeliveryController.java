@@ -69,14 +69,20 @@ public class DeliveryController {
             @RequestParam(required = false) Long driverId,
             @RequestParam(required = false) Long vehicleId,
             @RequestParam(required = false) String dateFrom,
-            @RequestParam(required = false) String dateTo) {
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) Long orderId) {
 
         // Lấy tất cả giao hàng
-        List<Delivery> allDeliveries = deliveryService.getAllDeliveries();
+        List<Delivery> deliveries;
+        if (orderId != null) {
+            deliveries = deliveryService.findByOrderId(orderId);
+        } else {
+            deliveries = deliveryService.getAllDeliveries();
+        }
 
         // Chuyển đổi từ Delivery sang Map để dễ dàng thêm thông tin bổ sung nếu cần
         List<Map<String, Object>> deliveriesMap = new ArrayList<>();
-        for (Delivery delivery : allDeliveries) {
+        for (Delivery delivery : deliveries) {
             Map<String, Object> deliveryMap = new HashMap<>();
             deliveryMap.put("id", delivery.getId());
             deliveryMap.put("orderId", delivery.getOrder() != null ? delivery.getOrder().getId() : null);
