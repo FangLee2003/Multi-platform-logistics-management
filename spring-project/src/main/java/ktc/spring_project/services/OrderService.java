@@ -552,13 +552,15 @@ public class OrderService {
         try {
             validateId(storeId, "Store ID");
             validatePaginationParams(page, size);
+            // Ensure statusList is not null to avoid SpEL null context error
+            if (statusList == null) {
+                statusList = new java.util.ArrayList<>();
+            }
             log.debug("Unified search orders: storeId={}, orderId={}, fromDate={}, toDate={}, statusList={}, page={}, size={}", 
                 storeId, orderId, fromDate, toDate, statusList, page, size);
-            
             Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
             return orderRepository.findOrderSummariesByStoreIdWithFiltersPaginated(
                 storeId, orderId, fromDate, toDate, statusList, pageable);
-            
         } catch (HttpException e) {
             throw e;
         } catch (Exception e) {

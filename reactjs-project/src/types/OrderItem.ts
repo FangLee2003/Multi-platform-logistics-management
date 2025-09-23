@@ -6,6 +6,5 @@ export interface OrderItem {
   product?: {
     id: number;
     name: string;
-    // ...other fields if needed
   };
 }
