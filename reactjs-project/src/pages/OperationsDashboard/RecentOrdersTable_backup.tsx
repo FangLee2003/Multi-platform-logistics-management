@@ -77,9 +77,9 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                   <div className="text-gray-600 text-xs">{order.customerPhone}</div>
                 </TableCell>
                 <TableCell>
-                    <div className="text-sm max-w-32 sm:max-w-64 break-words">
-                      {order.pickupAddress} → {order.deliveryAddress}
-                    </div>
+                  <div className="text-sm max-w-48 sm:max-w-none truncate">
+                    {order.pickupAddress} → {order.deliveryAddress}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">

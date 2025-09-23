@@ -1,4 +1,7 @@
 import StatCard from '../../components/StatCard';
+import { TfiPackage } from "react-icons/tfi";
+import { FiClock, FiDollarSign } from "react-icons/fi";
+import { MdOutlineDirections } from "react-icons/md";
 
 interface StatCardData {
   metric: string;
@@ -74,7 +77,12 @@ export default function PerformanceStatCards({ performanceData }: PerformanceSta
                   isPositive: data.trend > 0,
                 }
           }
-          icon={index === 0 ? '📦' : index === 1 ? '⏱️' : index === 2 ? '💰' : '🛣️'}
+          icon={
+            index === 0 ? <TfiPackage size={24} color="#3b82f6" /> :    // Xanh dương cho đơn hàng
+            index === 1 ? <FiClock size={24} color="#f59e0b" /> :       // Vàng cam cho thời gian
+            index === 2 ? <FiDollarSign size={24} color="#10b981" /> :  // Xanh lá cho tiền
+            <MdOutlineDirections size={24} color="#8b5cf6" />           // Tím cho tuyến đường/km
+          }
         />
         );
       })}

@@ -4,6 +4,8 @@ import StatCard from '../../components/StatCard';
 import DataTable, { TableRow, TableCell } from '../../components/DataTable';
 import GlassButton from '../../components/GlassButton';
 import { operationsAPI, type Staff } from '../../services/operationsAPI';
+import { FaChartLine, FaUmbrellaBeach, FaUsers } from 'react-icons/fa6';
+import { MdWorkHistory } from 'react-icons/md';
 
 export default function StaffManagement() {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
@@ -251,22 +253,22 @@ export default function StaffManagement() {
         <StatCard
           title="Tổng nhân viên"
           value={totalStaff.toString()}
-          icon="👥"
+          icon={<FaUsers size={24} color="#4B5563" />}
         />
         <StatCard
           title="Đang làm việc"
           value={activeStaff.toString()}
-          icon="✅"
+          icon={<MdWorkHistory size={24} color="#10b981" />}
         />
         <StatCard
           title="Nghỉ phép"
           value={onLeaveStaff.toString()}
-          icon="🏖️"
+          icon={<FaUmbrellaBeach size={24} color="#f59e0b" />}
         />
         <StatCard
           title="Hiệu suất TB"
           value={`${avgPerformance}%`}
-          icon="📊"
+          icon={<FaChartLine size={24} color="#4f46e5" />}
           trend={{ value: 2.3, isPositive: true }}
         />
       </div>

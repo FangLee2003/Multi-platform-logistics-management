@@ -1,5 +1,8 @@
 import { forwardRef, useImperativeHandle } from 'react';
 import MonthlyRevenueChart from '../../components/MonthlyRevenueChart';
+import { TfiPackage } from 'react-icons/tfi';
+import { Truck } from 'lucide-react';
+import { FiCheckSquare, FiDollarSign } from 'react-icons/fi';
 
 // Interface cho metrics data
 export interface MetricsData {
@@ -54,7 +57,7 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
         <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-700 font-medium">Đơn hàng hôm nay</h3>
-            <span className="text-2xl">📦</span>
+            <span className="text-2xl"><TfiPackage size={24} color="#3b82f6" /></span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">
@@ -77,7 +80,7 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
         <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-700 font-medium">Xe đang hoạt động</h3>
-            <span className="text-2xl">🚛</span>
+            <span className="text-2xl"><Truck size={24} color="#f59e0b" /></span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">
@@ -95,7 +98,7 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
         <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-700 font-medium">Doanh thu hôm nay</h3>
-            <span className="text-2xl">💰</span>
+            <span className="text-2xl"><FiDollarSign size={24} color="#10b981" /></span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">
@@ -120,7 +123,7 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
         <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-700 font-medium">Đơn hàng hoàn thành</h3>
-            <span className="text-2xl">✅</span>
+            <span className="text-2xl"><FiCheckSquare size={24} color="#8b5cf6"/></span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">

@@ -7,6 +7,10 @@ import { operationsAPI } from '../../services/operationsAPI';
 import type { Vehicle } from '../../types/dashboard';
 import { fetchVehicleStats } from '../../services/VehicleListAPI';
 import { OperationsMetricsService } from '../../services/operationsMetricsService';
+import { Truck } from 'lucide-react';
+import { FaRegPlayCircle } from 'react-icons/fa';
+import { LiaClipboardListSolid } from 'react-icons/lia';
+import { HiOutlineWrenchScrewdriver } from 'react-icons/hi2';
 
 export default function ResourceMonitoring() {
   const [timeFilter, setTimeFilter] = useState('24h');
@@ -210,25 +214,25 @@ export default function ResourceMonitoring() {
         <StatCard
           title="Tổng xe"
           value={totalVehicles.toString()}
-          icon="🚛"
+          icon={<Truck size={24} color="#f59e0b" />}
           trend={{ value: 8.2, isPositive: true }}
         />
         <StatCard
           title="Đang hoạt động"
           value={activeVehicles.toString()}
-          icon="✅"
+          icon={<FaRegPlayCircle size={24} color="#10b981" />}
           subtitle={`${vehicleMetrics.percentage}% tổng số`}
         />
         <StatCard
           title="Đang bảo trì"
           value={maintenanceVehicles.toString()}
-          icon="🔧"
+          icon={<HiOutlineWrenchScrewdriver size={24} color="#6B7280" />}
           subtitle={`${totalVehicles > 0 ? Math.round((maintenanceVehicles / totalVehicles) * 100) : 0}% tổng số`}
         />
         <StatCard
           title="Yêu cầu bảo trì"
           value={maintenanceRequestsCount.toString()}
-          icon="🔧"
+          icon={<LiaClipboardListSolid size={24} color="#3B82F6" />}
         />
       </div>
 

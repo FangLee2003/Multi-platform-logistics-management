@@ -187,9 +187,9 @@ export default function PerformanceAnalytics() {
       )}
 
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-semibold text-gray-800">Phân tích hiệu suất</h2>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <div className="flex flex-wrap gap-2">
             {statusOptions.map((status) => (
               <GlassButton
@@ -202,7 +202,7 @@ export default function PerformanceAnalytics() {
               </GlassButton>
             ))}
           </div>
-          <GlassButton onClick={handleRefresh} size="sm" variant="primary" className="ml-2 whitespace-nowrap" disabled={loading || ordersLoading}>
+          <GlassButton onClick={handleRefresh} size="sm" variant="primary" className="whitespace-nowrap self-start sm:self-auto" disabled={loading || ordersLoading}>
             <span className="flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4.93 19.07a10 10 0 1 0 0-14.14M4 4v5h5"/></svg>
               Làm mới

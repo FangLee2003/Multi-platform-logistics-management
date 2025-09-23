@@ -125,14 +125,14 @@ export default function OperationsDashboard({ user, onLogout }: OperationsDashbo
       />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Navbar 
           user={user}
           onLogout={onLogout}
           title="Operations Manager Dashboard"
           subtitle=""
         />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-hidden">
           {tab === "overview" && (
             <OperationsOverview 
               ref={operationsOverviewRef}
