@@ -7,6 +7,7 @@ import PerformanceAnalytics from './PerformanceAnalytics';
 import StaffManagement from './StaffManagement';
 import OperationsOverview, { type OperationsOverviewRef, type MetricsData } from './OperationsOverview';
 import OperationsMetricsService from '../../services/operationsMetricsService';
+import { FiHome, FiBarChart2, FiActivity, FiUsers } from "react-icons/fi";
 
 interface OperationsDashboardProps {
   user: User;
@@ -118,21 +119,57 @@ export default function OperationsDashboard({ user, onLogout }: OperationsDashbo
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100">
-      <Sidebar<OperationsTab>
-        activeTab={tab}
-        onTabChange={tab => setTab(tab as OperationsTab)}
-        role="operations"
-      />
+      {/* Sidebar - Hidden on mobile, visible on md+ */}
+      <div className="hidden md:block">
+        <Sidebar<OperationsTab>
+          activeTab={tab}
+          onTabChange={tab => setTab(tab as OperationsTab)}
+          role="operations"
+        />
+      </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 w-full md:w-auto">
         <Navbar 
           user={user}
           onLogout={onLogout}
           title="Operations Manager Dashboard"
           subtitle=""
         />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-hidden">
+        {/* Mobile Navigation - Tab bar at bottom for mobile */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-white/30 px-4 py-2 z-50">
+          <div className="flex justify-around items-center">
+            <button
+              onClick={() => setTab("overview")}
+              className={`flex flex-col items-center py-2 px-1 ${tab === "overview" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <FiHome className="text-xl mb-1" />
+              <span className="text-xs">Overview</span>
+            </button>
+            <button
+              onClick={() => setTab("performance")}
+              className={`flex flex-col items-center py-2 px-1 ${tab === "performance" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <FiBarChart2 className="text-xl mb-1" />
+              <span className="text-xs">Performance</span>
+            </button>
+            <button
+              onClick={() => setTab("monitoring")}
+              className={`flex flex-col items-center py-2 px-1 ${tab === "monitoring" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <FiActivity className="text-xl mb-1" />
+              <span className="text-xs">Monitoring</span>
+            </button>
+            <button
+              onClick={() => setTab("staff")}
+              className={`flex flex-col items-center py-2 px-1 ${tab === "staff" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <FiUsers className="text-xl mb-1" />
+              <span className="text-xs">Staff</span>
+            </button>
+          </div>
+        </div>
+        <main className="flex-1 p-2 sm:p-3 md:p-6 overflow-hidden pb-16 md:pb-0">
           {tab === "overview" && (
             <OperationsOverview 
               ref={operationsOverviewRef}

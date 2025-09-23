@@ -51,23 +51,23 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
   }), [onRefresh]);
 
   return (
-    <div className="space-y-6">
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-gray-700 font-medium">Đơn hàng hôm nay</h3>
-            <span className="text-2xl"><TfiPackage size={24} color="#3b82f6" /></span>
+    <div className="space-y-4 md:space-y-6">
+      {/* Overview Stats - Mobile optimized */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
+            <h3 className="text-gray-700 font-medium text-xs md:text-base">Đơn hàng hôm nay</h3>
+            <span className="text-xl md:text-2xl"><TfiPackage size={window.innerWidth < 768 ? 20 : 24} color="#3b82f6" /></span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-6 md:h-8 bg-gray-200 rounded mb-1 md:mb-2"></div>
+              <div className="h-3 md:h-4 bg-gray-200 rounded w-3/4"></div>
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-800">{metricsData.todayOrders.count}</p>
-              <p className={`text-sm mt-2 ${
+              <p className="text-2xl md:text-3xl font-bold text-gray-800">{metricsData.todayOrders.count}</p>
+              <p className={`text-xs md:text-sm mt-1 md:mt-2 ${
                 metricsData.todayOrders.trend === 'increase' ? 'text-green-600' : 
                 metricsData.todayOrders.trend === 'decrease' ? 'text-red-600' : 'text-gray-600'
               }`}>
@@ -77,38 +77,38 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
           )}
         </div>
         
-        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-gray-700 font-medium">Xe đang hoạt động</h3>
-            <span className="text-2xl"><Truck size={24} color="#f59e0b" /></span>
+        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
+            <h3 className="text-gray-700 font-medium text-xs md:text-base">Xe đang hoạt động</h3>
+            <span className="text-xl md:text-2xl"><Truck size={window.innerWidth < 768 ? 20 : 24} color="#f59e0b" /></span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-6 md:h-8 bg-gray-200 rounded mb-1 md:mb-2"></div>
+              <div className="h-3 md:h-4 bg-gray-200 rounded w-3/4"></div>
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-800">{metricsData.activeVehicles.ratio}</p>
-              <p className="text-gray-600 text-sm mt-2">{metricsData.activeVehicles.percentage}% tổng số xe</p>
+              <p className="text-2xl md:text-3xl font-bold text-gray-800">{metricsData.activeVehicles.ratio}</p>
+              <p className="text-gray-600 text-xs md:text-sm mt-1 md:mt-2">{metricsData.activeVehicles.percentage}% tổng số xe</p>
             </>
           )}
         </div>
         
-        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-gray-700 font-medium">Doanh thu hôm nay</h3>
-            <span className="text-2xl"><FiDollarSign size={24} color="#10b981" /></span>
+        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
+            <h3 className="text-gray-700 font-medium text-xs md:text-base">Doanh thu hôm nay</h3>
+            <span className="text-xl md:text-2xl"><FiDollarSign size={window.innerWidth < 768 ? 20 : 24} color="#10b981" /></span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-24 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-32"></div>
+              <div className="h-6 md:h-8 bg-gray-200 rounded w-20 md:w-24 mb-1 md:mb-2"></div>
+              <div className="h-3 md:h-4 bg-gray-200 rounded w-24 md:w-32"></div>
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-800">{metricsData.revenueData.amount}</p>
-              <p className={`text-sm mt-2 ${
+              <p className="text-2xl md:text-3xl font-bold text-gray-800">{metricsData.revenueData.amount}</p>
+              <p className={`text-xs md:text-sm mt-1 md:mt-2 ${
                 metricsData.revenueData.trend === 'increase' ? 'text-green-600' : 
                 metricsData.revenueData.trend === 'decrease' ? 'text-red-600' : 'text-gray-600'
               }`}>
@@ -120,20 +120,20 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
           )}
         </div>
         
-        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-gray-700 font-medium">Đơn hàng hoàn thành</h3>
-            <span className="text-2xl"><FiCheckSquare size={24} color="#8b5cf6"/></span>
+        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
+            <h3 className="text-gray-700 font-medium text-xs md:text-base">Đơn hàng hoàn thành</h3>
+            <span className="text-xl md:text-2xl"><FiCheckSquare size={window.innerWidth < 768 ? 20 : 24} color="#8b5cf6"/></span>
           </div>
           {isLoading ? (
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-24 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-32"></div>
+              <div className="h-6 md:h-8 bg-gray-200 rounded w-20 md:w-24 mb-1 md:mb-2"></div>
+              <div className="h-3 md:h-4 bg-gray-200 rounded w-24 md:w-32"></div>
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-800">{metricsData.performanceData.count}</p>
-              <p className={`text-sm mt-2 ${
+              <p className="text-2xl md:text-3xl font-bold text-gray-800">{metricsData.performanceData.count}</p>
+              <p className={`text-xs md:text-sm mt-1 md:mt-2 ${
                 metricsData.performanceData.trend === 'increase' ? 'text-green-600' : 
                 metricsData.performanceData.trend === 'decrease' ? 'text-red-600' : 'text-gray-600'
               }`}>

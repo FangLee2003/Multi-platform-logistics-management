@@ -1,6 +1,9 @@
 import { fetchEmergencyRequestsByVehicleId } from "../../services/VehicleMaintenanceAPI";
 import React, { useState } from "react";
 import { Truck, CircleDot, Wrench, AlertTriangle } from "lucide-react";
+import { MdManageAccounts } from "react-icons/md";
+import { AiOutlineSetting } from "react-icons/ai";
+import { FiActivity } from "react-icons/fi";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import type { User } from "../../types/User";
@@ -30,7 +33,7 @@ const StatsCard = React.memo<{
   style?: React.CSSProperties;
 }>(({ title, value, icon, color, onClick, style }) => (
   <div
-    className={`bg-white/30 hover:bg-white/40 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${color} ${
+    className={`bg-white/30 hover:bg-white/40 rounded-xl p-3 md:p-6 shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${color} ${
       onClick ? "cursor-pointer" : ""
     }`}
     onClick={onClick}
@@ -38,10 +41,10 @@ const StatsCard = React.memo<{
   >
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
+        <p className="text-xs md:text-sm font-medium text-gray-600 mb-1">{title}</p>
+        <p className="text-lg md:text-3xl font-bold text-gray-900">{value}</p>
       </div>
-      <div className="flex-shrink-0">{icon}</div>
+      <div className="flex-shrink-0 text-lg md:text-3xl">{icon}</div>
     </div>
   </div>
 ));
@@ -205,34 +208,64 @@ export default function FleetDashboard({
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100">
-      <Sidebar
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        activeTab={tab as any}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onTabChange={(tab) => handleTabChange(tab as any)}
-        role="fleet"
-      />
-      <main className="flex-1 flex flex-col">
+      {/* Sidebar - Hidden on mobile, visible on md+ */}
+      <div className="hidden md:block">
+        <Sidebar
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          activeTab={tab as any}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onTabChange={(tab) => handleTabChange(tab as any)}
+          role="fleet"
+        />
+      </div>
+      {/* Main content */}
+      <main className="flex-1 flex flex-col bg-transparent min-h-screen w-full md:w-auto">
         <Navbar
           user={user}
           onLogout={onLogout}
           title="Dashboard Quản lý đội xe"
           subtitle=""
         />
-        <div className="p-6 md:p-10 space-y-8">
+        {/* Mobile Navigation - Tab bar at bottom for mobile */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-white/30 px-4 py-2 z-50">
+          <div className="flex justify-around items-center">
+            <button
+              onClick={() => handleTabChange("vehicles")}
+              className={`flex flex-col items-center py-2 px-1 ${tab === "vehicles" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <MdManageAccounts className="text-xl mb-1" />
+              <span className="text-xs">Phương tiện</span>
+            </button>
+            <button
+              onClick={() => handleTabChange("maintenance")}
+              className={`flex flex-col items-center py-2 px-1 ${tab === "maintenance" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <AiOutlineSetting className="text-xl mb-1" />
+              <span className="text-xs">Bảo trì</span>
+            </button>
+            <button
+              onClick={() => handleTabChange("schedule")}
+              className={`flex flex-col items-center py-2 px-1 ${tab === "schedule" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <FiActivity className="text-xl mb-1" />
+              <span className="text-xs">Lịch</span>
+            </button>
+          </div>
+        </div>
+        <div className="p-3 md:p-10 space-y-6 md:space-y-8 pb-16 md:pb-0">
           {tab === "vehicles" && (
             <>
               <div className="relative mb-4">
                 <button
                   onClick={refreshVehicles}
-                  className="absolute right-0 top-0 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-full font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                  className="absolute right-0 top-0 flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-full font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
                   title="Làm mới danh sách phương tiện"
                 >
                   <svg className="animate-spin-slow" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4.93 4.93a10 10 0 1 1-1.32 2.09"/><path d="M4 4V8h4"/></svg>
                   <span className="hidden md:inline">Làm mới</span>
                 </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <StatsCard
                   title="Tổng phương tiện"
                   value={fleetStats.total}
@@ -270,14 +303,14 @@ export default function FleetDashboard({
                 resultsCount={filteredVehicles.length}
                 totalCount={vehicles.length}
               />
-              {showAddForm && (
-                <div className="bg-white rounded-xl p-6 shadow-lg border-l-4 border-violet-500">
-                  <div className="flex items-center justify-between mb-6">
+                {showAddForm && (
+                <div className="bg-white rounded-xl p-3 md:p-6 shadow-lg border-l-4 border-violet-500">
+                  <div className="flex items-center justify-between mb-4 md:mb-6">
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900">
                         Thêm phương tiện mới
                       </h3>
-                      <p className="text-gray-600 mt-1">
+                      <p className="text-gray-600 mt-1 text-sm md:text-base">
                         Đăng ký phương tiện mới vào hệ thống quản lý
                       </p>
                     </div>
@@ -299,10 +332,10 @@ export default function FleetDashboard({
                   onCancel={handleCancelEdit}
                 />
               )}
-              <div className="bg-white/30 hover:bg-white/40 rounded-xl p-6 shadow-lg">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-white/30 hover:bg-white/40 rounded-xl p-3 md:p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-4 md:mb-6">
                   <div>
-                    <h1 className="text-xl font-bold text-gray-900">
+                    <h1 className="text-lg md:text-xl font-bold text-gray-900">
                       Danh sách phương tiện
                     </h1>
                   </div>
@@ -384,10 +417,10 @@ export default function FleetDashboard({
 
       {/* Maintenance Form Modal */}
       {showMaintenanceFormModal && selectedMaintenance && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-900">
                 Đặt lịch bảo trì - {selectedMaintenance.vehicle.licensePlate}
               </h2>
               <button
@@ -395,7 +428,7 @@ export default function FleetDashboard({
                   setShowMaintenanceFormModal(false);
                   setSelectedMaintenance(null);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 text-xl md:text-2xl"
               >
                 ×
               </button>
