@@ -291,19 +291,8 @@ export default function OrderDetailModal({ orderId, onClose }: OrderDetailModalP
                           }
                           return isNaN(fee) ? '0' : fee.toLocaleString('vi-VN');
                         } else {
-                          // Fallback to product fees if no delivery fee is available
-                          const total = products.reduce((sum, item) => {
-                            let fee = 0;
-                            if (item.shippingFee) {
-                              if (typeof item.shippingFee === 'string') {
-                                fee = Number(String(item.shippingFee).replace(/,/g, ''));
-                              } else {
-                                fee = Number(item.shippingFee);
-                              }
-                            }
-                            return sum + (isNaN(fee) ? 0 : fee);
-                          }, 0);
-                          return total.toLocaleString('vi-VN');
+                          // Nếu không có deliveryFee, hiển thị 0
+                          return '0';
                         }
                       })()} đ
                     </span>
