@@ -45,10 +45,6 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    // Custom authentication entry point để xử lý unauthorized requests
-    @Autowired
-    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-
     /**
      * Bean để encode/decode password
      * Sử dụng BCrypt algorithm - một trong những thuật toán hash mạnh nhất hiện tại
@@ -74,7 +70,7 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
+authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
@@ -115,11 +111,6 @@ public class SecurityConfig {
 
                 // Cấu hình session management là STATELESS (không lưu session)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                
-                // Cấu hình exception handling cho unauthorized requests
-                .exceptionHandling(exceptions -> exceptions
-                    .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                )
                 // Cấu hình authorization rules cho các endpoints
                 .authorizeHttpRequests(authz -> authz
                         // Static resources và public endpoints
@@ -137,7 +128,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/customer/**").hasAnyRole("ADMIN", "CUSTOMER")
                         
                         // Public API endpoints - không cần authentication
-                        .requestMatchers("/api/auth/users/**").permitAll()
+.requestMatchers("/api/auth/users/**").permitAll()
                         .requestMatchers("/api/auth/users").permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
@@ -181,7 +172,7 @@ public class SecurityConfig {
 
                 // Thêm JWT filter trước UsernamePasswordAuthenticationFilter
                 // JWT filter sẽ check token trước khi Spring Security check username/password
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
