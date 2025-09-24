@@ -70,7 +70,7 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
+authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
@@ -104,46 +104,76 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/", "/index.html", "/favicon.ico", "/static/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/dispatcher/**").hasAnyRole("ADMIN", "DISPATCHER")
-                .requestMatchers("/api/driver/**").hasAnyRole("ADMIN", "DRIVER")
-                .requestMatchers("/api/customer/**").hasAnyRole("ADMIN", "CUSTOMER")
-                .requestMatchers("/api/protected/**").authenticated()
-                .requestMatchers("/api/auth/users/**").permitAll()
-                .requestMatchers("/api/auth/users").permitAll()
-                .requestMatchers("/api/categories/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/stores", "/api/stores/**").permitAll()
-                .requestMatchers(HttpMethod.PATCH, "/api/stores/**").permitAll()
-                .requestMatchers(HttpMethod.PUT, "/api/stores/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/orders", "/api/orders/**").permitAll()
-                .requestMatchers(HttpMethod.PUT, "/api/orders/**").permitAll()
-                .requestMatchers(HttpMethod.PATCH, "/api/orders/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/stores").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/routes").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                .requestMatchers(HttpMethod.DELETE, "/api/stores/**").hasAnyRole("ADMIN", "USER", "CUSTOMER")
-                .requestMatchers("/api/products/**").permitAll()
-                .requestMatchers("/api/orders/**").permitAll()
-                .requestMatchers("/api/addresses/**").permitAll()
-                .requestMatchers("/api/order-items/**").permitAll()
-                .requestMatchers("/api/deliveries/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/**").permitAll()
-                .requestMatchers("/api/drivers/*/maintenance-requests/**").hasAnyRole("ADMIN", "DRIVER")
-                .requestMatchers("/api/fleet/maintenance-requests/**").hasAnyRole("ADMIN", "FLEET")
-                .requestMatchers("/api/maintenance-requests/**").hasAnyRole("ADMIN", "DRIVER", "FLEET")
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // Cấu hình CORS để frontend có thể gọi API
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Disable CSRF vì ứng dụng sử dụng JWT thay vì session cookies
+                .csrf(csrf -> csrf.disable())
+
+                // Cấu hình session management là STATELESS (không lưu session)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Cấu hình authorization rules cho các endpoints
+                .authorizeHttpRequests(authz -> authz
+                        // Static resources và public endpoints
+                        .requestMatchers("/", "/index.html", "/favicon.ico", "/static/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
+                        
+                        // Role-based access control
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/dispatcher/**").hasAnyRole("ADMIN", "DISPATCHER")
+                        .requestMatchers("/api/drivers/**").hasAnyRole("ADMIN", "DRIVER")
+                        .requestMatchers("/api/driver/**").hasAnyRole("ADMIN", "DRIVER")
+                        .requestMatchers("/api/customer/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        
+                        // Public API endpoints - không cần authentication
+.requestMatchers("/api/auth/users/**").permitAll()
+                        .requestMatchers("/api/auth/users").permitAll()
+                        .requestMatchers("/api/categories/**").permitAll()
+                        .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/orders/**").permitAll()
+                        .requestMatchers("/api/addresses/**").permitAll()
+                        .requestMatchers("/api/order-items/**").permitAll()
+                        .requestMatchers("/api/deliveries/**").permitAll()
+                        
+                        // Store endpoints
+                        .requestMatchers(HttpMethod.GET, "/api/stores", "/api/stores/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/stores").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/stores/**").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/stores/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/stores/**").hasAnyRole("ADMIN", "USER", "CUSTOMER")
+                        
+                        // Order endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/orders", "/api/orders/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/orders/**").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/orders/**").permitAll()
+                        
+                        // Route endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/routes").permitAll()
+                        
+                        // Delivery endpoints
+                        .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/**").permitAll()
+                        
+                        // Maintenance APIs require authentication
+                        .requestMatchers("/api/drivers/*/maintenance-requests/**").hasAnyRole("ADMIN", "DRIVER")
+                        .requestMatchers("/api/fleet/maintenance-requests/**").hasAnyRole("ADMIN", "FLEET")
+                        .requestMatchers("/api/maintenance-requests/**").hasAnyRole("ADMIN", "DRIVER", "FLEET")
+                        
+                        // Protected endpoints - cần authentication nhưng không cần role cụ thể
+                        .requestMatchers("/api/protected/**").authenticated()
+                        
+                        // Tất cả endpoints khác đều cần authentication
+                        .anyRequest().authenticated()
+                )
+                
+                // Set custom authentication provider
+                .authenticationProvider(authenticationProvider())
+
+                // Thêm JWT filter trước UsernamePasswordAuthenticationFilter
+                // JWT filter sẽ check token trước khi Spring Security check username/password
+.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

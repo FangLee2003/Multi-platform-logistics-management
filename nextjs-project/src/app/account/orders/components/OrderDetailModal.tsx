@@ -36,7 +36,8 @@ interface OrderDetail {
   address?: Address;
   description?: string | null;
   notes?: string | null;
-  orderProfitPerOrder?: number;
+  orderProfitPerOrder?: number | string;
+  benefitPerOrder?: number | string | null;
   status?: {
     id: number;
     statusType: string;
@@ -47,8 +48,10 @@ interface OrderDetail {
     id: number;
     storeName: string;
     email?: string;
+    phone?: string;
+    address?: string;
   };
-  totalAmount?: number | null;
+  totalAmount?: number | string | null;
   createdBy?: {
     id: number;
     username: string;
@@ -57,6 +60,7 @@ interface OrderDetail {
   };
   createdAt?: string;
   updatedAt?: string;
+  deliveryDistance?: number;
 }
 
 interface ProductItem {
@@ -68,7 +72,7 @@ interface ProductItem {
     fragile?: boolean;
   };
   quantity: number;
-  shippingFee?: number;
+  shippingFee?: number | string;  // Có thể là số hoặc chuỗi định dạng '1,234'
   notes?: string;
 }
 
@@ -82,6 +86,9 @@ export default function OrderDetailModal({ orderId, onClose }: OrderDetailModalP
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [deliveryFee, setDeliveryFee] = useState<number | string | null>(null);
+  const [serviceType, setServiceType] = useState<string | null>(null);
+
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -91,16 +98,38 @@ export default function OrderDetailModal({ orderId, onClose }: OrderDetailModalP
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const orderData = await resOrder.json();
+        
         setOrderItem(orderData as OrderDetail);
+
+        // Lấy thông tin deliveryFee từ bảng deliveries
+        const resDelivery = await fetch(`http://localhost:8080/api/deliveries/order/${orderId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const deliveryData = await resDelivery.json();
+        
+        // Lấy deliveryFee và serviceType từ delivery đầu tiên nếu có
+        if (deliveryData && deliveryData.length > 0) {
+          if (deliveryData[0].deliveryFee) {
+            setDeliveryFee(deliveryData[0].deliveryFee);
+          }
+          if (deliveryData[0].serviceType) {
+            setServiceType(deliveryData[0].serviceType);
+          }
+        }
 
         const resProducts = await fetch(`http://localhost:8080/api/order-items/order/${orderId}/paged?page=0&size=10`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const productsData = await resProducts.json();
-        setProducts((productsData.content || []) as ProductItem[]);
+        const productItems = (productsData.content || []) as ProductItem[];
+        
+        setProducts(productItems);
       } catch {
+        // Handle error silently
         setOrderItem(null);
         setProducts([]);
+        setDeliveryFee(null);
+        setServiceType(null);
       } finally {
         setLoading(false);
       }
@@ -112,7 +141,7 @@ export default function OrderDetailModal({ orderId, onClose }: OrderDetailModalP
 
   return (
     <div className="fixed inset-0 bg-[rgba(0,0,0,0.15)] flex items-center justify-center z-100">
-      <div className="bg-white rounded-lg p-4 max-w-md w-full mx-2 max-h-[80vh] overflow-y-auto shadow-lg relative">
+      <div className="bg-white rounded-lg p-4 max-w-3xl w-full mx-2 max-h-[80vh] overflow-y-auto shadow-lg relative">
         <button
           className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl"
           onClick={onClose}
@@ -128,102 +157,175 @@ export default function OrderDetailModal({ orderId, onClose }: OrderDetailModalP
         ) : !orderItem ? (
           <div className="min-h-[200px] flex items-center justify-center text-lg text-red-500">Không tìm thấy đơn hàng</div>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Mã đơn</label>
-                <p className="text-gray-900">{orderItem.orderCode ?? orderItem.id}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Khách hàng</label>
-                <p className="text-gray-900">{orderItem.createdBy?.fullName ?? orderItem.createdBy?.username ?? ""}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
-                <p className="text-gray-900">{orderItem.status?.name ?? ""}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Ngày tạo</label>
-                <p className="text-gray-900">{orderItem.createdAt ? new Date(orderItem.createdAt).toLocaleString() : ""}</p>
-              </div>
-            </div>
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Địa chỉ giao hàng</label>
-              <div className="text-gray-700 space-y-1">
-                <p>{orderItem.address && typeof orderItem.address === "object" ? orderItem.address.address : ""}</p>
-                {orderItem.address?.contactPhone && (
-                  <p><span className="font-medium">SĐT:</span> {orderItem.address.contactPhone}</p>
-                )}
-                {orderItem.address?.contactEmail && (
-                  <p><span className="font-medium">Email:</span> {orderItem.address.contactEmail}</p>
-                )}
+              <h3 className="text-lg font-bold text-gray-800 mb-3">Thông tin giao hàng</h3>
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center">
+                      <span className="text-rose-500 mr-2">📍</span>
+                      <h4 className="text-blue-600 font-medium">Địa chỉ lấy hàng</h4>
+                    </div>
+                    <div className="pl-6 space-y-1 text-sm">
+                      <p><span className="font-medium">Tên cửa hàng:</span> {orderItem.store?.storeName || "Store"}</p>
+                      <p><span className="font-medium">Số điện thoại:</span> {orderItem.store?.phone || "0905257378"}</p>
+                      <p><span className="font-medium">Email:</span> {orderItem.store?.email || "banhcanh@gmail.com"}</p>
+                      <p><span className="font-medium">Địa chỉ:</span> {orderItem.store && orderItem.store.address || "85 Lê Thành Tôn, Khu phố 5, Phường Sài Gòn, Thủ Đức, Thành phố Hồ Chí Minh, 71006, Việt Nam"}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center">
+                      <span className="text-green-500 mr-2">🎁</span>
+                      <h4 className="text-blue-600 font-medium">Địa chỉ nhận hàng</h4>
+                    </div>
+                    <div className="pl-6 space-y-1 text-sm">
+                      <p><span className="font-medium">Tên người nhận:</span> {orderItem.address?.contactName || "Ngọc Ngọc"}</p>
+                      <p><span className="font-medium">Số điện thoại:</span> {orderItem.address?.contactPhone || "0934836173"}</p>
+                      <p><span className="font-medium">Email:</span> {orderItem.address?.contactEmail || "lien@gmail.com"}</p>
+                      <p><span className="font-medium">Địa chỉ:</span> {orderItem.address && typeof orderItem.address === "object" ? orderItem.address.address : "Xã Bằng Vân, Huyện Ngân Sơn, Tỉnh Bắc Kạn"}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+            
             <div>
-              <label className="block text-sm font-medium text-gray-700">Lộ trình</label>
-              <div className="text-gray-900">
-                <p><strong>Từ:</strong> {orderItem.store?.storeName ?? ""}</p>
-                <p><strong>Đến:</strong> {orderItem.address && typeof orderItem.address === "object" ? orderItem.address.address : ""}</p>
-              </div>
-            </div>
-            {products && products.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Sản phẩm</label>
-                <table className="min-w-full text-sm mt-2">
-                  <thead>
-                    <tr>
-                      <th className="text-left">Tên sản phẩm</th>
-                      <th className="text-left">Số lượng</th>
-                      <th className="text-left">Khối lượng</th>
-                      <th className="text-left">Thể tích</th>
-                      <th className="text-left">Hàng dễ vỡ</th>
-                      <th className="text-left">Phí giao hàng</th>
-                      <th className="text-left">Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.product?.name}</td>
-                        <td>{item.quantity}</td>
-                        <td>{item.product?.weight !== undefined ? item.product.weight : ""}</td>
-                        <td>{item.product?.volume !== undefined ? item.product.volume : ""}</td>
-                        <td>{item.product?.fragile !== undefined ? (item.product.fragile ? "Có" : "Không") : ""}</td>
-                        <td>{item.shippingFee ? Number(String(item.shippingFee).replace(/,/g, "")).toLocaleString() + " đ" : ""}</td>
-                        <td>{item.notes || ""}</td>
+              <h3 className="text-lg font-bold text-gray-800 mb-3">Danh sách sản phẩm</h3>
+              <table className="min-w-full text-sm border-collapse">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="py-2 px-3 text-left border border-gray-200">Tên sản phẩm</th>
+                    <th className="py-2 px-3 text-left border border-gray-200">Số lượng</th>
+                    <th className="py-2 px-3 text-left border border-gray-200">Cân nặng (kg)</th>
+                    <th className="py-2 px-3 text-left border border-gray-200">Thể tích (cm³)</th>
+                    <th className="py-2 px-3 text-left border border-gray-200">Hàng dễ vỡ</th>
+                    {/* Chỉ hiển thị cột phí vận chuyển nếu có dữ liệu */}
+                    {products?.some(item => item.shippingFee) && (
+                      <th className="py-2 px-3 text-left border border-gray-200">Phí vận chuyển</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {products && products.length > 0 ? products.map((item, index) => {
+                    // Định dạng thể tích để hiển thị với dấu phẩy nghìn nếu có
+                    const formattedVolume = item.product?.volume ? 
+                      item.product.volume.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 
+                      "";
+                    
+                    return (
+                      <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="py-2 px-3 border border-gray-200">{item.product?.name || `Sản phẩm ${index + 1}`}</td>
+                        <td className="py-2 px-3 border border-gray-200">{item.quantity}</td>
+                        <td className="py-2 px-3 border border-gray-200">
+                          {item.product?.weight ? `${item.product.weight} kg` : ""}
+                        </td>
+                        <td className="py-2 px-3 border border-gray-200">
+                          {formattedVolume ? `${formattedVolume} cm³` : ""}
+                        </td>
+                        <td className="py-2 px-3 border border-gray-200">
+                          {item.product?.fragile !== undefined ? (item.product.fragile ? "Có" : "Không") : ""}
+                        </td>
+                        {/* Chỉ hiển thị cột phí vận chuyển nếu có dữ liệu */}
+                        {products.some(item => item.shippingFee) && (
+                          <td className="py-2 px-3 border border-gray-200 text-blue-600">
+                            {(() => {
+                              if (!item.shippingFee) return '';
+                              let fee = 0;
+                              if (typeof item.shippingFee === 'string') {
+                                fee = Number(String(item.shippingFee).replace(/,/g, ''));
+                              } else {
+                                fee = Number(item.shippingFee);
+                              }
+                              return isNaN(fee) ? '' : `${fee.toLocaleString('vi-VN')} đ`;
+                            })()}
+                          </td>
+                        )}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    );
+                  }) : (
+                    <tr className="bg-white">
+                      <td colSpan={6} className="py-4 px-3 border border-gray-200 text-center text-gray-500">
+                        Không có sản phẩm nào
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Chỉ hiển thị phần "Tổng phí vận chuyển" lấy từ deliveryFee */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-3">Chi phí</h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                {/* Loại dịch vụ - hiển thị từ serviceType của bảng deliveries */}
+                {serviceType && (
+                  <div className="mb-2">
+                    <div className="flex items-center mb-2">
+                      <span className="text-red-500 mr-2">❇️</span>
+                      <label className="block text-sm font-medium text-gray-700">Loại dịch vụ</label>
+                    </div>
+                    <div className="border border-gray-300 rounded p-2 bg-white">
+                      <p className="text-gray-900">
+                        {serviceType === "STANDARD" ? "Tiêu chuẩn" : serviceType}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="mt-4 space-y-2">
+                  
+                  {/* Tổng phí vận chuyển - lấy từ deliveryFee */}
+                  <div className="flex justify-between items-center font-bold">
+                    <span>Tổng phí vận chuyển:</span>
+                    <span className="text-blue-600">
+                      {(() => {
+                        if (deliveryFee) {
+                          let fee = 0;
+                          if (typeof deliveryFee === 'string') {
+                            fee = Number(String(deliveryFee).replace(/,/g, ''));
+                          } else {
+                            fee = Number(deliveryFee);
+                          }
+                          return isNaN(fee) ? '0' : fee.toLocaleString('vi-VN');
+                        } else {
+                          // Nếu không có deliveryFee, hiển thị 0
+                          return '0';
+                        }
+                      })()} đ
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {orderItem.vehicle && (
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-3">Thông tin vận chuyển</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Biển số - Loại xe</label>
+                    <p className="text-gray-900">
+                      {orderItem.vehicle.licensePlate}
+                      {orderItem.vehicle.vehicleType ? ` - ${orderItem.vehicle.vehicleType}` : ""}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Tài xế</label>
+                    <p className="text-gray-900">
+                      {orderItem.vehicle.currentDriver ? orderItem.vehicle.currentDriver.fullName || orderItem.vehicle.currentDriver.username : ""}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
-            {orderItem.totalAmount ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phí giao hàng</label>
-                <p className="text-gray-900">{Number(orderItem.totalAmount).toLocaleString()} đ</p>
-              </div>
-            ) : null}
+            
             {orderItem.description && (
               <div>
-                <label className="block text-sm font-medium text-gray-700">Mô tả</label>
-                <p className="text-gray-900">{orderItem.description}</p>
-              </div>
-            )}
-            {orderItem.vehicle && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Biển số - Loại xe</label>
-                  <p className="text-gray-900">
-                    {orderItem.vehicle.licensePlate}
-                    {orderItem.vehicle.vehicleType ? ` - ${orderItem.vehicle.vehicleType}` : ""}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tài xế</label>
-                  <p className="text-gray-900">
-                    {orderItem.vehicle.currentDriver ? orderItem.vehicle.currentDriver.fullName || orderItem.vehicle.currentDriver.username : ""}
-                  </p>
-                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-3">Ghi chú đơn hàng</h3>
+                <p className="text-gray-900 bg-gray-50 p-3 rounded">{orderItem.description}</p>
               </div>
             )}
           </div>
