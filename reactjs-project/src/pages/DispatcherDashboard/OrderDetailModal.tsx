@@ -32,6 +32,10 @@ interface OrderDetailModalProps {
       fullName?: string;
       username: string;
     };
+    addressDetail?: {
+      contactName?: string;
+      contactPhone?: string;
+    };
   } | null;
   products?: ProductItem[];
   deliveryFee?: number;
@@ -42,6 +46,32 @@ interface OrderDetailModalProps {
 
 export default function OrderDetailModal({ open, onClose, orderItem, products, deliveryFee, productsPage = 0, productsTotalPages = 1, onProductsPageChange }: OrderDetailModalProps) {
   if (!open || !orderItem) return null;
+
+  // Debug log để kiểm tra dữ liệu truyền vào modal
+  console.log('🔍 OrderDetailModal - orderItem received:', orderItem);
+  console.log('🔍 OrderDetailModal - orderItem.addressDetail:', orderItem.addressDetail);
+
+  // Lấy thông tin người nhận từ orderItem.address nếu có dạng object
+  let contactName: string | undefined = undefined;
+  let contactPhone: string | undefined = undefined;
+
+  // Lấy từ orderItem.address nếu có
+  if (orderItem && typeof orderItem.address === 'object' && orderItem.address !== null) {
+    contactName = (orderItem.address as any).contactName;
+    contactPhone = (orderItem.address as any).contactPhone;
+  }
+
+  // Nếu không có, lấy từ orderItem.order.address nếu có
+  if ((!contactName || !contactPhone) && (orderItem as any).order?.address) {
+    contactName = (orderItem as any).order.address.contactName;
+    contactPhone = (orderItem as any).order.address.contactPhone;
+  }
+
+  // Ưu tiên addressDetail từ props, nếu không có thì dùng từ address object hoặc order.address
+  const addressDetail = orderItem.addressDetail || { 
+    contactName: contactName || undefined, 
+    contactPhone: contactPhone || undefined 
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -76,16 +106,40 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
             </div>
           </div>
 
+          {/* Thông tin người nhận */}
+          {(addressDetail?.contactName || addressDetail?.contactPhone) && (
+            <div className="grid grid-cols-2 gap-4">
+              {addressDetail?.contactName && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tên người nhận</label>
+                  <p className="text-gray-900">{addressDetail.contactName}</p>
+                </div>
+              )}
+              {addressDetail?.contactPhone && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Số điện thoại người nhận</label>
+                  <p className="text-gray-900">{addressDetail.contactPhone}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700">Địa chỉ giao hàng</label>
-            <p className="text-gray-900">{orderItem.address}</p>
+            <p className="text-gray-900">
+              {typeof orderItem.address === 'object' && orderItem.address !== null
+                ? (orderItem.address as any).address
+                : orderItem.address}
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Lộ trình</label>
             <div className="text-gray-900">
               <p><strong>Từ:</strong> {orderItem.from}</p>
-              <p><strong>Đến:</strong> {orderItem.to}</p>
+              <p><strong>Đến:</strong> {orderItem.to}
+                {typeof orderItem.address === 'object' && (orderItem.address as any)?.city ? ", " + (orderItem.address as any).city : ""}
+              </p>
             </div>
           </div>
 
@@ -123,7 +177,6 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
                   ))}
                 </tbody>
               </table>
-              
               {/* Phân trang cho sản phẩm */}
               {productsTotalPages > 1 && onProductsPageChange && (
                 <div className="flex justify-center items-center gap-2 mt-4">

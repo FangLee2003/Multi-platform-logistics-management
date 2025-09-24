@@ -44,7 +44,6 @@ public class DeliveryTracking {
 
     @ManyToOne
     @JoinColumn(name = "delivery_id", nullable = true)
-    @com.fasterxml.jackson.annotation.JsonIgnore
     private Delivery delivery;
 
     @ManyToOne
