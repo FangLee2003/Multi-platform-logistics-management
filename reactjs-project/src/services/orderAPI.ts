@@ -1,5 +1,3 @@
-import { triggerOrderCreated, triggerOrderUpdated } from '../utils/dashboardTriggers';
-
 // Tìm đơn hàng theo ID
 export async function fetchOrderById(orderId: string | number, token?: string): Promise<Order | null> {
   const authToken = token || localStorage.getItem("token") || "";
@@ -57,13 +55,7 @@ export async function addOrder(order: Partial<Order>): Promise<Order> {
     body: JSON.stringify(order),
   });
   if (!res.ok) throw new Error("Failed to add order");
-  
-  const result = await res.json();
-  
-  // Trigger dashboard update sau khi tạo order thành công
-  triggerOrderCreated();
-  
-  return result;
+  return res.json();
 }
 
 
@@ -95,13 +87,7 @@ export async function updateOrderVehicle(orderId: string | number, vehicleId: nu
     }),
   });
   if (!res.ok) throw new Error("Failed to update order vehicle");
-  
-  const result = await res.json();
-  
-  // Trigger dashboard update sau khi cập nhật order thành công
-  triggerOrderUpdated();
-  
-  return result;
+  return res.json();
 }
 
 
