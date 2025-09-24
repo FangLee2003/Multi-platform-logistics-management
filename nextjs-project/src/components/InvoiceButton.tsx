@@ -60,9 +60,15 @@ export default function InvoiceButton({
 
 				// Check eligibility with backend
 				const eligibility = await invoiceService.checkEligibility(orderId)
-				setIsEligible(eligibility.eligible)
+				
+				if (eligibility && typeof eligibility.eligible === 'boolean') {
+					setIsEligible(eligibility.eligible)
+				} else {
+					console.error(`Invalid eligibility response for order ${orderId}:`, eligibility)
+					setIsEligible(false)
+				}
 			} catch (error) {
-				console.error('Error checking invoice eligibility:', error)
+				console.error('Error checking invoice eligibility for order', orderId, ':', error)
 				setIsEligible(false)
 			}
 		}
@@ -316,6 +322,24 @@ export default function InvoiceButton({
 		return isEligible === true
 	}
 
+	// Show loading state while checking eligibility
+	if (isEligible === null) {
+		return (
+			<>
+				{contextHolder}
+				<Tooltip title="Đang kiểm tra điều kiện...">
+					<Button
+						type={type}
+						size={size}
+						icon={<FilePdfOutlined />}
+						disabled={true}
+						loading={true}
+					/>
+				</Tooltip>
+			</>
+		)
+	}
+
 	if (!shouldShowButton()) {
 		return null
 	}
@@ -323,7 +347,7 @@ export default function InvoiceButton({
 	return (
 		<>
 			{contextHolder}
-			<Tooltip title="Hóa đơn điện tử">
+			<Tooltip title={invoice ? "Tải hóa đơn có sẵn" : "Tạo và tải hóa đơn"}>
 				<Button
 					type={type}
 					size={size}
