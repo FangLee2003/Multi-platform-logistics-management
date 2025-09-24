@@ -12,8 +12,7 @@ export default function RegisterPage() {
     if (typeof window !== "undefined") {
       localStorage.setItem("user", JSON.stringify(response.user));
       localStorage.setItem("token", response.token);
-      // Redirect directly to dashboard
-      router.push("/account");
+      // KHÔNG chuyển trang tự động, để RegisterForm xử lý luồng QR/OTP
     }
   };
 
