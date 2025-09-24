@@ -2,6 +2,7 @@ package ktc.spring_project.repositories;
 
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
 import ktc.spring_project.entities.Order;
+import ktc.spring_project.entities.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,9 +26,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStore_Id(Long storeId);
     List<Order> findByCreatedBy_Id(Long createdBy);
 
+    // Find orders by status with pagination
+    Page<Order> findByStatus(Status status, Pageable pageable);
+
     // Query các đơn hàng có trạng thái AVAILABLE
     @Query("SELECT o FROM Order o WHERE o.status.name = 'AVAILABLE'")
     List<Order> findAvailableOrders();
+
+    // Đếm orders theo khoảng thời gian (tối ưu cho dashboard)
+    long countByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
 
     // Query các đơn hàng theo tên trạng thái, mới nhất lên đầu
     // @Query("SELECT o FROM Order o WHERE o.status.name = :statusName ORDER BY o.createdAt DESC")
@@ -222,4 +229,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.store.id = :storeId AND o.status.name = 'Completed'")
     long countCompletedOrdersByStoreId(@Param("storeId") Long storeId);
+
+    // Count all completed orders (for performance metrics)
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status.name = 'Completed'")
+    long countAllCompletedOrders();
 }

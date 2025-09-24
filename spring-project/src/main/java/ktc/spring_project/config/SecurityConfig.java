@@ -102,6 +102,7 @@ authProvider.setUserDetailsService(userDetailsService);
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
                 // Cấu hình CORS để frontend có thể gọi API
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -205,6 +206,7 @@ authProvider.setUserDetailsService(userDetailsService);
         // Apply configuration cho tất cả API endpoints
         org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
+        source.registerCorsConfiguration("/api/sse/**", configuration);  // Explicit CORS for SSE
         return source;
     }
 }

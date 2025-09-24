@@ -53,6 +53,10 @@ public class DeliveryTrackingService {
         return deliveryTrackingRepository.findByVehicleIdAndDeliveryId(vehicleId, deliveryId);
     }
     
+    public List<DeliveryTracking> findByDeliveryId(Long deliveryId) {
+        return deliveryTrackingRepository.findByDeliveryId(deliveryId);
+    }
+    
     /**
      * Update the location and optionally the status of a delivery
      */

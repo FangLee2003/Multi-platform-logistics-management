@@ -3,7 +3,7 @@ import OrderDetailModal from "./OrderDetailModal";
 import { fetchOrderItemsByOrderIdPaged, fetchOrdersTotalQuantityBatch } from "../../services/OrderItemAPI";
 import type { ProductItem } from "../../services/OrderItemAPI";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchOrdersRaw, updateOrderVehicle } from "../../services/OrderAPI";
+import { fetchOrdersRaw, updateOrderVehicle, fetchOrderById } from "../../services/OrderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
 import { FaUserCog, FaCheck, FaTimes, FaCar } from "react-icons/fa";
@@ -43,6 +43,11 @@ type OrderType = {
     };
   } | null;
   createdAt: string;
+  addressDetail?: {
+    contactName?: string;
+    contactPhone?: string;
+  };
+  order?: any; // Thêm order gốc để modal lấy contactName/contactPhone
 };
 
 // interface OrdersAssignmentProps {
@@ -167,21 +172,46 @@ export default function OrdersAssignment(_props: any) {
   // Map dữ liệu orders - server trả về { data: [], total: number }
   const data = (Array.isArray((ordersPage as { data: unknown[]; total: number })?.data) ? (ordersPage as { data: unknown[]; total: number }).data : []).map((item: unknown): OrderType => {
     const orderItem = item as Record<string, unknown>;
-    
     // Debug log để kiểm tra structure
     if (import.meta.env.DEV) {
       console.log('🔍 OrderAssignment: Raw order item:', orderItem);
     }
-    
+    let addressValue: any = orderItem.address;
+    // Nếu address là object, truyền nguyên object vào orderItem.address và lấy contactName/contactPhone
+    let addressField: any = addressValue;
+    let addressDetail: { contactName?: string; contactPhone?: string } | undefined = undefined;
+
+    // Debug log để kiểm tra structure của address
+    if (import.meta.env.DEV) {
+      console.log('🔍 OrderAssignment: addressValue:', addressValue);
+      console.log('🔍 OrderAssignment: addressValue type:', typeof addressValue);
+    }
+
+    if (addressValue && typeof addressValue === 'object') {
+      addressDetail = {
+        contactName: (addressValue as any).contactName,
+        contactPhone: (addressValue as any).contactPhone,
+      };
+      addressField = addressValue; // truyền nguyên object
+      
+      // Debug log contact info extraction
+      if (import.meta.env.DEV) {
+        console.log('🔍 OrderAssignment: extracted contactName:', (addressValue as any).contactName);
+        console.log('🔍 OrderAssignment: extracted contactPhone:', (addressValue as any).contactPhone);
+        console.log('🔍 OrderAssignment: addressDetail final:', addressDetail);
+      }
+    } else {
+      addressField = addressValue || orderItem.toAddress || orderItem.to || "";
+    }
     return {
       id: Number(orderItem.id),
       code: (orderItem.code || orderItem.orderCode || orderItem.id) as string,
       customer: (orderItem.customer || (orderItem.store as { storeName: string })?.storeName || "") as string,
-      address: ((orderItem.address as { address: string })?.address || orderItem.toAddress || orderItem.to || "") as string,
+      address: addressField,
       note: (orderItem.note || "") as string,
       date: (orderItem.date || (orderItem.createdAt as string)?.slice(0, 10) || "") as string,
       from: (orderItem.from || orderItem.fromAddress || (orderItem.store as { address: string })?.address || "") as string,
-      to: (orderItem.to || orderItem.toAddress || (orderItem.address as { address: string })?.address || "") as string,
+      to: (orderItem.to || orderItem.toAddress || (typeof addressValue === 'object' && addressValue !== null && 'address' in addressValue ? (addressValue as any).address : addressValue) || "") as string,
       description: (orderItem.description || "") as string,
       status: ((orderItem.status as { name: string })?.name || orderItem.status || "") as string,
       priority: (orderItem.priority || (orderItem.status as { statusType: string })?.statusType || "") as string,
@@ -214,6 +244,8 @@ export default function OrdersAssignment(_props: any) {
         } : undefined,
       } : null),
       createdAt: (orderItem.createdAt || "") as string,
+      addressDetail,
+      order: orderItem, // Thêm order gốc để modal lấy contactName/contactPhone
     };
   });
   const totalOrders =
@@ -383,10 +415,40 @@ export default function OrdersAssignment(_props: any) {
 
   // Hàm mở modal chi tiết đơn hàng, fetch thêm sản phẩm và deliveryFee
   const handleOpenDetail = async (order: OrderType) => {
-    setDetailOrder(order);
-    setOrderProductsPage(0);
-    setDetailOpen(true);
-    fetchOrderProductsPaged(order.id, 0);
+    try {
+      // Fetch order detail từ API để lấy đầy đủ thông tin
+      const orderDetail = await fetchOrderById(order.id);
+      
+      // Lấy contact info từ order detail nếu có
+      const contactName = orderDetail?.address?.contactName;
+      const contactPhone = orderDetail?.address?.contactPhone;
+      
+      console.log('🔍 OrderAssignment: orderDetail from API:', orderDetail);
+      console.log('🔍 OrderAssignment: contactName from API:', contactName);
+      console.log('🔍 OrderAssignment: contactPhone from API:', contactPhone);
+      
+      // Cập nhật order với contact info
+      const orderWithContact = {
+        ...order,
+        addressDetail: {
+          contactName,
+          contactPhone
+        }
+      };
+      
+      setDetailOrder(orderWithContact);
+      setOrderProductsPage(0);
+      setDetailOpen(true);
+      
+      // Fetch products như cũ
+      fetchOrderProductsPaged(order.id, 0);
+    } catch (error) {
+      console.error('Error fetching order detail:', error);
+      setDetailOrder(order);
+      setOrderProductsPage(0);
+      setDetailOpen(true);
+      fetchOrderProductsPaged(order.id, 0);
+    }
   };
 
   // Hàm fetch sản phẩm theo trang
@@ -459,6 +521,14 @@ export default function OrdersAssignment(_props: any) {
                 username: detailOrder.currentDriver.username,
               }
             : undefined,
+          addressDetail: (detailOrder && detailOrder.addressDetail) 
+            ? detailOrder.addressDetail
+            : (typeof detailOrder.address === 'object' && detailOrder.address !== null)
+            ? {
+                contactName: (detailOrder.address as any).contactName,
+                contactPhone: (detailOrder.address as any).contactPhone,
+              }
+            : undefined,
         } : null}
         products={orderProducts}
         deliveryFee={deliveryFee}
@@ -528,8 +598,18 @@ export default function OrdersAssignment(_props: any) {
                             className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm ml-2
                               ${order.status === 'Pending'
                                 ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                : order.status === 'Processing'
+                                ? 'bg-purple-100 text-purple-800 border-purple-300'
+                                : order.status === 'Shipped'
+                                ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                : order.status === 'Delivered'
+                                ? 'bg-green-100 text-green-800 border-green-300'
                                 : order.status === 'Completed'
                                 ? 'bg-green-100 text-green-800 border-green-300'
+                                : order.status === 'Cancelled'
+                                ? 'bg-red-100 text-red-800 border-red-300'
+                                : order.status === 'FAILED'
+                                ? 'bg-red-100 text-red-800 border-red-300'
                                 : 'bg-gray-100 text-gray-700 border-gray-300'}
                             `}
                           >
@@ -552,7 +632,10 @@ export default function OrdersAssignment(_props: any) {
                       <td className="p-5 align-top min-w-[180px]">
                         <div className="text-sm text-gray-700">
                           <div><span className="font-semibold text-blue-700">Từ:</span> {order.from}</div>
-                          <div><span className="font-semibold text-blue-700">Đến:</span> {order.to}</div>
+                          <div>
+                            <span className="font-semibold text-blue-700">Đến:</span> {order.to}
+                            {typeof order.address === 'object' && (order.address as any)?.city ? `, ${(order.address as any).city}` : ""}
+                          </div>
                         </div>
                       </td>
                       <td className="p-5 align-top">

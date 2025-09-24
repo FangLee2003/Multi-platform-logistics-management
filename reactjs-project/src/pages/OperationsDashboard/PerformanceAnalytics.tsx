@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import GlassCard from '../../components/GlassCard';
 import PerformanceStatCards from './PerformanceStatCards';
 import RecentOrdersTable from './RecentOrdersTable';
@@ -6,229 +6,142 @@ import GlassButton from '../../components/GlassButton';
 import { operationsAPI} from '../../services/operationsAPI';
 import type { Order } from '../../types/dashboard';
 
+const ITEMS_PER_PAGE = 10;
+
 interface PerformanceMetrics {
   deliverySuccessRate: number;
   avgDeliveryTime: number;
   costPerKm: number;
-  customerSatisfaction: number;
+  totalDistanceKm: number;
   onTimeDeliveryRate: number;
   fuelEfficiency: number;
   target: {
     deliverySuccessRate: number;
     avgDeliveryTime: number;
     costPerKm: number;
-    customerSatisfaction: number;
   };
 }
 
 export default function PerformanceAnalytics() {
-  const [selectedMetric, setSelectedMetric] = useState('delivery');
-  const [timeRange, setTimeRange] = useState('7d');
+  // Hàm làm mới dữ liệu hiệu suất và đơn hàng
+  const handleRefresh = async () => {
+    setLoading(true);
+    setOrdersLoading(true);
+    await Promise.all([
+      fetchMetricsData(),
+      fetchOrdersData(0, selectedStatus)
+    ]);
+    setLoading(false);
+    setOrdersLoading(false);
+    setCurrentPage(0);
+  };
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchPerformanceData = async () => {
+  // Trạng thái filter (khớp với backend status mapping)
+  const [selectedStatus, setSelectedStatus] = useState<string>('Tất cả');
+  const statusOptions = [
+    'Tất cả',
+    'Chờ xử lý',      // Pending (ID: 1)
+    'Đang xử lý',     // Processing (ID: 4)
+    'Đang giao',      // Shipped (ID: 5)
+    'Hoàn thành',     // Completed (ID: 2)
+    'Đã hủy',         // Cancelled (ID: 3)
+  ];
+
+  // Server-side pagination states
+  const [currentPage, setCurrentPage] = useState(0); // 0-based for API
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  const fetchMetricsData = useCallback(async () => {
     try {
       setLoading(true);
-      const [metricsData, ordersData] = await Promise.all([
-        operationsAPI.getPerformanceMetrics(timeRange),
-        operationsAPI.getOrders({ limit: 10 })
-      ]);
-      setMetrics(metricsData);
-      setRecentOrders(ordersData);
+      
+      // Call real API endpoint for performance metrics
+      const response = await fetch('http://localhost:8080/api/operations/performance-metrics', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metrics: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setMetrics(data);
       setError('');
-    } catch {
-      setError('Không thể tải dữ liệu hiệu suất. Sử dụng dữ liệu mẫu.');
-      // Fallback data
+      
+      console.log('📊 Performance metrics from API:', data);
+      
+    } catch (error) {
+      console.error('Failed to fetch metrics data:', error);
+      
+      // Fallback to sample data if API fails
       setMetrics({
         deliverySuccessRate: 94.5,
-        avgDeliveryTime: 28,
+        avgDeliveryTime: 45, // 45 minutes
         costPerKm: 12500,
-        customerSatisfaction: 4.6,
+        totalDistanceKm: 2500, // 2500 km total transported
         onTimeDeliveryRate: 87.3,
         fuelEfficiency: 8.5,
         target: {
           deliverySuccessRate: 95,
-          avgDeliveryTime: 30,
+          avgDeliveryTime: 60, // 60 minutes target
           costPerKm: 13000,
-          customerSatisfaction: 4.5,
         }
       });
-      setRecentOrders([
-        { 
-          id: 'DH001', 
-          customerName: 'Công ty ABC',
-          customerPhone: '0912345678',
-          pickupAddress: 'Hà Nội', 
-          deliveryAddress: 'Hải Phòng', 
-          status: 'DELIVERED', 
-          priority: 'HIGH',
-          estimatedDeliveryTime: '2024-08-08T16:00:00Z',
-          actualDeliveryTime: '2024-08-08T15:30:00Z',
-          weight: 500,
-          value: 2000000,
-          createdAt: '2024-08-08T08:00:00Z',
-          updatedAt: '2024-08-08T15:30:00Z',
-          assignedVehicle: 'VT-001',
-          assignedDriver: 'D001'
-        },
-        { 
-          id: 'DH002', 
-          customerName: 'Cửa hàng XYZ',
-          customerPhone: '0987654321',
-          pickupAddress: 'Hà Nội', 
-          deliveryAddress: 'Hưng Yên', 
-          status: 'IN_TRANSIT', 
-          priority: 'MEDIUM',
-          estimatedDeliveryTime: '2024-08-08T18:00:00Z',
-          weight: 200,
-          value: 800000,
-          createdAt: '2024-08-08T10:00:00Z',
-          updatedAt: '2024-08-08T14:00:00Z',
-          assignedVehicle: 'VV-001',
-          assignedDriver: 'D002'
-        },
-        { 
-          id: 'DH003', 
-          customerName: 'Nhà máy DEF',
-          customerPhone: '0123456789',
-          pickupAddress: 'Hà Nội', 
-          deliveryAddress: 'Quảng Ninh', 
-          status: 'DELIVERED', 
-          priority: 'LOW',
-          estimatedDeliveryTime: '2024-08-08T20:00:00Z',
-          actualDeliveryTime: '2024-08-08T19:45:00Z',
-          weight: 1000,
-          value: 5000000,
-          createdAt: '2024-08-08T07:00:00Z',
-          updatedAt: '2024-08-08T19:45:00Z',
-          assignedVehicle: 'VT-003'
-        },
-        { 
-          id: 'DH004', 
-          customerName: 'Siêu thị GHI',
-          customerPhone: '0456789123',
-          pickupAddress: 'Hà Nội', 
-          deliveryAddress: 'Bắc Ninh', 
-          status: 'DELIVERED', 
-          priority: 'URGENT',
-          estimatedDeliveryTime: '2024-08-08T14:00:00Z',
-          actualDeliveryTime: '2024-08-08T16:30:00Z',
-          weight: 300,
-          value: 1500000,
-          createdAt: '2024-08-08T09:00:00Z',
-          updatedAt: '2024-08-08T16:30:00Z',
-          assignedVehicle: 'VT-002'
-        },
-      ]);
+      setError('Đang sử dụng dữ liệu mẫu do lỗi kết nối API.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Function to fetch orders data separately
+  const fetchOrdersData = useCallback(async (page: number, status?: string) => {
+    try {
+      setOrdersLoading(true);
+      const ordersResponse = await operationsAPI.getOrdersForOperations(page, ITEMS_PER_PAGE, status);
+      
+      setRecentOrders(ordersResponse.content);
+      setTotalPages(ordersResponse.totalPages);
+      setTotalElements(ordersResponse.totalElements);
+    } catch (err) {
+      setError('Lỗi khi tải danh sách đơn hàng');
+      console.error('Error fetching orders:', err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
+
+  // Function to handle page change
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
+    fetchOrdersData(newPage, selectedStatus);
+  }, [selectedStatus, fetchOrdersData]);
+
+  // Function to handle status filter change
+  const handleStatusChange = useCallback((status: string) => {
+    setSelectedStatus(status);
+    setCurrentPage(0); // Reset to first page when filter changes
+    fetchOrdersData(0, status); // Fetch with new filter
+  }, [fetchOrdersData]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [metricsData, ordersData] = await Promise.all([
-          operationsAPI.getPerformanceMetrics(timeRange),
-          operationsAPI.getOrders({ limit: 10 })
-        ]);
-        setMetrics(metricsData);
-        setRecentOrders(ordersData);
-        setError('');
-      } catch {
-        setError('Không thể tải dữ liệu hiệu suất. Sử dụng dữ liệu mẫu.');
-        // Fallback data
-        setMetrics({
-          deliverySuccessRate: 94.5,
-          avgDeliveryTime: 28,
-          costPerKm: 12500,
-          customerSatisfaction: 4.6,
-          onTimeDeliveryRate: 87.3,
-          fuelEfficiency: 8.5,
-          target: {
-            deliverySuccessRate: 95,
-            avgDeliveryTime: 30,
-            costPerKm: 13000,
-            customerSatisfaction: 4.5,
-          }
-        });
-        setRecentOrders([
-          { 
-            id: 'DH001', 
-            customerName: 'Công ty ABC',
-            customerPhone: '0912345678',
-            pickupAddress: 'Hà Nội', 
-            deliveryAddress: 'Hải Phòng', 
-            status: 'DELIVERED', 
-            priority: 'HIGH',
-            estimatedDeliveryTime: '2024-08-08T16:00:00Z',
-            actualDeliveryTime: '2024-08-08T15:30:00Z',
-            weight: 500,
-            value: 2000000,
-            createdAt: '2024-08-08T08:00:00Z',
-            updatedAt: '2024-08-08T15:30:00Z',
-            assignedVehicle: 'VT-001',
-            assignedDriver: 'D001'
-          },
-          { 
-            id: 'DH002', 
-            customerName: 'Cửa hàng XYZ',
-            customerPhone: '0987654321',
-            pickupAddress: 'Hà Nội', 
-            deliveryAddress: 'Hưng Yên', 
-            status: 'IN_TRANSIT', 
-            priority: 'MEDIUM',
-            estimatedDeliveryTime: '2024-08-08T18:00:00Z',
-            weight: 200,
-            value: 800000,
-            createdAt: '2024-08-08T10:00:00Z',
-            updatedAt: '2024-08-08T14:00:00Z',
-            assignedVehicle: 'VV-001',
-            assignedDriver: 'D002'
-          },
-          { 
-            id: 'DH003', 
-            customerName: 'Nhà máy DEF',
-            customerPhone: '0123456789',
-            pickupAddress: 'Hà Nội', 
-            deliveryAddress: 'Quảng Ninh', 
-            status: 'DELIVERED', 
-            priority: 'LOW',
-            estimatedDeliveryTime: '2024-08-08T20:00:00Z',
-            actualDeliveryTime: '2024-08-08T19:45:00Z',
-            weight: 1000,
-            value: 5000000,
-            createdAt: '2024-08-08T07:00:00Z',
-            updatedAt: '2024-08-08T19:45:00Z',
-            assignedVehicle: 'VT-003'
-          },
-          { 
-            id: 'DH004', 
-            customerName: 'Siêu thị GHI',
-            customerPhone: '0456789123',
-            pickupAddress: 'Hà Nội', 
-            deliveryAddress: 'Bắc Ninh', 
-            status: 'DELIVERED', 
-            priority: 'URGENT',
-            estimatedDeliveryTime: '2024-08-08T14:00:00Z',
-            actualDeliveryTime: '2024-08-08T16:30:00Z',
-            weight: 300,
-            value: 1500000,
-            createdAt: '2024-08-08T09:00:00Z',
-            updatedAt: '2024-08-08T16:30:00Z',
-            assignedVehicle: 'VT-002'
-          },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [timeRange]);
+    // Fetch metrics data on initial load and when timeRange changes
+    fetchMetricsData();
+  }, [fetchMetricsData]);
+
+  useEffect(() => {
+    // Fetch orders data when selectedStatus changes
+    fetchOrdersData(0, selectedStatus);
+    setCurrentPage(0); // Reset page when status changes
+  }, [selectedStatus, fetchOrdersData]);
 
   if (loading) {
     return (
@@ -255,58 +168,101 @@ export default function PerformanceAnalytics() {
       metric: 'Chi phí vận chuyển/km', 
       current: metrics.costPerKm, 
       target: metrics.target.costPerKm, 
-      trend: Number((((metrics.target.costPerKm - metrics.costPerKm) / metrics.target.costPerKm) * 100).toFixed(1))
+      trend: Number((((metrics.costPerKm - metrics.target.costPerKm) / metrics.target.costPerKm) * 100).toFixed(1))
     },
     { 
-      metric: 'Mức độ hài lòng KH', 
-      current: metrics.customerSatisfaction, 
-      target: metrics.target.customerSatisfaction, 
-      trend: Number((((metrics.customerSatisfaction - metrics.target.customerSatisfaction) / metrics.target.customerSatisfaction) * 100).toFixed(1))
+      metric: 'Tổng số km đã vận chuyển', 
+      current: metrics.totalDistanceKm, 
+      target: 0, // No target for total distance as it's cumulative
+      trend: 0 // No trend for total distance as it's cumulative
     },
   ] : [];
 
   return (
-    <GlassCard className="space-y-6">
+  <GlassCard className="space-y-6">
       {error && (
         <div className="bg-yellow-500/30 border border-yellow-400/50 text-yellow-800 p-4 rounded-lg">
           ⚠️ {error}
         </div>
       )}
 
-      <div className="flex items-center justify-between">
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-semibold text-gray-800">Phân tích hiệu suất</h2>
-        <div className="flex gap-2">
-          {[
-            { key: 'delivery', label: 'Giao hàng' },
-            { key: 'cost', label: 'Chi phí' },
-            { key: 'time', label: 'Thời gian' },
-            { key: 'quality', label: 'Chất lượng' }
-          ].map((metric) => (
-            <GlassButton
-              key={metric.key}
-              size="sm"
-              variant={selectedMetric === metric.key ? 'primary' : 'secondary'}
-              onClick={() => setSelectedMetric(metric.key)}
-            >
-              {metric.label}
-            </GlassButton>
-          ))}
-          {['24h', '7d', '30d'].map((range) => (
-            <GlassButton
-              key={range}
-              size="sm"
-              variant={timeRange === range ? 'primary' : 'secondary'}
-              onClick={() => setTimeRange(range)}
-            >
-              {range}
-            </GlassButton>
-          ))}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex flex-wrap gap-2">
+            {statusOptions.map((status) => (
+              <GlassButton
+                key={status}
+                size="sm"
+                variant={selectedStatus === status ? 'primary' : 'secondary'}
+                onClick={() => handleStatusChange(status)}
+              >
+                {status}
+              </GlassButton>
+            ))}
+          </div>
+          <GlassButton onClick={handleRefresh} size="sm" variant="primary" className="whitespace-nowrap self-start sm:self-auto" disabled={loading || ordersLoading}>
+            <span className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4.93 19.07a10 10 0 1 0 0-14.14M4 4v5h5"/></svg>
+              Làm mới
+            </span>
+          </GlassButton>
         </div>
       </div>
 
-  <PerformanceStatCards performanceData={performanceData} />
+      <PerformanceStatCards performanceData={performanceData} />
 
-  <RecentOrdersTable orders={recentOrders} onRefresh={fetchPerformanceData} loading={loading} />
+  {/* Bảng đơn hàng - không cần filter nữa vì đã filter ở backend */}
+  <RecentOrdersTable
+    orders={recentOrders}
+  />
+  
+  {/* Pagination Controls */}
+  {totalPages > 1 && (
+    <div className="flex justify-center items-center mt-6 space-x-2">
+      <button
+        onClick={() => handlePageChange(Math.max(currentPage - 1, 0))}
+        disabled={currentPage === 0}
+        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Trước
+      </button>
+      
+      <div className="flex space-x-1">
+        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          const pageNumber = Math.max(0, currentPage - 2) + i;
+          if (pageNumber >= totalPages) return null;
+          
+          return (
+            <button
+              key={pageNumber}
+              onClick={() => handlePageChange(pageNumber)}
+              className={`px-3 py-2 text-sm font-medium rounded-md ${
+                currentPage === pageNumber
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {pageNumber + 1}
+            </button>
+          );
+        })}
+      </div>
+      
+      <button
+        onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages - 1))}
+        disabled={currentPage === totalPages - 1}
+        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Sau
+      </button>
+      
+      <span className="text-sm text-gray-700 ml-4">
+        Trang {currentPage + 1} / {totalPages} ({totalElements} đơn hàng)
+      </span>
+    </div>
+  )}
     </GlassCard>
   );
 }

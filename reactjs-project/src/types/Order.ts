@@ -15,6 +15,8 @@ export interface Address {
   city?: string;
   latitude?: number;
   longitude?: number;
+  contactName?: string;
+  contactPhone?: string;
 }
 
 export interface Driver {
@@ -28,6 +30,18 @@ export interface Vehicle {
   currentDriver?: Driver;
 }
 
+export interface Delivery {
+  id: number;
+  orderId?: number;
+  vehicleId?: number;
+  driverId?: number;
+  transportMode?: string;
+  serviceType?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Order {
   id: number;
   createdAt: string;
@@ -35,5 +49,6 @@ export interface Order {
   store?: Store;
   address?: Address;
   vehicle?: Vehicle;
+  delivery?: Delivery;
   // Thêm các trường khác nếu cần
 }
