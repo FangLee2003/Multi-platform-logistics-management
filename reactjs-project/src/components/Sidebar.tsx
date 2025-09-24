@@ -1,7 +1,7 @@
 import { MdManageAccounts } from "react-icons/md";
 import { RiShieldKeyholeLine } from "react-icons/ri";
 import { AiOutlineSetting, AiOutlineSafetyCertificate } from "react-icons/ai";
-import { FiActivity } from "react-icons/fi";
+import { FiActivity, FiBarChart2, FiHome, FiUsers } from "react-icons/fi";
 import { HiOutlineDocumentReport } from "react-icons/hi";
 import logo from "../assets/logo.png";
 
@@ -37,10 +37,10 @@ const ALL_MENUS: Record<UserRole, MenuItem<any>[]> = {
     { key: "assignment", label: "Assignment", icon: <AiOutlineSetting /> },
   ],
  operations : [
-    { key: "overview", label: "Overview", icon: <MdManageAccounts /> },
-    { key: "performance", label: "Performance", icon: <AiOutlineSafetyCertificate /> },
-    { key: "monitoring", label: "Monitoring", icon: <HiOutlineDocumentReport /> },
-    { key: "staff", label: "Staff", icon: <RiShieldKeyholeLine /> },
+    { key: "overview", label: "Overview", icon: <FiHome /> },
+    { key: "performance", label: "Performance", icon: <FiBarChart2 /> },
+    { key: "monitoring", label: "Monitoring", icon: <FiActivity /> },
+    { key: "staff", label: "Staff", icon: <FiUsers /> },
   ],
   fleet: [
     { key: "vehicles", label: "Quản lý phương tiện", icon: <MdManageAccounts /> },

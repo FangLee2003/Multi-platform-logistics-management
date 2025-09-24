@@ -145,14 +145,16 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100">
-      {/* Sidebar */}
-      <Sidebar
-        activeTab={active}
-        onTabChange={tab => setActive(tab as AdminTab)}
-        role="admin"
-      />
+      {/* Sidebar - Hidden on mobile, visible on md+ */}
+      <div className="hidden md:block">
+        <Sidebar
+          activeTab={active}
+          onTabChange={tab => setActive(tab as AdminTab)}
+          role="admin"
+        />
+      </div>
       {/* Main content */}
-      <main className="flex-1 flex flex-col bg-transparent h-screen">
+      <main className="flex-1 flex flex-col bg-transparent min-h-screen w-full md:w-auto">
         {/* Header */}
         <Navbar
           user={user}
@@ -167,29 +169,62 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   ? "System Logs Dashboard"
                   : "Admin Dashboard"} subtitle={""}         
         />
-        {/* Stats cards - Fixed */}
-        <div className="flex-shrink-0 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-3 md:mt-4 px-4 md:px-10">
+        {/* Mobile Navigation - Tab bar at bottom for mobile */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-white/30 px-4 py-2 z-50">
+          <div className="flex justify-around items-center">
+            <button
+              onClick={() => setActive("users")}
+              className={`flex flex-col items-center py-2 px-1 ${active === "users" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <MdManageAccounts className="text-xl mb-1" />
+              <span className="text-xs">Users</span>
+            </button>
+            <button
+              onClick={() => setActive("roles")}
+              className={`flex flex-col items-center py-2 px-1 ${active === "roles" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <RiShieldKeyholeLine className="text-xl mb-1" />
+              <span className="text-xs">Roles</span>
+            </button>
+            <button
+              onClick={() => setActive("settings")}
+              className={`flex flex-col items-center py-2 px-1 ${active === "settings" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <AiOutlineSafetyCertificate className="text-xl mb-1" />
+              <span className="text-xs">Config</span>
+            </button>
+            <button
+              onClick={() => setActive("logs")}
+              className={`flex flex-col items-center py-2 px-1 ${active === "logs" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <HiOutlineDocumentReport className="text-xl mb-1" />
+              <span className="text-xs">Logs</span>
+            </button>
+          </div>
+        </div>
+        {/* Stats cards - Responsive grid */}
+        <div className="flex-shrink-0 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mt-3 md:mt-4 px-3 md:px-10">
           {stats.map((s, idx) => (
             <div
               key={idx}
-              className="bg-white/40 backdrop-blur-lg border border-white/50 shadow-lg rounded-xl px-6 py-5 flex flex-col justify-between h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl"
+              className="bg-white/40 backdrop-blur-lg border border-white/50 shadow-lg rounded-xl px-3 md:px-6 py-3 md:py-5 flex flex-col justify-between h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl"
             >
-              <div className="text-gray-700 text-base mb-2 font-medium drop-shadow-sm">
+              <div className="text-gray-700 text-xs md:text-base mb-1 md:mb-2 font-medium drop-shadow-sm">
                 {s.label}
               </div>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-blue-900 drop-shadow-sm">
+                <div className="text-lg md:text-2xl font-bold text-blue-900 drop-shadow-sm">
                   {s.value}
                 </div>
-                <div className="flex items-center">{s.icon}</div>
+                <div className="flex items-center text-lg md:text-3xl">{s.icon}</div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-10 pt-3 md:pt-4">
+        {/* Content - Mobile optimized padding */}
+        <div className="flex-1 pb-16 md:pb-0">
+          <div className="p-3 md:p-10 pt-2 md:pt-4">
             {active === "users" && <UserTable onUserCountUpdate={handleUserCountUpdate} />}
             {active === "roles" && <RoleTable />}
             {active === "settings" && <SystemConfigForm />}

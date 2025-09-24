@@ -72,6 +72,7 @@ const getStatusColor = (status: string): string => {
     DELIVERED: "success",
     COMPLETED: "success",
     CANCELLED: "error",
+    FAILED: "error",
   };
   return colorMap[status] || "default";
 };

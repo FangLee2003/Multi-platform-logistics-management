@@ -157,9 +157,19 @@ export default function OrderList() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
                       ${order.status?.name === 'Pending'
                         ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                        : order.status?.name === 'Processing'
+                        ? 'bg-purple-100 text-purple-800 border-purple-300'
+                        : order.status?.name === 'Shipped'
+                        ? 'bg-blue-100 text-blue-800 border-blue-300'
+                        : order.status?.name === 'Delivered'
+                        ? 'bg-green-100 text-green-800 border-green-300'
                         : order.status?.name === 'Completed'
                         ? 'bg-green-100 text-green-800 border-green-300'
-                        : 'bg-blue-100 text-blue-700 border-blue-300'}
+                        : order.status?.name === 'Cancelled'
+                        ? 'bg-red-100 text-red-800 border-red-300'
+                        : order.status?.name === 'FAILED'
+                        ? 'bg-red-100 text-red-800 border-red-300'
+                        : 'bg-gray-100 text-gray-700 border-gray-300'}
                     `}>
                       {order.status?.name}
                     </span>

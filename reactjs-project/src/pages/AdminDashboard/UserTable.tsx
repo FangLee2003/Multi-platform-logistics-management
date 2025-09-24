@@ -446,21 +446,21 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
 
   return (
     <div className="bg-white rounded-xl shadow p-6">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-start sm:items-center mb-4">
         <input
-          className="border rounded px-4 py-2 w-72"
+          className="border rounded px-4 py-2 w-full sm:w-72"
           placeholder="Search user..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <button
-          className="bg-black text-white px-4 py-2 rounded font-bold flex items-center gap-2 hover:bg-gray-800"
+          className="bg-black text-white px-4 py-2 rounded font-bold flex items-center gap-2 hover:bg-gray-800 w-full sm:w-auto justify-center"
           onClick={() => {
             setShowForm(true);
             setEditUser(null);
           }}
         >
-          <span className="text-xl">+</span> Add User
+          <span className="text-xl">+</span> <span className="hidden sm:inline">Add User</span><span className="sm:hidden">Add</span>
         </button>
       </div>
       {showForm && (
@@ -488,15 +488,19 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
                 <th className="py-2 pr-4">Email</th>
                 <th className="py-2 pr-4">Role</th>
                 <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Last Login</th>
+                <th className="py-2 pr-4 hidden sm:table-cell">Last Login</th>
                 <th className="py-2 pr-4">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.map((u, idx) => (
                 <tr key={u.id || idx} className="border-b hover:bg-gray-50">
-                  <td className="py-3 pr-4 font-medium">{u.name}</td>
-                  <td className="py-3 pr-4">{u.email}</td>
+                  <td className="py-3 pr-4 font-medium">
+                    <div className="truncate max-w-32 sm:max-w-none">{u.name}</div>
+                  </td>
+                  <td className="py-3 pr-4">
+                    <div className="truncate max-w-48 sm:max-w-none">{u.email}</div>
+                  </td>
                   <td className="py-3 pr-4">
                     <span
                       className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
@@ -516,48 +520,51 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
                       }`}
                     >
                       {u.roleIcon && <span>{u.roleIcon}</span>}
-                      {u.role}
+                      <span className="hidden sm:inline">{u.role}</span>
+                      <span className="sm:hidden">{u.role.substring(0, 4)}</span>
                     </span>
                   </td>
                   <td className="py-3 pr-4">
                     {u.status === "active" ? (
-                      <span className="inline-flex items-center px-4 py-1 rounded-full bg-white border border-green-300 text-green-700 text-sm font-semibold gap-2">
+                      <span className="inline-flex items-center px-2 sm:px-4 py-1 rounded-full bg-white border border-green-300 text-green-700 text-sm font-semibold gap-2">
                         <span className="w-4 h-4 rounded-full border border-green-300 flex items-center justify-center">
                           <span className="w-2.5 h-2.5 rounded-full bg-green-400 block"></span>
                         </span>
-                        Active
+                        <span className="hidden sm:inline">Active</span>
+                        <span className="sm:hidden">✓</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-4 py-1 rounded-full bg-white border border-gray-300 text-gray-500 text-sm font-semibold gap-2">
+                      <span className="inline-flex items-center px-2 sm:px-4 py-1 rounded-full bg-white border border-gray-300 text-gray-500 text-sm font-semibold gap-2">
                         <span className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center">
                           <span className="w-2.5 h-2.5 rounded-full bg-gray-400 block"></span>
                         </span>
-                        Inactive
+                        <span className="hidden sm:inline">Inactive</span>
+                        <span className="sm:hidden">✗</span>
                       </span>
                     )}
                   </td>
-                  <td className="py-3 pr-4">{u.lastLogin}</td>
-                  <td className="py-3 pr-4 flex gap-2">
+                  <td className="py-3 pr-4 hidden sm:table-cell">{u.lastLogin}</td>
+                  <td className="py-3 pr-4 flex gap-1 sm:gap-2">
                     <button
                       className="p-2 rounded hover:bg-gray-200"
                       title="Edit"
                       onClick={() => handleEditUser(u)}
                     >
-                      <FiEdit size={18} />
+                      <FiEdit size={16} className="sm:w-[18px] sm:h-[18px]" />
                     </button>
                     <button
                       className="p-2 rounded hover:bg-gray-200"
                       title="View"
                       onClick={() => setViewUser(u)}
                     >
-                      <FiEye size={18} />
+                      <FiEye size={16} className="sm:w-[18px] sm:h-[18px]" />
                     </button>
                     <button
                       className="p-2 rounded hover:bg-red-100"
                       title="Delete"
                       onClick={() => handleDeleteUser(u.email)}
                     >
-                      <FiTrash2 size={18} color="#ef4444" />{" "}
+                      <FiTrash2 size={16} className="sm:w-[18px] sm:h-[18px]" color="#ef4444" />{" "}
                       {/* Màu đỏ cho icon xóa */}
                     </button>
                   </td>
@@ -565,8 +572,9 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-gray-400">
-                    No users found.
+                  <td colSpan={6} className="py-6 text-center text-gray-400 sm:table-cell">
+                    <span className="hidden sm:inline">No users found.</span>
+                    <span className="sm:hidden">Không có user</span>
                   </td>
                 </tr>
               )}
