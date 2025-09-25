@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:ktc_logistics_driver/domain/models/order/order_details_response.dart';
 import 'package:ktc_logistics_driver/domain/models/order/order_status_update.dart';
+import 'package:ktc_logistics_driver/domain/models/delivery_proof/delivery_proof.dart';
 import 'package:ktc_logistics_driver/services/orders_services.dart';
+import 'package:ktc_logistics_driver/services/delivery_proof_service.dart';
 
 import '../../design/spatial_ui.dart';
 import '../../components/spatial_button.dart';
 import '../../components/spatial_glass_card.dart';
 import '../../components/status_update_modal.dart';
+import '../../components/delivery_proof_manager.dart';
 import '../../helpers/url_launcher_frave.dart';
 import '../../../services/googlemaps_services.dart';
 import 'package:intl/intl.dart';
 
-// Tab chứa dữ liệu cấu hình
+// Tab containing configuration data
 class OrderTab {
   final String text;
   final Widget Function() contentBuilder;
@@ -38,21 +41,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
   // For order status
   bool _isUpdatingStatus = false;
-  String _selectedStatus = 'CREATED';
+  String _selectedStatus = 'PENDING';
 
   // For API integration
   bool _isLoading = true;
   String _errorMessage = '';
   OrderDetailsResponse? _orderDetails;
 
+  // For delivery proof
+  final DeliveryProofService _deliveryProofService = DeliveryProofService();
+  List<DeliveryProof> _deliveryProofs = [];
+
   @override
   void initState() {
     super.initState();
 
-    // Khởi tạo danh sách tab một lần duy nhất
+    // Initialize tab list once
     _tabs = [
       OrderTab(text: "Overview", contentBuilder: _buildOverviewTab),
-      OrderTab(text: "Items", contentBuilder: _buildItemsTab),
+      OrderTab(text: "Details", contentBuilder: _buildItemsTab),
     ];
 
     _tabController = TabController(length: _tabs.length, vsync: this);
@@ -62,6 +69,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
     // Load order details from API
     _loadOrderDetails();
+
+    // Load delivery proofs if available
+    _loadDeliveryProofs();
   }
 
   @override
@@ -70,10 +80,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     super.dispose();
   }
 
+  // Load delivery proofs for the current order
+  Future<void> _loadDeliveryProofs() async {
+    if (!mounted) return;
+
+    final orderId = int.tryParse(widget.orderId);
+    if (orderId == null) return;
+
+    try {
+      final proofs = await _deliveryProofService.getDeliveryProofs(orderId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _deliveryProofs = proofs;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      print('Error loading delivery proofs: $e');
+    }
+  }
+
+  // No status mapping function - we directly use the statuses from database
+
   // Load order details from API
   Future<void> _loadOrderDetails() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -101,7 +134,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           debugPrint('Address ID: ${orderDetails.address!.id}');
           debugPrint('Address Type: ${orderDetails.address!.addressType}');
         }
-        
+
         // Process delivery data if available
         if (orderDetails.deliveryResponse?.data != null) {
           final deliveryData = orderDetails.deliveryResponse!.data!;
@@ -131,7 +164,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             final startLoc =
                 deliveryData['startLocation'] as Map<String, dynamic>;
             if (startLoc.containsKey('lat') && startLoc.containsKey('lng')) {
-              debugPrint('Start location from API: ${startLoc['lat']},${startLoc['lng']}');
+              debugPrint(
+                  'Start location from API: ${startLoc['lat']},${startLoc['lng']}');
             }
           }
 
@@ -140,7 +174,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             final destLoc =
                 deliveryData['destinationLocation'] as Map<String, dynamic>;
             if (destLoc.containsKey('lat') && destLoc.containsKey('lng')) {
-              debugPrint('Destination location from API: ${destLoc['lat']},${destLoc['lng']}');
+              debugPrint(
+                  'Destination location from API: ${destLoc['lat']},${destLoc['lng']}');
             }
           }
         }
@@ -152,15 +187,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
           // Update status from API response
           if (orderDetails.status != null) {
-            // Map API status to our new status format
-            _selectedStatus = _mapApiStatusToOrderStatus(orderDetails.status!);
-
+            // Use status directly from API without any mapping
+            _selectedStatus = orderDetails.status!.toUpperCase().trim();
+            
             // Debug print
-            debugPrint('Order status from API: ${orderDetails.status}');
-            debugPrint('Mapped status: $_selectedStatus');
+            debugPrint(
+                'Order ID: ${widget.orderId} - Status from API: ${orderDetails.status}');
+            debugPrint('Using status: $_selectedStatus');
           } else {
             // Default status if none provided
-            _selectedStatus = 'CREATED';
+            _selectedStatus = 'PENDING';
           }
         });
       } else {
@@ -176,37 +212,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         _isLoading = false;
         _errorMessage = 'Error: $e';
       });
-    }
-  }
-
-  // Helper method to map API status to our order status format
-  String _mapApiStatusToOrderStatus(String apiStatus) {
-    final normalizedStatus = apiStatus.toUpperCase();
-    
-    // Map old API status to new order status
-    switch (normalizedStatus) {
-      case 'PENDING':
-        return 'CREATED';
-      case 'PROCESSING':
-        return 'CONFIRMED';
-      case 'IN_TRANSIT':
-        return 'ON_DELIVERY';
-      case 'DELIVERED':
-        return 'DELIVERED_PAID';
-      case 'CANCELLED':
-        return 'CANCELLED';
-      case 'RETURNED':
-        return 'FAILED';
-      // If it already matches our new format, use it directly
-      case 'CREATED':
-      case 'CONFIRMED':
-      case 'ON_DELIVERY':
-      case 'DELIVERED_AWAIT':
-      case 'DELIVERED_PAID':
-      case 'FAILED':
-        return normalizedStatus;
-      default:
-        return 'CREATED'; // Default fallback
     }
   }
 
@@ -329,11 +334,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ),
               insets: const EdgeInsets.symmetric(horizontal: 16.0),
             ),
-            // Cải thiện style cho text
+            // Improve text styling
             labelStyle: SpatialDesignSystem.bodyMedium.copyWith(
               fontWeight: FontWeight.w600,
             ),
-            // Thêm padding bên ngoài để điều chỉnh chiều cao của toàn bộ TabBar
+            // Add outer padding to adjust the total height of the TabBar
             padding: const EdgeInsets.symmetric(vertical: 4),
             labelColor: SpatialDesignSystem.primaryColor,
             unselectedLabelColor: isDark
@@ -444,12 +449,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color:
-                      _getStatusColor(_selectedStatus).withOpacity(0.1),
+                  color: _getStatusColor(_selectedStatus).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color:
-                        _getStatusColor(_selectedStatus).withOpacity(0.3),
+                    color: _getStatusColor(_selectedStatus).withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -509,15 +512,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ),
             ],
           ),
-          
+
           // Add Update Status button below the progress bar
           const SizedBox(height: 16),
           SpatialButton(
             text: _isUpdatingStatus ? "Updating..." : "Update Status",
             onPressed: _isUpdatingStatus ? () {} : _showOrderStatusUpdateDialog,
-            iconData: _isUpdatingStatus ? Icons.hourglass_empty : Icons.track_changes_outlined,
+            iconData: _isUpdatingStatus
+                ? Icons.hourglass_empty
+                : Icons.track_changes_outlined,
             isGlass: true,
-            textColor: _isUpdatingStatus 
+            textColor: _isUpdatingStatus
                 ? SpatialDesignSystem.primaryColor.withOpacity(0.6)
                 : SpatialDesignSystem.primaryColor,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -531,32 +536,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   // Get progress value based on status
   double _getStatusProgress(String status) {
     switch (status.toUpperCase()) {
-      case 'CREATED':
-        return 0.1;
-      case 'CONFIRMED':
-        return 0.3;
-      case 'ON_DELIVERY':
-        return 0.65;
-      case 'DELIVERED_AWAIT':
-        return 0.85;
-      case 'DELIVERED_PAID':
-        return 1.0;
-      case 'CANCELLED':
-        return 0.0;
-      case 'FAILED':
-        return 0.0;
-      // Keep old status progress for backward compatibility
       case 'PENDING':
         return 0.1;
       case 'PROCESSING':
-        return 0.3;
-      case 'IN_TRANSIT':
-        return 0.65;
+        return 0.4;
+      case 'SHIPPING':
+        return 0.6;
       case 'DELIVERED':
+        return 0.8;
+      case 'COMPLETED':
         return 1.0;
-      case 'RETURNED':
-        return 0.85;
+      case 'CANCELLED':
+        return 0.0;
       default:
+        debugPrint('Unknown status for progress: $status');
         return 0.1;
     }
   }
@@ -564,33 +557,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   // Get status description
   String _getStatusDescription(String status) {
     switch (status.toUpperCase()) {
-      case 'CREATED':
-        return "Order created";
-      case 'CONFIRMED':
-        return "Order confirmed";
-      case 'ON_DELIVERY':
-        return "Out for delivery";
-      case 'DELIVERED_AWAIT':
-        return "Delivered, awaiting payment";
-      case 'DELIVERED_PAID':
-        return "Delivered and paid";
-      case 'CANCELLED':
-        return "Order cancelled";
-      case 'FAILED':
-        return "Order failed";
-      // Keep old status descriptions for backward compatibility
       case 'PENDING':
-        return "Awaiting processing";
+        return "Order created, awaiting processing";
       case 'PROCESSING':
-        return "Processing order";
-      case 'IN_TRANSIT':
-        return "Out for delivery";
+        return "Order confirmed, being prepared for shipment";
+      case 'SHIPPING':
+        return "Order shipped, in transit for delivery";
       case 'DELIVERED':
-        return "Order delivered";
-      case 'RETURNED':
-        return "Order returned";
+        return "Order delivered but payment not yet settled";
+      case 'COMPLETED':
+        return "Order delivered and payment completed";
+      case 'CANCELLED':
+        return "Order has been cancelled";
       default:
-        return "Order in progress";
+        debugPrint('Unknown status for description: $status');
+        return "Order status: $status";
     }
   }
 
@@ -862,7 +843,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {bool allowMultiLine = false}) {
+  Widget _buildInfoRow(IconData icon, String label, String value,
+      {bool allowMultiLine = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
@@ -904,7 +886,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         : SpatialDesignSystem.textPrimaryColor,
                   ),
                   maxLines: allowMultiLine ? null : 2,
-                  overflow: allowMultiLine ? TextOverflow.visible : TextOverflow.ellipsis,
+                  overflow: allowMultiLine
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -1073,13 +1057,28 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ],
             ),
           ),
+
+          // Delivery Proof Section (show for delivered and completed orders)
+          if (_selectedStatus == 'DELIVERED' || 
+              _selectedStatus == 'COMPLETED')
+            DeliveryProofManager(
+              orderId: int.parse(widget.orderId),
+              orderStatus: _selectedStatus,
+              canUpload: _selectedStatus == 'DELIVERED',
+              initialProofs: _deliveryProofs,
+              onProofUpdated: () {
+                // Refresh delivery proofs
+                _loadDeliveryProofs();
+              },
+            ),
         ],
       ),
     );
   }
 
   Widget _buildOrderItem(
-      String name, String quantity, String price, String imageUrl, {String? shippingFee}) {
+      String name, String quantity, String price, String imageUrl,
+      {String? shippingFee}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
@@ -1118,9 +1117,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ),
             ],
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Column 2: Product details
           Expanded(
             child: Column(
@@ -1135,9 +1134,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         : SpatialDesignSystem.textPrimaryColor,
                   ),
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // Row 2: Price information
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1171,7 +1170,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         ),
                       ],
                     ),
-                    if (shippingFee != null) 
+                    if (shippingFee != null)
                       Row(
                         children: [
                           Icon(
@@ -1269,14 +1268,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       child: SafeArea(
         child: Row(
           children: [
-            // Navigation Button - Just one button in the bottom bar
+            // Navigation Button - Full width
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () => _navigateToRouteMap(),
-                icon: const Icon(Icons.navigation, color: Colors.white, size: 24),
+                icon:
+                    const Icon(Icons.navigation, color: Colors.white, size: 24),
                 label: const Text(
                   'Navigate',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: SpatialDesignSystem.primaryColor,
@@ -1296,7 +1299,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     try {
       // Check if widget is still mounted before accessing context
       if (!mounted) return;
-      
+
       // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1319,10 +1322,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
       // Get current position for navigation (ensures we start from actual current location)
       final currentPositionData = await mapsService.getCurrentPositionData();
-      
+
       // Check if widget is still mounted after async operation
       if (!mounted) return;
-      
+
       // Default destination coordinates if not available from API
       Map<String, dynamic> deliveryLocation = {
         'latitude': 10.7756,
@@ -1342,7 +1345,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             'address': _orderDetails!.address!.address
           };
           // Debug address information
-          print("Using destination address: ${_orderDetails!.address!.address}");
+          print(
+              "Using destination address: ${_orderDetails!.address!.address}");
         }
       }
 
@@ -1352,7 +1356,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       // Open Google Maps with direct route from current location to destination
       final result = await mapsService.openGoogleMapsWithRoute(
         context: context,
-        pickupLocation: currentPositionData, // Use actual current position from device
+        pickupLocation:
+            currentPositionData, // Use actual current position from device
         transitPoints: [], // No transit points
         deliveryLocation: deliveryLocation,
       );
@@ -1382,7 +1387,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   void _callCustomer() {
     // Check if widget is still mounted before proceeding
     if (!mounted) return;
-    
+
     // Extract the phone number from the order details
     String phoneNumber = "+84 123 456 789"; // Default number
 
@@ -1403,16 +1408,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   void _showOrderStatusUpdateDialog() {
     // Check if widget is still mounted before proceeding
     if (!mounted) return;
-    
+
     // List of status options with their IDs and names for ORDER type
+    // Thứ tự hiển thị: Pending -> Processing -> Shipping -> Delivered -> Completed -> Cancelled
+    // ID theo database và OrderStatusId constants
     final List<Map<String, dynamic>> statusOptions = [
-      {"id": 1, "name": "CREATED", "display": "Created"},
-      {"id": 2, "name": "CONFIRMED", "display": "Confirmed"},
-      {"id": 3, "name": "ON_DELIVERY", "display": "On Delivery"},
-      {"id": 4, "name": "DELIVERED_AWAIT", "display": "Delivered (Awaiting Payment)"},
-      {"id": 5, "name": "DELIVERED_PAID", "display": "Delivered (Paid)"},
-      {"id": 6, "name": "CANCELLED", "display": "Cancelled"},
-      {"id": 50, "name": "FAILED", "display": "Failed"}
+      {"id": OrderStatusId.PENDING, "name": "PENDING", "display": "Pending"},
+      {"id": OrderStatusId.PROCESSING, "name": "PROCESSING", "display": "Processing"},
+      {"id": OrderStatusId.SHIPPING, "name": "SHIPPING", "display": "Shipping"},
+      {"id": OrderStatusId.DELIVERED, "name": "DELIVERED", "display": "Delivered"},
+      {"id": OrderStatusId.COMPLETED, "name": "COMPLETED", "display": "Completed"},
+      {"id": OrderStatusId.CANCELLED, "name": "CANCELLED", "display": "Cancelled"}
     ];
 
     showStatusUpdateModal(
@@ -1453,7 +1459,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
       // Check if widget is still mounted before updating state
       if (!mounted) return;
-      
+
       // Hide loading indicator
       setState(() {
         _isUpdatingStatus = false;
@@ -1463,7 +1469,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       if (success) {
         // Check if widget is still mounted before accessing context
         if (!mounted) return;
-        
+
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1474,10 +1480,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
         // Reload order details from API to get the latest data
         _loadOrderDetails();
+
+        // If status was changed to DELIVERED or COMPLETED, refresh delivery proofs
+        if (statusUpdate.statusId == OrderStatusId.DELIVERED ||
+            statusUpdate.statusId == OrderStatusId.COMPLETED) {
+          _loadDeliveryProofs();
+        }
       } else {
         // Check if widget is still mounted before accessing context
         if (!mounted) return;
-        
+
+        // Try to auto-refresh and update again in 1 second
+        Future.delayed(Duration(seconds: 1), () {
+          if (mounted) {
+            // Show message about token refresh attempt
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Retrying update with fresh authentication..."),
+                backgroundColor: Colors.orange,
+              ),
+            );
+
+            // Try again automatically
+            _updateOrderStatus(statusUpdate);
+            return;
+          }
+        });
+
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1489,16 +1518,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     } catch (e) {
       // Check if widget is still mounted before updating state
       if (!mounted) return;
-      
+
       // Hide loading indicator
       setState(() {
         _isUpdatingStatus = false;
       });
 
+      String errorMessage = "Error occurred during update";
+      // Check for specific error types
+      if (e.toString().contains('401') ||
+          e.toString().contains('Unauthorized')) {
+        errorMessage =
+            "Session expired. Try updating again or log out and log in again.";
+
+        // Try to automatically retry the update after 1 second
+        Future.delayed(Duration(seconds: 1), () {
+          if (mounted) {
+            // Thử cập nhật lại
+            _updateOrderStatus(statusUpdate);
+          }
+        });
+      } else {
+        errorMessage = "Error: ${e.toString()}";
+      }
+
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Error: ${e.toString()}"),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
         ),
       );
@@ -1508,32 +1555,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   // Get color for status
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
-      case 'CREATED':
-        return SpatialDesignSystem.primaryColor; // Blue
-      case 'CONFIRMED':
-        return SpatialDesignSystem.warningColor; // Orange/Yellow
-      case 'ON_DELIVERY':
-        return Colors.blue; // Blue for in transit
-      case 'DELIVERED_AWAIT':
-        return SpatialDesignSystem.warningColor; // Orange for awaiting payment
-      case 'DELIVERED_PAID':
-        return SpatialDesignSystem.successColor; // Green for completed
-      case 'CANCELLED':
-        return SpatialDesignSystem.errorColor; // Red
-      case 'FAILED':
-        return SpatialDesignSystem.errorColor; // Red
-      // Keep old status colors for backward compatibility
       case 'PENDING':
-        return SpatialDesignSystem.warningColor; // Orange/Yellow
+        return Colors.blue.shade700; // Blue for awaiting processing
       case 'PROCESSING':
-        return SpatialDesignSystem.primaryColor; // Use primary color
-      case 'IN_TRANSIT':
-        return SpatialDesignSystem.warningColor; // Orange/Yellow
+        return Colors.amber.shade600; // Orange/Yellow for processing
+      case 'SHIPPING':
+        return Colors.deepPurple; // Purple for shipping/in transit
       case 'DELIVERED':
-        return SpatialDesignSystem.successColor; // Green
-      case 'RETURNED':
-        return SpatialDesignSystem.errorColor; // Red
+        return Colors.orange; // Orange for delivered but not paid
+      case 'COMPLETED':
+        return Colors.green.shade700; // Deep green for completed
+      case 'CANCELLED':
+        return Colors.red.shade700; // Red for cancelled
       default:
+        debugPrint('Unknown status for color: $status');
         return SpatialDesignSystem.primaryColor; // Default to primary color
     }
   }

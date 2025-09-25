@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../local_secure/secure_storage.dart';
+import 'api_interceptor.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -35,6 +36,7 @@ class HttpClient {
   final String baseUrl;
   final SecureStorageFrave secureStorage;
   final http.Client _client;
+  final ApiInterceptor _apiInterceptor;
   
   // Cache for GET requests (simple in-memory cache)
   final Map<String, CacheEntry> _cache = {};
@@ -44,7 +46,11 @@ class HttpClient {
   HttpClient({
     required this.baseUrl,
     required this.secureStorage,
-  }) : _client = http.Client();
+  }) : _client = http.Client(),
+       _apiInterceptor = ApiInterceptor(
+         baseUrl: baseUrl,
+         secureStorage: secureStorage,
+       );
 
   /// Dispose resources
   void dispose() {
@@ -132,14 +138,50 @@ class HttpClient {
         headers: headers,
       ).timeout(timeout ?? _defaultTimeout);
       
-      final result = _handleResponse<T>(response, fromJson: fromJson);
-      
-      // Cache successful GET responses
-      if (useCache && response.statusCode >= 200 && response.statusCode < 300) {
-        _setCache(url, result, duration: cacheDuration);
+      try {
+        final result = _handleResponse<T>(response, fromJson: fromJson);
+        
+        // Cache successful GET responses
+        if (useCache && response.statusCode >= 200 && response.statusCode < 300) {
+          _setCache(url, result, duration: cacheDuration);
+        }
+        
+        return result;
+      } catch (e) {
+        // Nếu lỗi 401 Unauthorized, thử làm mới token và gửi lại yêu cầu
+        if (e is ApiException && e.statusCode == 401) {
+          // Sử dụng ApiInterceptor để làm mới token
+          final newToken = await _apiInterceptor.refreshToken();
+          
+          if (newToken != null) {
+            // Xóa token đã lưu trong cache
+            _cachedToken = null;
+            _tokenCacheTime = null;
+            
+            // Thử lại yêu cầu ban đầu với token mới
+            final newHeaders = await _getAuthHeaders();
+            final newResponse = await _client.get(
+              Uri.parse(url),
+              headers: newHeaders,
+            ).timeout(timeout ?? _defaultTimeout);
+            
+            final result = _handleResponse<T>(newResponse, fromJson: fromJson);
+            
+            // Cache successful GET responses after token refresh
+            if (useCache && newResponse.statusCode >= 200 && newResponse.statusCode < 300) {
+              _setCache(url, result, duration: cacheDuration);
+            }
+            
+            return result;
+          }
+          
+          // Nếu không thể làm mới token, ném lại lỗi ban đầu
+          rethrow;
+        } else {
+          // Không phải lỗi 401, ném lại ngoại lệ
+          rethrow;
+        }
       }
-      
-      return result;
     } on TimeoutException {
       throw ApiException('Request timeout');
     } on SocketException {
@@ -167,7 +209,37 @@ class HttpClient {
         body: body != null ? jsonEncode(body) : null,
       ).timeout(timeout ?? _defaultTimeout);
       
-      return _handleResponse<T>(response, fromJson: fromJson);
+      try {
+        return _handleResponse<T>(response, fromJson: fromJson);
+      } catch (e) {
+        // Nếu lỗi 401 Unauthorized, thử làm mới token và gửi lại yêu cầu
+        if (e is ApiException && e.statusCode == 401) {
+          // Sử dụng ApiInterceptor để làm mới token
+          final newToken = await _apiInterceptor.refreshToken();
+          
+          if (newToken != null) {
+            // Xóa token đã lưu trong cache
+            _cachedToken = null;
+            _tokenCacheTime = null;
+            
+            // Thử lại yêu cầu ban đầu với token mới
+            final newHeaders = await _getAuthHeaders();
+            final newResponse = await _client.post(
+              Uri.parse(url),
+              headers: newHeaders,
+              body: body != null ? jsonEncode(body) : null,
+            ).timeout(timeout ?? _defaultTimeout);
+            
+            return _handleResponse<T>(newResponse, fromJson: fromJson);
+          }
+          
+          // Nếu không thể làm mới token, ném lại lỗi ban đầu
+          rethrow;
+        } else {
+          // Không phải lỗi 401, ném lại ngoại lệ
+          rethrow;
+        }
+      }
     } on TimeoutException {
       throw ApiException('Request timeout');
     } on SocketException {
@@ -194,7 +266,37 @@ class HttpClient {
         body: body != null ? jsonEncode(body) : null,
       );
       
-      return _handleResponse<T>(response, fromJson: fromJson);
+      try {
+        return _handleResponse<T>(response, fromJson: fromJson);
+      } catch (e) {
+        // Nếu lỗi 401 Unauthorized, thử làm mới token và gửi lại yêu cầu
+        if (e is ApiException && e.statusCode == 401) {
+          // Sử dụng ApiInterceptor để làm mới token
+          final newToken = await _apiInterceptor.refreshToken();
+          
+          if (newToken != null) {
+            // Xóa token đã lưu trong cache
+            _cachedToken = null;
+            _tokenCacheTime = null;
+            
+            // Thử lại yêu cầu ban đầu với token mới
+            final newHeaders = await _getAuthHeaders();
+            final newResponse = await _client.put(
+              Uri.parse(url),
+              headers: newHeaders,
+              body: body != null ? jsonEncode(body) : null,
+            );
+            
+            return _handleResponse<T>(newResponse, fromJson: fromJson);
+          }
+          
+          // Nếu không thể làm mới token, ném lại lỗi ban đầu
+          rethrow;
+        } else {
+          // Không phải lỗi 401, ném lại ngoại lệ
+          rethrow;
+        }
+      }
     } on SocketException {
       throw ApiException('No internet connection');
     } catch (e) {
@@ -219,7 +321,46 @@ class HttpClient {
         body: body != null ? jsonEncode(body) : null,
       );
       
-      return _handleResponse<T>(response, fromJson: fromJson);
+      // Log để debug
+      print('🔄 HTTP Response: ${response.statusCode}');
+      print('🔄 Response headers: ${response.headers}');
+      if (response.body.isEmpty) {
+        print('🔄 Response body is empty');
+      } else {
+        print('🔄 Response body: ${response.body}');
+      }
+      
+      try {
+        return _handleResponse<T>(response, fromJson: fromJson);
+      } catch (e) {
+        // Nếu lỗi 401 Unauthorized, thử làm mới token và gửi lại yêu cầu
+        if (e is ApiException && e.statusCode == 401) {
+          // Sử dụng ApiInterceptor để làm mới token
+          final newToken = await _apiInterceptor.refreshToken();
+          
+          if (newToken != null) {
+            // Xóa token đã lưu trong cache
+            _cachedToken = null;
+            _tokenCacheTime = null;
+            
+            // Thử lại yêu cầu ban đầu với token mới
+            final newHeaders = await _getAuthHeaders();
+            final newResponse = await _client.patch(
+              Uri.parse(url),
+              headers: newHeaders,
+              body: body != null ? jsonEncode(body) : null,
+            );
+            
+            return _handleResponse<T>(newResponse, fromJson: fromJson);
+          }
+          
+          // Nếu không thể làm mới token, ném lại lỗi ban đầu
+          rethrow;
+        } else {
+          // Không phải lỗi 401, ném lại ngoại lệ
+          rethrow;
+        }
+      }
     } on SocketException {
       throw ApiException('No internet connection');
     } catch (e) {
@@ -242,7 +383,36 @@ class HttpClient {
         headers: headers,
       );
       
-      return _handleResponse<T>(response, fromJson: fromJson);
+      try {
+        return _handleResponse<T>(response, fromJson: fromJson);
+      } catch (e) {
+        // Nếu lỗi 401 Unauthorized, thử làm mới token và gửi lại yêu cầu
+        if (e is ApiException && e.statusCode == 401) {
+          // Sử dụng ApiInterceptor để làm mới token
+          final newToken = await _apiInterceptor.refreshToken();
+          
+          if (newToken != null) {
+            // Xóa token đã lưu trong cache
+            _cachedToken = null;
+            _tokenCacheTime = null;
+            
+            // Thử lại yêu cầu ban đầu với token mới
+            final newHeaders = await _getAuthHeaders();
+            final newResponse = await _client.delete(
+              Uri.parse(url),
+              headers: newHeaders,
+            );
+            
+            return _handleResponse<T>(newResponse, fromJson: fromJson);
+          }
+          
+          // Nếu không thể làm mới token, ném lại lỗi ban đầu
+          rethrow;
+        } else {
+          // Không phải lỗi 401, ném lại ngoại lệ
+          rethrow;
+        }
+      }
     } on SocketException {
       throw ApiException('No internet connection');
     } catch (e) {
@@ -253,12 +423,29 @@ class HttpClient {
   /// Handle HTTP response
   T _handleResponse<T>(http.Response response, {T Function(Map<String, dynamic> json)? fromJson}) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      if (T == bool) {
-        return true as T;
+      // Thành công với response rỗng
+      if (response.body.isEmpty || response.body.trim().isEmpty) {
+        // Nếu T là bool hoặc void hoặc dynamic, trả về true
+        if (T == bool) {
+          return true as T;
+        }
+        
+        // Nếu chúng ta có fromJson, gọi nó với một map rỗng để tránh lỗi null
+        if (fromJson != null) {
+          return fromJson({});
+        }
+        
+        // Trường hợp khác, trả về null hoặc map rỗng tùy vào kiểu T
+        try {
+          return {} as T; // Thử trả về map rỗng
+        } catch (_) {
+          return null as T; // Nếu không thể ép kiểu, trả về null
+        }
       }
       
-      if (response.body.isEmpty) {
-        return null as T;
+      // Xử lý body không rỗng
+      if (T == bool) {
+        return true as T;
       }
       
       final dynamic jsonData = json.decode(response.body);
@@ -273,7 +460,10 @@ class HttpClient {
       
       return jsonData as T;
     } else if (response.statusCode == 401) {
-      throw ApiException('Unauthorized', statusCode: response.statusCode, body: response.body);
+      // Xóa token đã lưu trong cache để buộc lần request sau phải lấy lại token mới
+      _cachedToken = null;
+      _tokenCacheTime = null;
+      throw ApiException('Unauthorized - Token may have expired', statusCode: response.statusCode, body: response.body);
     } else if (response.statusCode == 403) {
       throw ApiException('Forbidden', statusCode: response.statusCode, body: response.body);
     } else if (response.statusCode == 404) {

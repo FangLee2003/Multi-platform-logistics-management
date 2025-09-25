@@ -46,11 +46,11 @@ class AppRouter {
       case '/profile':
         return MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 3));
       case '/routes':
-        // Tạm thời dùng một routeId mặc định
+        // Temporarily use a default routeId
         return MaterialPageRoute(
             builder: (_) => const RouteMapScreen(routeId: 'RT-2025-08-14-01'));
       case '/order-detail':
-        // Lấy order ID từ arguments
+        // Get order ID from arguments
         final orderId = settings.arguments as String;
         return MaterialPageRoute(
             builder: (_) => OrderDetailScreen(orderId: orderId));
@@ -58,7 +58,7 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => Scaffold(
             body: Center(
-              child: Text('Không tìm thấy route cho ${settings.name}'),
+              child: Text('Route not found for ${settings.name}'),
             ),
           ),
         );
@@ -82,10 +82,10 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) {
-    // Sử dụng MultiProvider trực tiếp, không cần lớp trung gian
+    // Use MultiProvider directly, no need for intermediate class
     return MultiProvider(
       providers: [
-        // Location service với vòng đời được quản lý
+        // Location service with managed lifecycle
         Provider<LocationService>(
           create: (_) => LocationService(),
           dispose: (_, service) => service.stopBackgroundLocationService(),

@@ -41,22 +41,25 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late List<DeliveryTab> _tabs;
-  String _selectedStatus = 'Assigned'; // Default status
+  String _selectedStatus = 'PENDING'; // Default status sử dụng ORDER status
   final _noteController = TextEditingController();
   bool _isLoading = true;
   String _errorMessage = '';
-  bool _isTrackingLoading = false; // Thêm biến theo dõi trạng thái loading khi tracking
-  StreamSubscription? _trackingSubscription; // Theo dõi sự thay đổi trạng thái tracking
+  bool _isTrackingLoading =
+      false; // Thêm biến theo dõi trạng thái loading khi tracking
+  StreamSubscription?
+      _trackingSubscription; // Theo dõi sự thay đổi trạng thái tracking
 
   DeliveryDetailResponse? _deliveryDetail;
 
-  // List of possible statuses for a delivery
+  // List of possible statuses for a delivery - sử dụng 6 status từ database ORDER
   final List<String> _statusOptions = [
-    'Assigned',
-    'Started',
-    'In Progress',
-    'Completed',
-    'Cancelled',
+    'PENDING',
+    'PROCESSING', 
+    'SHIPPING',
+    'DELIVERED',
+    'COMPLETED',
+    'CANCELLED',
   ];
 
   @override
@@ -80,12 +83,14 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     }
 
     // Listen to tracking state changes
-    _trackingSubscription = BlocProvider.of<SimpleTrackingBloc>(context).stream.listen((state) {
+    _trackingSubscription =
+        BlocProvider.of<SimpleTrackingBloc>(context).stream.listen((state) {
       print('SimpleTrackingBloc state changed: $state');
       // Only update loading state if we're currently in loading state
       if (_isTrackingLoading) {
         setState(() {
-          _isTrackingLoading = false; // Reset loading state when tracking state changes
+          _isTrackingLoading =
+              false; // Reset loading state when tracking state changes
         });
       }
     });
@@ -159,28 +164,35 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     }
   }
 
-  // Convert status from API to UI display status
+  // Convert status from API to ORDER status names
   String _mapApiStatusToUiStatus(String apiStatus) {
     String mappedStatus;
 
     switch (apiStatus.toUpperCase()) {
       case 'ASSIGNED':
-        mappedStatus = 'Assigned';
+      case 'CREATED':
+        mappedStatus = 'PENDING';
         break;
       case 'STARTED':
-        mappedStatus = 'Started';
-        break;
+      case 'PROCESSING':
       case 'IN_PROGRESS':
-        mappedStatus = 'In Progress';
+        mappedStatus = 'PROCESSING';
+        break;
+      case 'SHIPPING':
+      case 'IN_TRANSIT':
+        mappedStatus = 'SHIPPING';
+        break;
+      case 'DELIVERED':
+        mappedStatus = 'DELIVERED';
         break;
       case 'COMPLETED':
-        mappedStatus = 'Completed';
+        mappedStatus = 'COMPLETED';
         break;
       case 'CANCELLED':
-        mappedStatus = 'Cancelled';
+        mappedStatus = 'CANCELLED';
         break;
       default:
-        mappedStatus = apiStatus; // Keep original if no mapping
+        mappedStatus = 'PENDING'; // Default to PENDING
         break;
     }
 
@@ -330,6 +342,15 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           ),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            color: isDark
+                ? SpatialDesignSystem.textDarkPrimaryColor
+                : SpatialDesignSystem.textPrimaryColor,
+            onPressed: _loadDeliveryDetails,
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -402,10 +423,14 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () => _openNavigation(),
-                icon: const Icon(Icons.navigation, color: Colors.white, size: 24),
+                icon:
+                    const Icon(Icons.navigation, color: Colors.white, size: 24),
                 label: const Text(
                   'Navigate',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
@@ -515,16 +540,18 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
   Color _getStatusColor() {
     switch (_selectedStatus) {
-      case 'Assigned':
-        return Colors.blue;
-      case 'Started':
+      case 'PENDING':
+        return Colors.blue.shade700;
+      case 'PROCESSING':
+        return Colors.amber.shade600;
+      case 'SHIPPING':
+        return Colors.deepPurple;
+      case 'DELIVERED':
         return Colors.orange;
-      case 'In Progress':
-        return SpatialDesignSystem.primaryColor;
-      case 'Completed':
-        return Colors.green;
-      case 'Cancelled':
-        return Colors.red;
+      case 'COMPLETED':
+        return Colors.green.shade700;
+      case 'CANCELLED':
+        return Colors.red.shade700;
       default:
         return Colors.grey;
     }
@@ -532,15 +559,17 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
   double _getProgressValue() {
     switch (_selectedStatus) {
-      case 'Assigned':
-        return 0.2;
-      case 'Started':
+      case 'PENDING':
+        return 0.1;
+      case 'PROCESSING':
         return 0.4;
-      case 'In Progress':
-        return 0.65;
-      case 'Completed':
+      case 'SHIPPING':
+        return 0.6;
+      case 'DELIVERED':
+        return 0.8;
+      case 'COMPLETED':
         return 1.0;
-      case 'Cancelled':
+      case 'CANCELLED':
         return 0.0;
       default:
         return 0.0;
@@ -549,16 +578,18 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
   String _getStatusDescription() {
     switch (_selectedStatus) {
-      case 'Assigned':
-        return "Waiting to start";
-      case 'Started':
-        return "Journey started";
-      case 'In Progress':
-        return "In transit";
-      case 'Completed':
-        return "Delivery completed";
-      case 'Cancelled':
-        return "Delivery cancelled";
+      case 'PENDING':
+        return "Order created, awaiting processing";
+      case 'PROCESSING':
+        return "Order confirmed, being prepared for shipment";
+      case 'SHIPPING':
+        return "Order shipped, in transit for delivery";
+      case 'DELIVERED':
+        return "Order delivered but payment not yet settled";
+      case 'COMPLETED':
+        return "Order delivered and payment completed";
+      case 'CANCELLED':
+        return "Order has been cancelled";
       default:
         return "Unknown status";
     }
@@ -582,30 +613,32 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         } catch (e) {
           print('Error parsing delivery ID: $e');
         }
-        
-        final isCurrentlyTracking = state is TrackingActiveState && 
-            currentDeliveryId != null && 
+
+        final isCurrentlyTracking = state is TrackingActiveState &&
+            currentDeliveryId != null &&
             state.deliveryId == currentDeliveryId;
 
         return SpatialButton(
-          text: _isTrackingLoading 
-              ? "Processing..." 
+          text: _isTrackingLoading
+              ? "Processing..."
               : (isCurrentlyTracking ? "Stop Tracking" : "Start Tracking"),
-          iconData:
-              _isTrackingLoading ? Icons.hourglass_top : (isCurrentlyTracking ? Icons.location_off : Icons.location_on),
-          onPressed: _isTrackingLoading 
-              ? () {} // No-op function when disabled 
+          iconData: _isTrackingLoading
+              ? Icons.hourglass_top
+              : (isCurrentlyTracking ? Icons.location_off : Icons.location_on),
+          onPressed: _isTrackingLoading
+              ? () {} // No-op function when disabled
               : () {
                   setState(() {
                     _isTrackingLoading = true;
                   });
-                  
-                  print('Tracking button pressed. Current tracking state: ${isCurrentlyTracking ? 'active' : 'inactive'}');
-                  
+
+                  print(
+                      'Tracking button pressed. Current tracking state: ${isCurrentlyTracking ? 'active' : 'inactive'}');
+
                   if (isCurrentlyTracking) {
                     // Stop tracking - gọi tới bloc
                     context.read<SimpleTrackingBloc>().add(StopTrackingEvent());
-                    
+
                     print('Stopped tracking');
 
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -636,10 +669,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                       // Kiểm tra nếu ID có định dạng "DEL-85797"
                       if (widget.deliveryId.contains('-')) {
                         final parts = widget.deliveryId.split('-');
-                        if (parts.length > 1 && int.tryParse(parts[1]) != null) {
-                          deliveryId = int.parse(parts[1]); // Lấy "85797" từ "DEL-85797"
+                        if (parts.length > 1 &&
+                            int.tryParse(parts[1]) != null) {
+                          deliveryId =
+                              int.parse(parts[1]); // Lấy "85797" từ "DEL-85797"
                         } else {
-                          throw FormatException('Không thể parse delivery ID: ${widget.deliveryId}');
+                          throw FormatException(
+                              'Không thể parse delivery ID: ${widget.deliveryId}');
                         }
                       } else {
                         deliveryId = int.parse(widget.deliveryId);
@@ -650,7 +686,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                       if (vehicleId == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Vehicle ID not found for this delivery'),
+                            content:
+                                Text('Vehicle ID not found for this delivery'),
                             backgroundColor: Colors.red,
                           ),
                         );
@@ -662,10 +699,12 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
                       // Start tracking using SimpleTrackingBloc
                       context.read<SimpleTrackingBloc>().add(
-                            StartTrackingEvent(deliveryId, vehicleId: vehicleId),
+                            StartTrackingEvent(deliveryId,
+                                vehicleId: vehicleId),
                           );
 
-                      print('Started tracking for delivery #$deliveryId with vehicle #$vehicleId');
+                      print(
+                          'Started tracking for delivery #$deliveryId with vehicle #$vehicleId');
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -685,7 +724,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                       });
                     }
                   }
-                  
+
                   // Note: We don't reset loading state here.
                   // The loading state will be reset automatically when the tracking state changes
                   // via the StreamSubscription in initState
@@ -694,8 +733,8 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
           height: 45, // Giảm chiều cao một chút
           padding: SpatialDesignSystem.paddingS, // Padding nhỏ hơn
           isGlass: true, // Sử dụng hiệu ứng kính (glass effect)
-          textColor: _isTrackingLoading 
-              ? Colors.grey 
+          textColor: _isTrackingLoading
+              ? Colors.grey
               : (isCurrentlyTracking ? Colors.red : Colors.green),
           backgroundColor: _isTrackingLoading
               ? Colors.grey.withOpacity(0.05)
@@ -1304,18 +1343,18 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   // Get color for order status
   Color _getOrderStatusColor(String status) {
     switch (status.toUpperCase()) {
-      case 'DELIVERED':
-      case 'COMPLETED':
-        return Colors.green;
-      case 'IN_TRANSIT':
-      case 'IN TRANSIT':
-      case 'IN PROGRESS':
-        return SpatialDesignSystem.primaryColor;
       case 'PENDING':
-      case 'ASSIGNED':
-        return Colors.orange;
+        return SpatialDesignSystem.primaryColor; // Blue for awaiting processing
+      case 'PROCESSING':
+        return SpatialDesignSystem.warningColor; // Orange/Yellow for processing
+      case 'SHIPPING':
+        return Colors.deepPurple; // Purple for shipping/in transit
+      case 'DELIVERED':
+        return Colors.orange; // Orange for delivered but not paid
+      case 'COMPLETED':
+        return SpatialDesignSystem.successColor; // Green for completed
       case 'CANCELLED':
-        return Colors.red;
+        return SpatialDesignSystem.errorColor; // Red for cancelled
       default:
         return Colors.grey;
     }
@@ -1323,19 +1362,20 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
   // Show dialog to update order status
   void _showOrderStatusUpdateDialog(dynamic order) {
-    // List of available order statuses for delivery - using standardized 7-status list
+    // List of available order statuses for delivery
+    // Thứ tự hiển thị: Pending -> Processing -> Shipping -> Delivered -> Completed -> Cancelled
+    // ID theo database và OrderStatusId constants
     final List<Map<String, dynamic>> statusOptions = [
-      {"id": 1, "name": "CREATED", "display": "Created"},
-      {"id": 2, "name": "CONFIRMED", "display": "Confirmed"},
-      {"id": 3, "name": "ON_DELIVERY", "display": "On Delivery"},
-      {"id": 4, "name": "DELIVERED_AWAIT", "display": "Delivered (Awaiting Payment)"},
-      {"id": 5, "name": "DELIVERED_PAID", "display": "Delivered (Paid)"},
-      {"id": 6, "name": "CANCELLED", "display": "Cancelled"},
-      {"id": 50, "name": "FAILED", "display": "Failed"}
+      {"id": OrderStatusId.PENDING, "name": "PENDING", "display": "Pending"},
+      {"id": OrderStatusId.PROCESSING, "name": "PROCESSING", "display": "Processing"},
+      {"id": OrderStatusId.SHIPPING, "name": "SHIPPING", "display": "Shipping"},
+      {"id": OrderStatusId.DELIVERED, "name": "DELIVERED", "display": "Delivered"},
+      {"id": OrderStatusId.COMPLETED, "name": "COMPLETED", "display": "Completed"},
+      {"id": OrderStatusId.CANCELLED, "name": "CANCELLED", "display": "Cancelled"}
     ];
 
     // Convert API status to status name
-    String currentStatus = _mapApiStatusToStatusName(order.status ?? 'CREATED');
+    String currentStatus = _mapApiStatusToStatusName(order.status ?? 'PENDING');
 
     showStatusUpdateModal(
       context: context,
@@ -1381,63 +1421,58 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
     );
   }
 
-  // Helper method to map API status to status name - updated for standardized 7-status system
+  // Helper method to map API status to ORDER status name
   String _mapApiStatusToStatusName(String apiStatus) {
     switch (apiStatus.toUpperCase()) {
-      // Map old delivery statuses to new order statuses
+      // Map delivery statuses to order statuses
       case 'ASSIGNED':
-        return 'CREATED';
+      case 'CREATED':
+        return 'PENDING';
       case 'STARTED':
-        return 'CONFIRMED';
+        return 'PROCESSING';
       case 'IN_PROGRESS':
       case 'INPROGRESS':
-        return 'ON_DELIVERY';
+      case 'IN_TRANSIT':
+        return 'SHIPPING';
+      // Direct mappings for standard order statuses
+      case 'PENDING':
+        return 'PENDING';
+      case 'PROCESSING':
+        return 'PROCESSING';
+      case 'SHIPPING':
+        return 'SHIPPING';
+      case 'DELIVERED':
+        return 'DELIVERED';
       case 'COMPLETED':
-        return 'DELIVERED_PAID';
+        return 'COMPLETED';
       case 'CANCELLED':
         return 'CANCELLED';
-      // Direct mappings for standard order statuses
-      case 'CREATED':
-        return 'CREATED';
-      case 'CONFIRMED':
-        return 'CONFIRMED';
-      case 'ON_DELIVERY':
-        return 'ON_DELIVERY';
-      case 'DELIVERED_AWAIT':
-        return 'DELIVERED_AWAIT';
-      case 'DELIVERED_PAID':
-        return 'DELIVERED_PAID';
-      case 'FAILED':
-        return 'FAILED';
       default:
-        return 'CREATED';
+        return 'PENDING';
     }
   }
 
-  // Helper method to get status color from name - updated for standardized 7-status system
+  // Helper method to get status color from name
   Color _getStatusColorFromName(String statusName) {
     switch (statusName.toUpperCase()) {
-      case 'CREATED':
-        return SpatialDesignSystem.primaryColor; // Blue
-      case 'CONFIRMED':
-        return SpatialDesignSystem.warningColor; // Orange/Yellow
-      case 'ON_DELIVERY':
-        return Colors.blue; // Blue for in transit
-      case 'DELIVERED_AWAIT':
-        return SpatialDesignSystem.warningColor; // Orange for awaiting payment
-      case 'DELIVERED_PAID':
+      case 'PENDING':
+        return SpatialDesignSystem.primaryColor; // Blue for awaiting processing
+      case 'PROCESSING':
+        return SpatialDesignSystem.warningColor; // Orange/Yellow for processing
+      case 'SHIPPING':
+        return Colors.deepPurple; // Purple for shipping/in transit
+      case 'DELIVERED':
+        return Colors.orange; // Orange for delivered but not paid
+      case 'COMPLETED':
         return SpatialDesignSystem.successColor; // Green for completed
       case 'CANCELLED':
-        return SpatialDesignSystem.errorColor; // Red
-      case 'FAILED':
-        return SpatialDesignSystem.errorColor; // Red
+        return SpatialDesignSystem.errorColor; // Red for cancelled
       default:
         return SpatialDesignSystem.primaryColor; // Default to primary color
     }
   }
 
   // Update delivery status via API
-
 
   /// Open navigation to pickup/delivery location
   void _openNavigation() {
@@ -1449,9 +1484,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
 
   /// Start tracking for this specific delivery
 
-
   /// Stop tracking
-
 
   void _navigateToRouteMap() async {
     try {

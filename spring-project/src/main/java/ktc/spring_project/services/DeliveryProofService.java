@@ -109,9 +109,18 @@ public DeliveryProof updateProof(
         Authentication authentication) {
     // TODO: Implement the update logic
     throw new UnsupportedOperationException("Not implemented yet");
-        }
+    }
+
     public void deleteById(Long id, Authentication authentication) {
-    // TODO: Implement the logic to delete a DeliveryProof by id, possibly checking authentication
-    throw new UnsupportedOperationException("Not implemented yet");
-}
+        // TODO: Implement the logic to delete a DeliveryProof by id, possibly checking authentication
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+    
+    public List<DeliveryProof> findByOrder(ktc.spring_project.entities.Order order) {
+        return deliveryProofRepository.findByOrderId(order.getId());
+    }
+    
+    public List<DeliveryProof> findByOrderId(Long orderId) {
+        return deliveryProofRepository.findByOrderId(orderId);
+    }
 }
