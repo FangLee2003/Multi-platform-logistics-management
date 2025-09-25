@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
 	Button,
 	Tooltip,
@@ -39,42 +39,10 @@ export default function InvoiceButton({
 	const [isModalVisible, setIsModalVisible] = useState(false)
 	const [isEmailModalVisible, setIsEmailModalVisible] = useState(false)
 	const [lastClickTime, setLastClickTime] = useState<number>(0)
-	const [isEligible, setIsEligible] = useState<boolean | null>(null) // null = chưa kiểm tra, true/false = kết quả
 	const [form] = Form.useForm()
 	const [emailForm] = Form.useForm()
 	const [messageApi, contextHolder] = message.useMessage()
 
-	// Check eligibility on component mount and when orderId changes
-	useEffect(() => {
-		const checkEligibility = async () => {
-			if (!orderId) return
-
-			try {
-				// First check if invoice already exists
-				const existingInvoice = await invoiceService.getInvoiceByOrderId(orderId)
-				if (existingInvoice) {
-					setInvoice(existingInvoice)
-					setIsEligible(true) // Always show if invoice exists
-					return
-				}
-
-				// Check eligibility with backend
-				const eligibility = await invoiceService.checkEligibility(orderId)
-				
-				if (eligibility && typeof eligibility.eligible === 'boolean') {
-					setIsEligible(eligibility.eligible)
-				} else {
-					console.error(`Invalid eligibility response for order ${orderId}:`, eligibility)
-					setIsEligible(false)
-				}
-			} catch (error) {
-				console.error('Error checking invoice eligibility for order', orderId, ':', error)
-				setIsEligible(false)
-			}
-		}
-
-		checkEligibility()
-	}, [orderId])
 
 	// Handle button click - Auto create and download invoice
 	const handleClick = async () => {
@@ -313,31 +281,18 @@ export default function InvoiceButton({
 		}
 	}
 
-	// Don't show button if order is not eligible or if still checking
+	// Don't show button if order is not in appropriate status
 	const shouldShowButton = () => {
 		if (disabled) return false
-		// Show button only if backend confirms eligibility or if invoice already exists
-		// Backend chấp nhận: DELIVERED, COMPLETED, SHIPPED (đã loại bỏ PROCESSED)
-		// isEligible === null means still checking, false means not eligible, true means eligible
-		return isEligible === true
-	}
-
-	// Show loading state while checking eligibility
-	if (isEligible === null) {
-		return (
-			<>
-				{contextHolder}
-				<Tooltip title="Đang kiểm tra điều kiện...">
-					<Button
-						type={type}
-						size={size}
-						icon={<FilePdfOutlined />}
-						disabled={true}
-						loading={true}
-					/>
-				</Tooltip>
-			</>
-		)
+		// Show button for completed/delivered/shipped orders or if invoice already exists
+		return invoice || 
+			   orderStatus === 'DELIVERED' || 
+			   orderStatus === 'COMPLETED' || 
+			   orderStatus === 'Completed' ||  // Database có trạng thái 'Completed' 
+			   orderStatus === 'SHIPPED' ||
+			   orderStatus === 'Shipped' ||
+			   orderStatus === 'PROCESSED' ||
+			   orderStatus === 'Processed'
 	}
 
 	if (!shouldShowButton()) {
@@ -347,7 +302,7 @@ export default function InvoiceButton({
 	return (
 		<>
 			{contextHolder}
-			<Tooltip title={invoice ? "Tải hóa đơn có sẵn" : "Tạo và tải hóa đơn"}>
+			<Tooltip title="Hóa đơn điện tử">
 				<Button
 					type={type}
 					size={size}
