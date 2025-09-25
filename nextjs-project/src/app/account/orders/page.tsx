@@ -16,18 +16,11 @@ import {
   message,
   Grid,
 } from "antd";
-import {
-  orderApi,
-  type OrderSummary,
-} from "@/services/orderService";
+import { orderApi, type OrderSummary } from "@/services/orderService";
 import OrderDetailModal from "./components/OrderDetailModal";
 import { OrderFilters } from "./components/OrderFilters";
 import type { Dayjs } from "dayjs";
-import {
-  PlusOutlined,
-  EyeOutlined,
-  HistoryOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined, EyeOutlined, HistoryOutlined } from "@ant-design/icons";
 import InvoiceButton from "@/components/InvoiceButton";
 import { useRouter } from "next/navigation";
 
@@ -274,7 +267,9 @@ export default function OrdersPage() {
   };
 
   const handleInvoiceCreated = (invoice: { invoiceNumber: string }) => {
-    messageApi.success(`Hóa đơn ${invoice.invoiceNumber} đã được tạo thành công!`);
+    messageApi.success(
+      `Hóa đơn ${invoice.invoiceNumber} đã được tạo thành công!`
+    );
     setTimeout(() => {
       fetchOrders(currentPage, pageSize);
     }, 1500);
@@ -369,7 +364,12 @@ export default function OrdersPage() {
     <>
       <Card className="orders-page" style={{ margin: "24px" }}>
         <div className="orders-header" style={{ marginBottom: "24px" }}>
-          <Row justify="space-between" align="middle" style={{ marginBottom: 24 }} wrap>
+          <Row
+            justify="space-between"
+            align="middle"
+            style={{ marginBottom: 24 }}
+            wrap
+          >
             <Col xs={24} sm="auto">
               <Title level={2} style={{ marginBottom: 12 }}>
                 Quản lý đơn hàng
@@ -439,7 +439,7 @@ export default function OrdersPage() {
         footer={null}
         width={screens.md ? 600 : "100%"}
         style={{ top: screens.md ? 100 : 0 }}
-        bodyStyle={{ padding: screens.md ? 24 : 12 }}
+        styles={{ body: { padding: screens.md ? 24 : 12 } }}
       >
         {selectedOrder && (
           <>

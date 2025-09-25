@@ -512,12 +512,14 @@ export default function EstimatePage() {
                   cursor: "default",
                 }}
                 suffix={
-                  deliveryAddressValue ? (
-                    <CloseCircleOutlined
-                      onClick={handleClearAddress}
-                      style={{ cursor: "pointer", color: "#999" }}
-                    />
-                  ) : null
+                  <CloseCircleOutlined
+                    onClick={handleClearAddress}
+                    style={{
+                      cursor: "pointer",
+                      color: "#999",
+                      visibility: deliveryAddressValue ? "visible" : "hidden",
+                    }}
+                  />
                 }
               />
 
@@ -716,15 +718,18 @@ export default function EstimatePage() {
         </Row>
 
         {feeDetails && feeDetails.allServices && (
-  <Row style={{ marginTop: 24 }}>
-    <Col span={24}>
-      <Title level={4} style={{ textAlign: "center", marginBottom: 20 }}>
-        Bảng giá các loại dịch vụ vận chuyển
-      </Title>
-      <ShippingFeeTable services={feeDetails.allServices} />
-    </Col>
-  </Row>
-)}
+          <Row style={{ marginTop: 24 }}>
+            <Col span={24}>
+              <Title
+                level={4}
+                style={{ textAlign: "center", marginBottom: 20 }}
+              >
+                Bảng giá các loại dịch vụ vận chuyển
+              </Title>
+              <ShippingFeeTable services={feeDetails.allServices} />
+            </Col>
+          </Row>
+        )}
       </Form>
     </Card>
   );

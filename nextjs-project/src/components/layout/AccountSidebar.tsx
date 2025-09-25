@@ -85,10 +85,12 @@ export default function AccountSidebar({
       open={open}
       onClose={onClose}
       placement="left"
-      bodyStyle={{ padding: 0, height: "100%" }}
       width={130}
       style={{ top: 64, height: "calc(100%)" }}
-      drawerStyle={{ background: "#001529" }}
+      styles={{
+        content: { background: "#001529" },
+        body: { padding: 0, height: "100%" },
+      }}
     >
       {renderMenu(false)}
     </Drawer>

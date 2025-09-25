@@ -239,7 +239,7 @@ export default function StorePage() {
         footer={null}
         width={screens.md ? 800 : "100%"}
         style={{ top: screens.md ? 100 : 0 }}
-        bodyStyle={{ padding: screens.md ? 24 : 12 }}
+        styles={{ body: { padding: screens.md ? 24 : 12 } }}
       >
         <div style={{ marginBottom: 16 }}>
           <Typography.Text type="secondary">
@@ -259,7 +259,9 @@ export default function StorePage() {
               <Form.Item
                 name="storeName"
                 label="Tên cửa hàng"
-                rules={[{ required: true, message: "Vui lòng nhập tên cửa hàng!" }]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập tên cửa hàng!" },
+                ]}
               >
                 <Input
                   prefix={<ShopOutlined />}
