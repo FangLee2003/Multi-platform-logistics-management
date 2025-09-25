@@ -3,6 +3,7 @@ import 'address.dart';
 import 'store.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/delivery_response.dart';
 import 'package:ktc_logistics_driver/domain/models/delivery/driver_status_model.dart';
+import 'package:ktc_logistics_driver/domain/models/delivery_proof/delivery_proof.dart';
 import 'order_item.dart';
 
 class OrderDetailsResponse {
@@ -20,6 +21,7 @@ class OrderDetailsResponse {
   final DeliveryResponse? deliveryResponse;
   final DriverStatus? driver;
   final List<OrderItem>? orderItems;
+  final List<DeliveryProof>? deliveryProofs; // Added delivery proofs
 
   OrderDetailsResponse({
     required this.resp,
@@ -34,6 +36,7 @@ class OrderDetailsResponse {
     this.deliveryResponse,
     this.driver,
     this.orderItems,
+    this.deliveryProofs, // Added delivery proofs parameter
   });
 
   factory OrderDetailsResponse.fromJson(Map<String, dynamic> json) {
@@ -48,21 +51,45 @@ class OrderDetailsResponse {
       );
     }
     
-    // Xử lý JSON từ API mới
+    // Xử lý JSON từ API mới - kiểm tra cả root level và orderDetail
+    // API có thể trả về status ở root level hoặc trong orderDetail object
+    String? statusValue;
+    int? idValue;
+    String? descriptionValue;
+    String? notesValue;
+    
+    // Ưu tiên lấy từ orderDetail nếu có
+    if (json["orderDetail"] != null) {
+      final orderDetail = json["orderDetail"];
+      statusValue = orderDetail["status"];
+      idValue = orderDetail["id"];
+      descriptionValue = orderDetail["description"];
+      notesValue = orderDetail["notes"];
+    } else {
+      // Fallback lấy từ root level
+      statusValue = json["status"];
+      idValue = json["id"];
+      descriptionValue = json["description"];
+      notesValue = json["notes"];
+    }
+    
     return OrderDetailsResponse(
       resp: true,
       msg: "Success",
       detailsOrder: [], // API mới không sử dụng detailsOrder
-      id: json["id"],
-      status: json["status"],
-      description: json["description"],
-      notes: json["notes"],
+      id: idValue,
+      status: statusValue,
+      description: descriptionValue,
+      notes: notesValue,
       address: json["address"] != null ? Address.fromJson(json["address"]) : null,
       store: json["store"] != null ? Store.fromJson(json["store"]) : null,
       deliveryResponse: json["delivery"] != null ? DeliveryResponse.fromJson({"success": true, "message": "OK", "data": json["delivery"]}) : null,
       driver: json["driver"] != null ? DriverStatus.fromJson(json["driver"]) : null,
       orderItems: json["orderItems"] != null 
         ? List<OrderItem>.from(json["orderItems"].map((x) => OrderItem.fromJson(x))) 
+        : [],
+      deliveryProofs: json["deliveryProofs"] != null 
+        ? List<DeliveryProof>.from(json["deliveryProofs"].map((x) => DeliveryProof.fromJson(x))) 
         : [],
     );
   }

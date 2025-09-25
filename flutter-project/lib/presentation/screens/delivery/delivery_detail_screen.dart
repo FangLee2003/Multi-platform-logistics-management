@@ -506,7 +506,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
                 ? Colors.white.withValues(alpha: 0.1)
                 : Colors.black.withValues(alpha: 0.05),
             valueColor:
-                AlwaysStoppedAnimation<Color>(SpatialDesignSystem.primaryColor),
+                AlwaysStoppedAnimation<Color>(Colors.white),
             borderRadius: BorderRadius.circular(10),
           ),
           const SizedBox(height: 10),
@@ -579,17 +579,17 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
   String _getStatusDescription() {
     switch (_selectedStatus) {
       case 'PENDING':
-        return "Order created, awaiting processing";
+        return "Awaiting processing";
       case 'PROCESSING':
-        return "Order confirmed, being prepared for shipment";
+        return "Being prepared";
       case 'SHIPPING':
-        return "Order shipped, in transit for delivery";
+        return "In transit";
       case 'DELIVERED':
-        return "Order delivered but payment not yet settled";
+        return "Delivered";
       case 'COMPLETED':
-        return "Order delivered and payment completed";
+        return "Completed";
       case 'CANCELLED':
-        return "Order has been cancelled";
+        return "Cancelled";
       default:
         return "Unknown status";
     }

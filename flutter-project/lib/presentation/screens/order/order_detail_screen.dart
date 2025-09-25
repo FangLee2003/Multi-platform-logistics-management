@@ -70,8 +70,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     // Load order details from API
     _loadOrderDetails();
 
-    // Load delivery proofs if available
-    _loadDeliveryProofs();
+    // Note: Delivery proofs will be loaded as part of order details now
+    // No need to call _loadDeliveryProofs() separately
   }
 
   @override
@@ -185,18 +185,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           _orderDetails = orderDetails;
           _isLoading = false;
 
+          // Set delivery proofs from order details response
+          if (orderDetails.deliveryProofs != null) {
+            _deliveryProofs = orderDetails.deliveryProofs!;
+            debugPrint(
+                '📦 Loaded ${_deliveryProofs.length} delivery proofs from order details');
+          } else {
+            _deliveryProofs = [];
+            debugPrint('📦 No delivery proofs in order details response');
+          }
+
           // Update status from API response
           if (orderDetails.status != null) {
             // Use status directly from API without any mapping
             _selectedStatus = orderDetails.status!.toUpperCase().trim();
-            
+
             // Debug print
+            debugPrint('=== STATUS DEBUG ===');
             debugPrint(
-                'Order ID: ${widget.orderId} - Status from API: ${orderDetails.status}');
-            debugPrint('Using status: $_selectedStatus');
+                'Order ID: ${widget.orderId} - Raw status from API: "${orderDetails.status}"');
+            debugPrint('After toUpperCase().trim(): "$_selectedStatus"');
+            debugPrint('Status length: ${_selectedStatus.length}');
+            debugPrint('Status bytes: ${_selectedStatus.codeUnits}');
+            debugPrint('==================');
           } else {
             // Default status if none provided
             _selectedStatus = 'PENDING';
+            debugPrint('=== STATUS DEBUG ===');
+            debugPrint('No status from API, using default: PENDING');
+            debugPrint('Order ID: ${orderDetails.id}');
+            debugPrint('Order description: ${orderDetails.description}');
+            debugPrint('==================');
           }
         });
       } else {
@@ -422,6 +441,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     // Calculate progress based on status
     double progressValue = _getStatusProgress(_selectedStatus);
 
+    // Debug status in build method
+    debugPrint('=== UI BUILD DEBUG ===');
+    debugPrint('Current _selectedStatus in UI: "$_selectedStatus"');
+    debugPrint(
+        'Status display text: "${_selectedStatus.replaceAll('_', ' ')}"');
+    debugPrint('=====================');
+
     return GlassCard(
       padding: const EdgeInsets.all(20),
       gradient: LinearGradient(
@@ -481,8 +507,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             backgroundColor: isDark
                 ? Colors.white.withOpacity(0.1)
                 : Colors.black.withOpacity(0.05),
-            valueColor:
-                AlwaysStoppedAnimation<Color>(SpatialDesignSystem.primaryColor),
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             borderRadius: BorderRadius.circular(10),
             minHeight: 8,
           ),
@@ -522,9 +547,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 ? Icons.hourglass_empty
                 : Icons.track_changes_outlined,
             isGlass: true,
-            textColor: _isUpdatingStatus
-                ? SpatialDesignSystem.primaryColor.withOpacity(0.6)
-                : SpatialDesignSystem.primaryColor,
+            textColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             width: double.infinity,
           ),
@@ -558,20 +581,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   String _getStatusDescription(String status) {
     switch (status.toUpperCase()) {
       case 'PENDING':
-        return "Order created, awaiting processing";
+        return "Awaiting processing";
       case 'PROCESSING':
-        return "Order confirmed, being prepared for shipment";
+        return "Being prepared";
       case 'SHIPPING':
-        return "Order shipped, in transit for delivery";
+        return "In transit";
       case 'DELIVERED':
-        return "Order delivered but payment not yet settled";
+        return "Delivered";
       case 'COMPLETED':
-        return "Order delivered and payment completed";
+        return "Completed";
       case 'CANCELLED':
-        return "Order has been cancelled";
+        return "Cancelled";
       default:
         debugPrint('Unknown status for description: $status');
-        return "Order status: $status";
+        return "Status: $status";
     }
   }
 
@@ -957,38 +980,53 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       // Calculate total
       total = subtotal + deliveryFee - discount;
     } else {
-      // Show placeholder items if no data
+      // Show empty state instead of placeholder items
       orderItemWidgets = [
-        _buildOrderItem(
-          "Product A",
-          "2x",
-          "150,000 ₫",
-          "https://via.placeholder.com/60",
-          shippingFee: "15,000 ₫",
-        ),
-        const Divider(),
-        _buildOrderItem(
-          "Product B",
-          "1x",
-          "120,000 ₫",
-          "https://via.placeholder.com/60",
-          shippingFee: "15,000 ₫",
-        ),
-        const Divider(),
-        _buildOrderItem(
-          "Product C",
-          "3x",
-          "85,000 ₫",
-          "https://via.placeholder.com/60",
-          shippingFee: "15,000 ₫",
+        Container(
+          width: double.infinity, // Force full width
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Icon(
+                Icons.inventory_2_outlined,
+                size: 48,
+                color: isDark
+                    ? SpatialDesignSystem.textDarkSecondaryColor
+                        .withOpacity(0.5)
+                    : SpatialDesignSystem.textSecondaryColor.withOpacity(0.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "No items found",
+                style: SpatialDesignSystem.bodyLarge.copyWith(
+                  color: isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                      : SpatialDesignSystem.textSecondaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Order items will be displayed here when available",
+                style: SpatialDesignSystem.captionText.copyWith(
+                  color: isDark
+                      ? SpatialDesignSystem.textDarkSecondaryColor
+                          .withOpacity(0.7)
+                      : SpatialDesignSystem.textSecondaryColor.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ];
 
-      // Placeholder totals
-      subtotal = 355000;
-      deliveryFee = 20000;
-      discount = 10000;
-      total = 365000;
+      // Set realistic totals when no order items
+      subtotal = 0;
+      deliveryFee = 0;
+      discount = 0;
+      total = 0;
     }
 
     return SingleChildScrollView(
@@ -997,70 +1035,108 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Order Items
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Order Items",
-                  style: SpatialDesignSystem.subtitleMedium.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkPrimaryColor
-                        : SpatialDesignSystem.textPrimaryColor,
+          SizedBox(
+            width: double.infinity,
+            child: GlassCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Order Items",
+                    style: SpatialDesignSystem.subtitleMedium.copyWith(
+                      color: isDark
+                          ? SpatialDesignSystem.textDarkPrimaryColor
+                          : SpatialDesignSystem.textPrimaryColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                ...orderItemWidgets,
-              ],
+                  const SizedBox(height: 16),
+                  ...orderItemWidgets,
+                ],
+              ),
             ),
           ),
 
           const SizedBox(height: 16),
 
           // Order Summary
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Order Summary",
-                  style: SpatialDesignSystem.subtitleMedium.copyWith(
-                    color: isDark
-                        ? SpatialDesignSystem.textDarkPrimaryColor
-                        : SpatialDesignSystem.textPrimaryColor,
+          SizedBox(
+            width: double.infinity,
+            child: GlassCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Order Summary",
+                    style: SpatialDesignSystem.subtitleMedium.copyWith(
+                      color: isDark
+                          ? SpatialDesignSystem.textDarkPrimaryColor
+                          : SpatialDesignSystem.textPrimaryColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildSummaryRow(
-                    "Subtotal",
-                    NumberFormat.currency(
-                            locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
-                        .format(subtotal)),
-                const Divider(),
-                _buildSummaryRow(
-                    "Delivery Fee",
-                    NumberFormat.currency(
-                            locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
-                        .format(deliveryFee)),
-                const Divider(),
-                _buildSummaryRow("Discount",
-                    "-${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(discount)}"),
-                const Divider(thickness: 1.5),
-                _buildSummaryRow(
-                    "Total",
-                    NumberFormat.currency(
-                            locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
-                        .format(total),
-                    isTotal: true),
-              ],
+                  const SizedBox(height: 16),
+                  // Show empty state if all totals are 0, otherwise show normal summary
+                  if (subtotal == 0 &&
+                      deliveryFee == 0 &&
+                      discount == 0 &&
+                      total == 0) ...[
+                    Container(
+                      width: double.infinity, // Force full width
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 20),
+                          Icon(
+                            Icons.receipt_outlined,
+                            size: 36,
+                            color: isDark
+                                ? SpatialDesignSystem.textDarkSecondaryColor
+                                    .withOpacity(0.5)
+                                : SpatialDesignSystem.textSecondaryColor
+                                    .withOpacity(0.5),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            "No pricing data available",
+                            style: SpatialDesignSystem.bodyMedium.copyWith(
+                              color: isDark
+                                  ? SpatialDesignSystem.textDarkSecondaryColor
+                                  : SpatialDesignSystem.textSecondaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    _buildSummaryRow(
+                        "Subtotal",
+                        NumberFormat.currency(
+                                locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
+                            .format(subtotal)),
+                    const Divider(),
+                    _buildSummaryRow(
+                        "Delivery Fee",
+                        NumberFormat.currency(
+                                locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
+                            .format(deliveryFee)),
+                    const Divider(),
+                    _buildSummaryRow("Discount",
+                        "-${NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(discount)}"),
+                    const Divider(thickness: 1.5),
+                    _buildSummaryRow(
+                        "Total",
+                        NumberFormat.currency(
+                                locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
+                            .format(total),
+                        isTotal: true),
+                  ],
+                ],
+              ),
             ),
           ),
-
           // Delivery Proof Section (show for delivered and completed orders)
-          if (_selectedStatus == 'DELIVERED' || 
-              _selectedStatus == 'COMPLETED')
+          if (_selectedStatus == 'DELIVERED' || _selectedStatus == 'COMPLETED')
             DeliveryProofManager(
               orderId: int.parse(widget.orderId),
               orderStatus: _selectedStatus,
@@ -1414,11 +1490,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     // ID theo database và OrderStatusId constants
     final List<Map<String, dynamic>> statusOptions = [
       {"id": OrderStatusId.PENDING, "name": "PENDING", "display": "Pending"},
-      {"id": OrderStatusId.PROCESSING, "name": "PROCESSING", "display": "Processing"},
+      {
+        "id": OrderStatusId.PROCESSING,
+        "name": "PROCESSING",
+        "display": "Processing"
+      },
       {"id": OrderStatusId.SHIPPING, "name": "SHIPPING", "display": "Shipping"},
-      {"id": OrderStatusId.DELIVERED, "name": "DELIVERED", "display": "Delivered"},
-      {"id": OrderStatusId.COMPLETED, "name": "COMPLETED", "display": "Completed"},
-      {"id": OrderStatusId.CANCELLED, "name": "CANCELLED", "display": "Cancelled"}
+      {
+        "id": OrderStatusId.DELIVERED,
+        "name": "DELIVERED",
+        "display": "Delivered"
+      },
+      {
+        "id": OrderStatusId.COMPLETED,
+        "name": "COMPLETED",
+        "display": "Completed"
+      },
+      {
+        "id": OrderStatusId.CANCELLED,
+        "name": "CANCELLED",
+        "display": "Cancelled"
+      }
     ];
 
     showStatusUpdateModal(
