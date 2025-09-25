@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { fetchVehiclesRaw, assignDriverToVehicle, updateVehicleStatus } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types/Operations";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
@@ -6,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 
 export default function VehicleList() {
+  const { t } = useTranslation();
   const {
     drivers,
     driversLoading,
@@ -119,7 +121,7 @@ export default function VehicleList() {
         await assignDriverToVehicle(selectedVehicle.id, driverObj.id ?? "");
         // Sau khi gán tài xế, chuyển trạng thái xe sang IN_USE
         await updateVehicleStatus(selectedVehicle.id, "IN_USE");
-        setAssignSuccess("Gán tài xế thành công!");
+        setAssignSuccess(t('dashboard.dispatcher.vehicles.assignSuccess', 'Gán tài xế thành công!'));
       }
       // Refresh vehicles after assignment (local, context, và dashboard fleet)
       fetchVehicles(currentPage, itemsPerPage);
@@ -140,7 +142,7 @@ export default function VehicleList() {
         closeAssignModal();
       }, 1000);
     } catch (err: any) {
-      setAssignError(err.message || "Gán tài xế thất bại");
+      setAssignError(err.message || t('dashboard.dispatcher.vehicles.assignError', 'Gán tài xế thất bại'));
     } finally {
       setAssigning(false);
     }
@@ -242,7 +244,7 @@ export default function VehicleList() {
       case 'MAINTENANCE_PENDING':
         badgeProps = {
           color: 'red-800',
-          text: 'Cần bảo trì',
+          text: t('dashboard.dispatcher.vehicles.maintenanceRequired', 'Maintenance Required'),
           border: 'red-200',
           bg: 'red-100',
           icon: 'red-500',
@@ -251,7 +253,7 @@ export default function VehicleList() {
       case 'AVAILABLE':
         badgeProps = {
           color: 'green-800',
-          text: 'Sẵn sàng',
+          text: t('dashboard.dispatcher.vehicles.available', 'Available'),
           border: 'green-200',
           bg: 'green-100',
           icon: 'green-500',
@@ -260,7 +262,7 @@ export default function VehicleList() {
       case 'IN_USE':
         badgeProps = {
           color: 'red-800',
-          text: 'Đang sử dụng',
+          text: t('dashboard.dispatcher.vehicles.inUse', 'In Use'),
           border: 'red-200',
           bg: 'red-100',
           icon: 'red-500',
@@ -269,7 +271,7 @@ export default function VehicleList() {
       case 'MAINTENANCE':
         badgeProps = {
           color: 'gray-800',
-          text: 'Bảo trì',
+          text: t('dashboard.dispatcher.vehicles.maintenance', 'Maintenance'),
           border: 'gray-200',
           bg: 'gray-100',
           icon: 'gray-500',
@@ -306,7 +308,7 @@ export default function VehicleList() {
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Quản lý phương tiện</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('dashboard.dispatcher.vehicles.title')}</h2>
           </div>
         </div>
       </div>
@@ -322,7 +324,7 @@ export default function VehicleList() {
             </div>
             <input
               type="text"
-              placeholder="Tìm kiếm theo biển số, loại xe hoặc tài xế..."
+              placeholder={t('dashboard.dispatcher.vehicles.searchPlaceholder', 'Search by license plate, vehicle type or driver...')}
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
@@ -331,16 +333,16 @@ export default function VehicleList() {
           
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Trạng thái:</label>
+            <label className="text-sm font-medium text-gray-700">{t('dashboard.dispatcher.vehicles.status', 'Trạng thái')}:</label>
             <select
               value={statusFilter}
               onChange={(e) => handleStatusFilterChange(e.target.value)}
               className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm"
             >
-              <option value="all">Tất cả</option>
-              <option value="available">Sẵn sàng</option>
-              <option value="assigned">Đang sử dụng</option>
-              <option value="unassigned">Chưa gán</option>
+              <option value="all">{t('common.all', 'All')}</option>
+              <option value="available">{t('dashboard.dispatcher.vehicles.available')}</option>
+              <option value="assigned">{t('dashboard.dispatcher.vehicles.inUse')}</option>
+              <option value="unassigned">{t('dashboard.dispatcher.vehicles.unassigned', 'Unassigned')}</option>
             </select>
           </div>
         </div>
@@ -418,7 +420,7 @@ export default function VehicleList() {
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm text-gray-500">Tài xế: </span>
+                        <span className="text-sm text-gray-500">{t('dashboard.dispatcher.vehicles.driver', 'Tài xế')}: </span>
                         {vehicle.currentDriver ? (
                           <span className="font-medium text-gray-900">
                             {vehicle.currentDriver.fullName || vehicle.currentDriver.email}
@@ -434,11 +436,11 @@ export default function VehicleList() {
                   <div className="px-4 pb-2">
                     <div className="flex gap-8 text-sm">
                       <div>
-                        <span className="text-gray-500">Trọng tải: </span>
-                        <span className="font-semibold text-gray-900">{vehicle.capacityWeightKg || "-"} tấn</span>
+                        <span className="text-gray-500">{t('dashboard.dispatcher.vehicles.weight', 'Trọng tải')}: </span>
+                        <span className="font-semibold text-gray-900">{vehicle.capacityWeightKg || "-"} {t('dashboard.dispatcher.vehicles.weightUnit', 'tấn')}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Thể tích: </span>
+                        <span className="text-gray-500">{t('dashboard.dispatcher.vehicles.volume', 'Thể tích')}: </span>
                         <span className="font-semibold text-gray-900">{vehicle.capacityVolumeM3 || "-"} m³</span>
                       </div>
                     </div>
@@ -457,13 +459,13 @@ export default function VehicleList() {
                   {/* Footer with Update Time and Action */}
                   <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
                     <span className="text-xs text-gray-400">
-                      Cập nhật: {vehicle.updatedAt ? new Date(vehicle.updatedAt).toLocaleString('vi-VN') : "-"}
+{t('dashboard.dispatcher.vehicles.updated', 'Cập nhật')}: {vehicle.updatedAt ? new Date(vehicle.updatedAt).toLocaleString('vi-VN') : "-"}
                     </span>
                     <button
                       onClick={() => openAssignModal(vehicle)}
                       className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md text-sm"
                     >
-                      Gán tài xế
+{t('dashboard.dispatcher.vehicles.assignDriver', 'Gán tài xế')}
                     </button>
                   </div>
                 </div>
@@ -486,7 +488,7 @@ export default function VehicleList() {
                     </button>
                     
                     <span className="text-sm text-gray-600 mx-2">
-                      Trang {currentPage} / {totalPages} (Tổng: {totalVehicles})
+{t('dashboard.dispatcher.pagination.page', 'Page {{current}} / {{total}}', { current: currentPage, total: totalPages })} ({t('dashboard.dispatcher.vehicles.total', 'Total')}: {totalVehicles})
                     </span>
                     
                     <button
@@ -513,7 +515,7 @@ export default function VehicleList() {
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-t-2xl">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Gán tài xế cho xe</h2>
+                <h2 className="text-xl font-bold">{t('dashboard.dispatcher.vehicles.assignDriverToVehicle', 'Gán tài xế cho xe')}</h2>
                 <button
                   onClick={closeAssignModal}
                   className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors duration-200"
@@ -524,7 +526,7 @@ export default function VehicleList() {
                 </button>
               </div>
               <p className="text-blue-100 mt-2">
-                Biển số: <span className="font-semibold">{selectedVehicle?.licensePlate}</span>
+{t('dashboard.dispatcher.vehicles.licensePlate', 'Biển số')}: <span className="font-semibold">{selectedVehicle?.licensePlate}</span>
               </p>
             </div>
 
@@ -564,7 +566,7 @@ export default function VehicleList() {
                   {/* Driver Selection */}
                   <div className="space-y-4">
                     <label className="block text-sm font-medium text-gray-700">
-                      Chọn tài xế
+{t('dashboard.dispatcher.vehicles.selectDriver', 'Chọn tài xế')}
                     </label>
                     <select
                       value={selectedDriverId ?? ""}
@@ -572,7 +574,7 @@ export default function VehicleList() {
                       disabled={assigning}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-50 disabled:cursor-not-allowed"
                     >
-                      <option value="">-- Chưa gán tài xế --</option>
+                      <option value="">-- {t('dashboard.dispatcher.vehicles.noDriverAssigned', 'No driver assigned')} --</option>
                       {drivers.filter(driver => {
                         // Lọc theo toàn bộ danh sách xe từ context (không chỉ trang hiện tại)
                         // Đảm bảo tài xế đã gán cho bất kỳ xe nào cũng không xuất hiện, trừ khi đang là currentDriver của xe đang chọn

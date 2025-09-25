@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { Calendar } from "lucide-react";
 import { fetchVehiclesRaw, updateVehicleStatus } from "../../services/VehicleListAPI";
 import { createVehicleMaintenance } from "../../services/VehicleMaintenanceAPI";
@@ -18,12 +19,7 @@ interface ScheduleForm {
 
 
 
-const typeOptions = [
-  { value: "", label: "Chọn loại" },
-  { value: "Bảo dưỡng định kỳ", label: "Bảo dưỡng định kỳ" },
-  { value: "Sửa chữa", label: "Sửa chữa" },
-  { value: "Sửa chữa khẩn cấp", label: "Sửa chữa khẩn cấp" },
-];
+// Type options will be moved to component to use translations
 
 interface MaintenanceFormProps {
   onAddMaintenance?: (data: ScheduleForm) => void;
@@ -37,7 +33,15 @@ interface MaintenanceFormProps {
 import axios from 'axios';
 
 export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated, initialVehicle, initialDescription, initialType, initialMaintenanceId }: MaintenanceFormProps) {
+  const { t } = useTranslation();
   const isEmergency = Boolean(initialType || initialDescription);
+
+  const getTypeOptions = () => [
+    { value: "", label: t('dashboard.fleet.selectType', 'Select type') },
+    { value: "Bảo dưỡng định kỳ", label: t('dashboard.fleet.maintenanceTypes.scheduled', 'Scheduled Maintenance') },
+    { value: "Sửa chữa", label: t('dashboard.fleet.maintenanceTypes.repair', 'Repair') },
+    { value: "Sửa chữa khẩn cấp", label: t('dashboard.fleet.maintenanceTypes.emergency', 'Emergency Repair') },
+  ];
   const [form, setForm] = useState<ScheduleForm>({
     vehicle: initialVehicle?.id?.toString() || "",
     type: initialType || "",
@@ -70,7 +74,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
 //   { value: "2", label: "Đang thực hiện" },
 // ];
   const [vehicleOptions, setVehicleOptions] = useState<{ value: string; label: string }[]>([
-    { value: "", label: "Chọn phương tiện" }
+    { value: "", label: t('dashboard.fleet.selectVehicle', 'Select vehicle') }
   ]);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
   const [vehicleError, setVehicleError] = useState<string | null>(null);
@@ -80,7 +84,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
     fetchVehiclesRaw(1, 200)
       .then(({ data }) => {
         setVehicleOptions([
-          { value: "", label: "Chọn phương tiện" },
+          { value: "", label: t('dashboard.fleet.selectVehicle', 'Select vehicle') },
           ...data.map(v => ({
             value: v.id?.toString() || '',
             label: (v.licensePlate ? v.licensePlate : (v.name || `Xe ${v.id}`)) + ` (ID: ${v.id})`
@@ -168,10 +172,10 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
 
   return (
     <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-xl">
-      <div className="text-xl font-bold mb-2">Lên lịch bảo trì</div>
+      <div className="text-xl font-bold mb-2">{t('dashboard.fleet.scheduleMaintenance', 'Schedule Maintenance')}</div>
       <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm font-medium mb-1">Chọn phương tiện <span className='text-red-500'>*</span></label>
+          <label className="block text-sm font-medium mb-1">{t('dashboard.fleet.selectVehicle')} <span className='text-red-500'>*</span></label>
           <select
             name="vehicle"
             value={form.vehicle}
@@ -184,11 +188,11 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          {loadingVehicles && <div className="text-xs text-gray-500 mt-1">Đang tải danh sách xe...</div>}
+          {loadingVehicles && <div className="text-xs text-gray-500 mt-1">{t('dashboard.fleet.loadingVehicles', 'Loading vehicle list...')}</div>}
           {vehicleError && <div className="text-xs text-red-500 mt-1">{vehicleError}</div>}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Loại bảo trì <span className='text-red-500'>*</span></label>
+          <label className="block text-sm font-medium mb-1">{t('dashboard.fleet.maintenanceType', 'Maintenance Type')} <span className='text-red-500'>*</span></label>
           <select
             name="type"
             value={form.type}
@@ -197,36 +201,36 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
             required
             disabled={isEmergency}
           >
-            {typeOptions.map(opt => (
+            {getTypeOptions().map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </div>
   {/* Ẩn trường trạng thái, chỉ gửi mặc định khi submit */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Mô tả công việc</label>
+          <label className="block text-sm font-medium mb-1">{t('dashboard.fleet.workDescription', 'Work Description')}</label>
           <input
             name="description"
             value={form.description}
             onChange={handleChange}
             className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
-            placeholder="Mô tả chi tiết công việc cần thực hiện"
+            placeholder={t('dashboard.fleet.workDescriptionPlaceholder', 'Describe the work to be performed in detail')}
             disabled={isEmergency}
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Ghi chú</label>
+          <label className="block text-sm font-medium mb-1">{t('dashboard.fleet.notes')}</label>
           <textarea
             name="notes"
             value={form.notes}
             onChange={handleChange}
             className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
-            placeholder="Nhập ghi chú (nếu có)"
+            placeholder={t('dashboard.fleet.notesPlaceholder', 'Enter notes (if any)')}
             rows={2}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Ngày thực hiện <span className='text-red-500'>*</span></label>
+          <label className="block text-sm font-medium mb-1">{t('dashboard.fleet.implementationDate', 'Implementation Date')} <span className='text-red-500'>*</span></label>
           <input
             name="date"
             type="date"
@@ -237,7 +241,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Chi phí dự kiến (VNĐ)</label>
+          <label className="block text-sm font-medium mb-1">{t('dashboard.fleet.estimatedCost', 'Estimated Cost')} (VNĐ)</label>
           <input
             name="cost"
             type="number"
@@ -248,7 +252,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Bảo trì sắp tới</label>
+          <label className="block text-sm font-medium mb-1">{t('dashboard.fleet.nextMaintenance', 'Next Maintenance')}</label>
           <input
             name="nextMaintenance"
             type="date"
@@ -263,7 +267,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
             type="submit"
             className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 rounded-lg text-base transition"
           >
-            <Calendar size={20} /> Lên lịch bảo trì
+            <Calendar size={20} /> {t('dashboard.fleet.scheduleMaintenance')}
           </button>
         </div>
       </form>

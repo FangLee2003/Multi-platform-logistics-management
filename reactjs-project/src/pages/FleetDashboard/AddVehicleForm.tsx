@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { Plus, X, AlertCircle, CheckCircle, Truck, Save } from "lucide-react";
 import { addVehicle } from "../../services/VehicleListAPI";
 import type { Vehicle } from "./VehicleTable";
@@ -28,12 +29,7 @@ type AddVehicleFormProps = {
   onUpdate?: (vehicleId: number, data: Partial<Vehicle>) => Promise<void>;
 };
 
-const VEHICLE_TYPES = [
-  { value: "TRUCK", label: "Xe tải" },
-  { value: "VAN", label: "Xe van" },
-  { value: "MOTORCYCLE", label: "Xe máy" },
-  { value: "CAR", label: "Xe con" },
-] as const;
+// Vehicle types will be translated in component
 
 export default function AddVehicleForm({ 
   onSuccess, 
@@ -43,7 +39,15 @@ export default function AddVehicleForm({
   editingVehicle,
   onUpdate
 }: AddVehicleFormProps) {
+  const { t } = useTranslation();
   const isEditMode = mode === "edit" && editingVehicle;
+
+  const VEHICLE_TYPES = [
+    { value: "TRUCK", label: t('fleet.vehicleTypes.truck', 'Xe tải') },
+    { value: "VAN", label: t('fleet.vehicleTypes.van', 'Xe van') },
+    { value: "MOTORCYCLE", label: t('fleet.vehicleTypes.motorcycle', 'Xe máy') },
+    { value: "CAR", label: t('fleet.vehicleTypes.car', 'Xe con') },
+  ] as const;
 
   const [form, setForm] = useState<VehicleFormData>({
     licensePlate: initialValues?.licensePlate || (isEditMode ? editingVehicle.licensePlate : ""),
@@ -88,35 +92,35 @@ export default function AddVehicleForm({
 
   // -------- Validation ----------
   const validateLicensePlate = (plate: string): string | undefined => {
-    if (!plate.trim()) return "Biển số xe là bắt buộc";
+    if (!plate.trim()) return t('validation.required');
     const cleanPlate = plate.trim().toUpperCase();
-    if (cleanPlate.length < 6) return "Biển số xe phải có ít nhất 6 ký tự";
-    if (cleanPlate.length > 15) return "Biển số xe không được vượt quá 15 ký tự";
+    if (cleanPlate.length < 6) return t('fleet.validation.licensePlateMinLength', 'License plate must have at least 6 characters');
+    if (cleanPlate.length > 15) return t('fleet.validation.licensePlateMaxLength', 'License plate cannot exceed 15 characters');
 
     const hasNumber = /\d/.test(cleanPlate);
     const hasLetter = /[A-Z]/.test(cleanPlate);
     if (!hasNumber || !hasLetter) {
-      return "Biển số xe phải có cả số và chữ (VD: 30A-12345)";
+      return t('fleet.validation.licensePlateFormat', 'License plate must contain both numbers and letters (e.g., 30A-12345)');
     }
     return undefined;
   };
 
   const validateRequired = (value: string, fieldName: string): string | undefined => {
-    if (!value.trim()) return `${fieldName} là bắt buộc`;
+    if (!value.trim()) return t('validation.required');
     return undefined;
   };
 
   const validateNumber = (value: string, fieldName: string): string | undefined => {
     if (!value.trim()) return undefined;
     const num = parseFloat(value);
-    if (isNaN(num)) return `${fieldName} phải là số`;
-    if (num < 0) return `${fieldName} không được âm`;
-    if (num > 999999) return `${fieldName} quá lớn`;
+    if (isNaN(num)) return t('fleet.validation.mustBeNumber', '{{field}} must be a valid number', { field: fieldName });
+    if (num < 0) return t('fleet.validation.mustBePositive', '{{field}} must be positive', { field: fieldName });
+    if (num > 999999) return t('fleet.validation.tooLarge', '{{field}} is too large', { field: fieldName });
     return undefined;
   };
 
   const validateNotes = (notes: string): string | undefined => {
-    if (notes.length > 500) return "Ghi chú không được vượt quá 500 ký tự";
+    if (notes.length > 500) return t('fleet.validation.notesMaxLength', 'Notes cannot exceed 500 characters');
     return undefined;
   };
 
@@ -140,13 +144,13 @@ export default function AddVehicleForm({
         error = validateLicensePlate(currentValue);
         break;
       case "type":
-        error = validateRequired(currentValue, "Loại xe");
+        error = validateRequired(currentValue, t('dashboard.fleet.vehicleType'));
         break;
       case "capacityWeightKg":
-        error = validateNumber(currentValue, "Tải trọng");
+        error = validateNumber(currentValue, t('dashboard.fleet.capacity'));
         break;
       case "capacityVolumeM3":
-        error = validateNumber(currentValue, "Thể tích");
+        error = validateNumber(currentValue, t('dashboard.fleet.volume'));
         break;
       case "notes":
         error = validateNotes(currentValue);
@@ -158,9 +162,9 @@ export default function AddVehicleForm({
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {
       licensePlate: validateLicensePlate(form.licensePlate),
-      type: validateRequired(form.type, "Loại xe"),
-      capacityWeightKg: validateNumber(form.capacityWeightKg, "Tải trọng"),
-      capacityVolumeM3: validateNumber(form.capacityVolumeM3, "Thể tích"),
+      type: validateRequired(form.type, t('dashboard.fleet.vehicleType')),
+      capacityWeightKg: validateNumber(form.capacityWeightKg, t('dashboard.fleet.capacity')),
+      capacityVolumeM3: validateNumber(form.capacityVolumeM3, t('dashboard.fleet.volume')),
       notes: validateNotes(form.notes),
     };
     setErrors(newErrors);
@@ -261,12 +265,12 @@ export default function AddVehicleForm({
         </div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            {isEditMode ? "Chỉnh sửa phương tiện" : "Thêm phương tiện mới"}
+{isEditMode ? t('fleet.form.editVehicle', 'Edit Vehicle') : t('fleet.form.addVehicle', 'Add New Vehicle')}
           </h2>
           <p className="text-sm text-gray-600">
             {isEditMode 
-              ? `Cập nhật thông tin phương tiện ${editingVehicle?.licensePlate}` 
-              : "Nhập thông tin phương tiện vào hệ thống"
+              ? t('fleet.form.updateVehicleSubtitle', 'Update vehicle information for {{plate}}', { plate: editingVehicle?.licensePlate })
+              : t('fleet.form.addVehicleSubtitle', 'Enter vehicle information into the system')
             }
           </p>
         </div>
@@ -277,7 +281,7 @@ export default function AddVehicleForm({
           <div className="flex items-center gap-2 text-green-700">
             <CheckCircle size={20} />
             <span className="font-medium">
-              {isEditMode ? "Cập nhật phương tiện thành công!" : "Thêm phương tiện thành công!"}
+{isEditMode ? t('fleet.form.updateSuccess', 'Vehicle updated successfully!') : t('fleet.form.addSuccess', 'Vehicle added successfully!')}
             </span>
           </div>
         </div>
@@ -288,7 +292,7 @@ export default function AddVehicleForm({
           {/* License Plate */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
-              Biển số xe <span className="text-red-500">*</span>
+              {t('fleet.form.licensePlate', 'License Plate')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -315,7 +319,7 @@ export default function AddVehicleForm({
           {/* Vehicle Type */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
-              Loại xe <span className="text-red-500">*</span>
+              {t('dashboard.fleet.vehicleType')} <span className="text-red-500">*</span>
             </label>
             <select
               value={form.type}
@@ -371,7 +375,7 @@ export default function AddVehicleForm({
 
           {/* Capacity Volume */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Thể tích (m³)</label>
+            <label className="block text-sm font-medium text-gray-700">{t('dashboard.fleet.volume')} (m³)</label>
             <input
               type="number"
               step="0.01"
@@ -398,10 +402,10 @@ export default function AddVehicleForm({
 
         {/* Notes */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Ghi chú</label>
+          <label className="block text-sm font-medium text-gray-700">{t('dashboard.fleet.notes')}</label>
           <textarea
             rows={3}
-            placeholder="Nhập thông tin bổ sung về xe..."
+placeholder={t('fleet.form.notesPlaceholder', 'Enter additional vehicle information...')}
             value={form.notes}
             onChange={(e) => handleChange("notes", e.target.value)}
             onBlur={() => handleFieldBlur("notes")}
@@ -438,12 +442,12 @@ export default function AddVehicleForm({
             {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>{isEditMode ? "Đang cập nhật..." : "Đang thêm..."}</span>
+                <span>{isEditMode ? t('fleet.form.updating', 'Updating...') : t('fleet.form.adding', 'Adding...')}</span>
               </>
             ) : (
               <>
                 {isEditMode ? <Save size={18} /> : <Plus size={18} />}
-                <span>{isEditMode ? "Cập nhật" : "Thêm phương tiện"}</span>
+                <span>{isEditMode ? t('common.update') : t('fleet.form.addVehicle', 'Add Vehicle')}</span>
               </>
             )}
           </button>
@@ -465,7 +469,7 @@ export default function AddVehicleForm({
               disabled={isLoading}
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-800"
             >
-              Hủy bỏ
+{t('common.cancel')}
             </button>
           )}
         </div>

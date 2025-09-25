@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -36,6 +37,7 @@ interface MonthlyRevenueChartProps {
 }
 
 export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChartProps) {
+  const { t } = useTranslation();
   const [monthlyData, setMonthlyData] = useState<MonthlyRevenueData[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [averageRevenue, setAverageRevenue] = useState(0);
@@ -139,7 +141,7 @@ export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChar
         cornerRadius: 8,
         displayColors: true,
         callbacks: {
-          title: (context) => `Month ${context[0].label}`,
+          title: (context) => `${t('dashboard.operations.chart.month', 'Month')} ${context[0].label}`,
           label: (context) => {
             // context.parsed.y là VND gốc
             return `Revenue: ${context.parsed.y.toLocaleString('en-US')} VND`;
@@ -197,14 +199,14 @@ export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChar
   return (
     <div className="bg-white/40 backdrop-blur-md rounded-xl p-6 border border-white/20 shadow-lg">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-800">Monthly Revenue</h3>
+        <h3 className="text-lg font-semibold text-gray-800">{t('dashboard.operations.chart.monthlyRevenue', 'Monthly Revenue')}</h3>
         <div className="flex gap-2">
           <button 
             className="px-3 py-1 text-xs rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
             onClick={handleRefreshAll}
             disabled={loading}
           >
-            {loading ? 'Loading...' : 'Refresh'}
+{loading ? t('common.loading') : t('common.refresh')}
           </button>
         </div>
       </div>
@@ -225,19 +227,19 @@ export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChar
           <div className="text-2xl font-bold text-blue-600">
             {formatCurrency(totalRevenue)}
           </div>
-          <div className="text-sm text-gray-600">Total annual revenue</div>
+          <div className="text-sm text-gray-600">{t('dashboard.operations.chart.totalAnnualRevenue', 'Total annual revenue')}</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-green-600">
             {growthPercent > 0 ? '+' : ''}{growthPercent.toFixed(1)}%
           </div>
-          <div className="text-sm text-gray-600">Growth compared to last month</div>
+          <div className="text-sm text-gray-600">{t('dashboard.operations.chart.growthComparedToLastMonth', 'Growth compared to last month')}</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-amber-600">
             {formatCurrency(averageRevenue)}
           </div>
-          <div className="text-sm text-gray-600">Monthly average</div>
+          <div className="text-sm text-gray-600">{t('dashboard.operations.chart.monthlyAverage', 'Monthly average')}</div>
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import StatCard from '../../components/StatCard';
 import { TfiPackage } from "react-icons/tfi";
 import { FiClock, FiDollarSign } from "react-icons/fi";
@@ -33,6 +34,7 @@ function formatMinutesToTime(minutes: number): string {
 }
 
 export default function PerformanceStatCards({ performanceData }: PerformanceStatCardsProps) {
+  const { t } = useTranslation();
   // Debug log to check metric names and values
   console.log('PerformanceStatCards data:', performanceData);
   
@@ -67,7 +69,7 @@ export default function PerformanceStatCards({ performanceData }: PerformanceSta
               ? ''
               : data.metric.includes('km Transported')
               ? ''
-              : `Target: ${data.target.toFixed(1)}%`
+              : `${t('dashboard.operations.performance.target', 'Target')}: ${data.target.toFixed(1)}%`
           }
           trend={
             (data.metric.includes('Delivery Time') || data.metric.includes('Average Delivery Time') || data.metric.includes('Transportation Cost') || data.metric.includes('km Transported'))
