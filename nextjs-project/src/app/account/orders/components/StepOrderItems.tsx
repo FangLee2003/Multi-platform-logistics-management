@@ -18,7 +18,6 @@ export default function StepOrderItems({ form }: Props) {
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
 
   const handleDownloadSample = () => {
-    // Tạo file Excel mẫu với cột cần thiết
     const sampleData = [
       [
         "Tên sản phẩm",
@@ -32,7 +31,6 @@ export default function StepOrderItems({ form }: Props) {
       ["Sản phẩm mẫu 2", 1, 0.8, 15, 15, 25],
     ];
 
-    // Tạo CSV content
     const csvContent = sampleData.map((row) => row.join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csvContent], {
       type: "text/csv;charset=utf-8;",
@@ -49,7 +47,6 @@ export default function StepOrderItems({ form }: Props) {
   };
 
   const handleExcelData = (data: OrderItem[]) => {
-    // Lấy dữ liệu hiện có và thêm dữ liệu từ Excel vào cuối
     const currentItems: OrderItem[] = form.getFieldValue("items") || [];
     const updatedItems = [...currentItems, ...data];
     form.setFieldValue("items", updatedItems);
@@ -57,11 +54,13 @@ export default function StepOrderItems({ form }: Props) {
 
   return (
     <div>
+      {/* Action buttons */}
       <div
         style={{
           marginBottom: 16,
           display: "flex",
           gap: 8,
+          flexWrap: "wrap",
           justifyContent: "flex-end",
         }}
       >
@@ -81,6 +80,7 @@ export default function StepOrderItems({ form }: Props) {
         </Button>
       </div>
 
+      {/* Table with form list */}
       <Form.List name="items">
         {(fields, { add, remove }) => {
           const items: OrderItem[] = form.getFieldValue("items") || [];
@@ -93,6 +93,8 @@ export default function StepOrderItems({ form }: Props) {
                   ...(items[index] || {}),
                 }))}
                 pagination={false}
+                scroll={{ x: 900 }}
+                size="small"
                 columns={[
                   {
                     title: "Tên sản phẩm",
@@ -112,6 +114,7 @@ export default function StepOrderItems({ form }: Props) {
                   {
                     title: "Số lượng",
                     key: "quantity",
+                    width: 120,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "quantity"]}
@@ -125,6 +128,7 @@ export default function StepOrderItems({ form }: Props) {
                   {
                     title: "Cân nặng (kg)",
                     key: "weight",
+                    width: 150,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "weight"]}
@@ -142,6 +146,7 @@ export default function StepOrderItems({ form }: Props) {
                   {
                     title: "Chiều cao (cm)",
                     key: "height",
+                    width: 150,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "height"]}
@@ -155,6 +160,7 @@ export default function StepOrderItems({ form }: Props) {
                   {
                     title: "Chiều rộng (cm)",
                     key: "width",
+                    width: 150,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "width"]}
@@ -168,6 +174,7 @@ export default function StepOrderItems({ form }: Props) {
                   {
                     title: "Chiều dài (cm)",
                     key: "length",
+                    width: 150,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "length"]}
@@ -181,6 +188,7 @@ export default function StepOrderItems({ form }: Props) {
                   {
                     title: "Hàng dễ vỡ",
                     key: "is_fragile",
+                    width: 120,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "is_fragile"]}
@@ -194,6 +202,7 @@ export default function StepOrderItems({ form }: Props) {
                   {
                     title: "",
                     key: "action",
+                    width: 60,
                     render: (_, __, index) => (
                       <Button
                         type="text"
@@ -205,6 +214,8 @@ export default function StepOrderItems({ form }: Props) {
                   },
                 ]}
               />
+
+              {/* Add button */}
               <Button
                 type="dashed"
                 onClick={() => add()}
@@ -218,6 +229,7 @@ export default function StepOrderItems({ form }: Props) {
         }}
       </Form.List>
 
+      {/* Modal nhập Excel */}
       <ExcelUploadModal
         open={isExcelModalOpen}
         onClose={() => setIsExcelModalOpen(false)}
