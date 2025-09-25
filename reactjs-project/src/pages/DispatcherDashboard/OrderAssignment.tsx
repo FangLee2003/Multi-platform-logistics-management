@@ -265,11 +265,39 @@ export default function OrdersAssignment(_props: any) {
 
     setAssigningOrders(prev => ({ ...prev, [orderId]: true }));
     try {
-      // Gán xe cho đơn hàng
+      // --- Giữ lại code cũ: Gán xe cho đơn hàng ---
       await updateOrderVehicle(orderId, Number(selectedVehicle.id));
 
+      // --- Gọi thêm API ghi log checklist ---
+      const assignDriverPayload = {
+        driverId: selectedVehicle.currentDriver.id,
+        vehicleId: selectedVehicle.id
+      };
+      const dispatcherApiUrl = `http://localhost:8080/api/dispatcher/orders/${orderId}/assign-driver`;
+      const dispatcherResponse = await fetch(dispatcherApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(assignDriverPayload)
+      });
+      let dispatcherResult = null;
+      if (dispatcherResponse.ok) {
+        dispatcherResult = await dispatcherResponse.json();
+        // Nếu có dữ liệu timeline/checklistLog thì log ra để debug
+        if (dispatcherResult.timeline) {
+          console.log('📝 Timeline:', dispatcherResult.timeline);
+        }
+        if (dispatcherResult.checklistLog) {
+          console.log('📝 ChecklistLog:', dispatcherResult.checklistLog);
+        }
+      } else {
+        const errorText = await dispatcherResponse.text();
+        console.error('❌ Lỗi khi gọi API assign-driver:', dispatcherResponse.status, errorText);
+      }
 
-      // Sau khi gán xe thành công, tự động tạo/cập nhật tracking
+      // --- Giữ lại code cũ: Tạo/cập nhật tracking ---
       const updatedOrder = data.find(o => o.id.toString() === orderId);
       if (updatedOrder && selectedVehicle.id) {
         try {

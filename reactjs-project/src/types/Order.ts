@@ -37,3 +37,22 @@ export interface Order {
   vehicle?: Vehicle;
   // Thêm các trường khác nếu cần
 }
+
+
+// Checklist/timeline cho đơn hàng
+export interface TimelineStepDto {
+  stepOrder: number;
+  stepCode: string;
+  stepName: string;
+  description?: string;
+  completed?: boolean;
+  completedAt?: string | Date;
+  actor?: {
+    userId?: number;
+    fullName?: string;
+    role?: string;
+    phone?: string;
+  };
+  details?: string;
+  status?: string;
+}

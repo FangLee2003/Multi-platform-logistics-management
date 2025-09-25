@@ -18,6 +18,8 @@ import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.DeliveryTrackingService;
 import ktc.spring_project.services.DeliveryService;
 import ktc.spring_project.services.ChecklistService;
+import ktc.spring_project.services.StatusService;
+import ktc.spring_project.dtos.ChecklistProgressResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -43,6 +45,9 @@ import ktc.spring_project.dtos.order.PaginatedOrderResponseDto;
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
+
+    @Autowired
+    private StatusService statusService;
 
     @Autowired
     private OrderService orderService;
@@ -287,20 +292,33 @@ public ResponseEntity<Order> putOrder(
 
     // API cập nhật trạng thái đơn hàng
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Order> updateOrderStatus(
+    public ResponseEntity<?> updateOrderStatus(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateOrderStatusDTO dto) {
+            @Valid @RequestBody UpdateOrderStatusDTO dto,
+            @RequestParam(required = false) Long dispatcherId) {
+        Map<String, Object> result = new HashMap<>();
         try {
             Order order = orderService.getOrderById(id);
-            if (dto.statusId != null) {
-                Status status = new Status();
-                status.setId(dto.statusId != null ? dto.statusId.shortValue() : null);
-                order.setStatus(status);
+            // Nếu stepName là DRIVER_RECEIVE_ORDER thì chuyển trạng thái sang Shipped
+            Optional<Status> shippedStatus = statusService.getStatusByTypeAndName("ORDER", "Shipped");
+            if (shippedStatus.isPresent()) {
+                order.setStatus(shippedStatus.get());
             }
-            Order updatedOrder = orderService.createOrder(order); // hoặc orderService.save(order)
-            return ResponseEntity.ok(updatedOrder);
+            Order updatedOrder = orderService.createOrder(order);
+            checklistService.markStepCompleted(
+                dispatcherId != null ? dispatcherId : (order.getCreatedBy() != null ? order.getCreatedBy().getId() : null),
+                id,
+                "DRIVER_RECEIVE_ORDER",
+                "Driver nhận đơn, chuyển trạng thái sang Shipped"
+            );
+            ChecklistProgressResponse checklistLog = checklistService.getProgressByOrder(id);
+            result.put("order", updatedOrder);
+            result.put("checklistLog", checklistLog);
+            result.put("message", "Cập nhật trạng thái thành công và đã ghi log checklist!");
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            result.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
         }
     }
 

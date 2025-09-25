@@ -4,6 +4,9 @@ import ktc.spring_project.dtos.timeline.OrderTimelineResponse;
 import ktc.spring_project.entities.User;
 import ktc.spring_project.services.OrderService;
 import ktc.spring_project.services.UserService;
+import ktc.spring_project.services.DispatcherService;
+import java.util.Map;
+import java.util.HashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/dispatcher")
 @CrossOrigin(originPatterns = {"http://localhost:*", "https://localhost:*"}, allowCredentials = "true")
 public class DispatcherController {
+    @Autowired
+    private DispatcherService dispatcherService;
 
     @Autowired
     private OrderService orderService;
@@ -85,25 +90,25 @@ public class DispatcherController {
      */
     @PostMapping("/orders/{id}/assign-driver")
     @PreAuthorize("hasRole('DISPATCHER')")
-    public ResponseEntity<OrderTimelineResponse> assignDriverToOrder(
+    public ResponseEntity<?> assignDriverToOrder(
             @PathVariable Long id,
-            @RequestParam Long driverId,
-            @RequestParam Long vehicleId,
+            @RequestBody ktc.spring_project.dtos.AssignDriverRequestDTO request,
             Authentication authentication) {
         try {
-            // Lấy thông tin dispatcher từ authentication
             String username = authentication.getName();
             User dispatcher = userService.findByUsername(username);
-            
             if (dispatcher == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
             }
-            
-            OrderTimelineResponse assignedOrder = orderService.assignDriverToOrder(id, driverId, vehicleId, dispatcher.getId());
-            return ResponseEntity.ok(assignedOrder);
+            Long driverId = request.getDriverId();
+            Long vehicleId = request.getVehicleId();
+            Map<String, Object> result = dispatcherService.assignDriverAndVehicle(id, driverId, vehicleId, dispatcher.getId());
+            if (result.containsKey("error")) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+            }
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            System.err.println("Error assigning driver to order: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
         }
     }
 

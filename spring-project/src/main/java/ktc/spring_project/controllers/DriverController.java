@@ -23,7 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
+import ktc.spring_project.dtos.ChecklistProgressResponse;
+import ktc.spring_project.services.ChecklistService;
 
 @RestController
 @RequestMapping("/api/drivers")
@@ -34,6 +37,7 @@ public class DriverController {
 	private final StatusService statusService;
 	private final RouteService routeService;
 	private final DeliveryTrackingService trackingService;
+	private final ChecklistService checklistService;
 
 	@Autowired
 	public DriverController(
@@ -41,12 +45,14 @@ public class DriverController {
 		OrderService orderService,
 		StatusService statusService,
 		RouteService routeService,
-		DeliveryTrackingService trackingService) {
+		DeliveryTrackingService trackingService,
+		ChecklistService checklistService) {
 		this.deliveryService = deliveryService;
 		this.orderService = orderService;
 		this.statusService = statusService;
 		this.routeService = routeService;
 		this.trackingService = trackingService;
+		this.checklistService = checklistService;
 	}
 
 	// Kept for backward compatibility
@@ -86,14 +92,32 @@ public class DriverController {
 		@PathVariable Long orderId,
 		@Valid @RequestBody OrderStatusUpdateDTO statusUpdate) {
 		// TODO: Validate that order belongs to driver
-		orderService.updateOrderStatus(orderId, statusUpdate);
-		return ResponseEntity.ok().build();
-	}
+		// Thực hiện cập nhật trạng thái và ghi log checklist
+		Map<String, Object> result = new HashMap<>();
+		try {
+			orderService.updateOrderStatus(orderId, statusUpdate);
+			// Ghi log checklist cho tất cả các lần cập nhật trạng thái
+			String details = "Driver updated order status to " + statusUpdate.getStatusId();
+			checklistService.markStepCompleted(driverId, orderId, "DRIVER_UPDATE_ORDER_STATUS", details);
 
-	/**
-	 * Driver cập nhật trạng thái giao hàng
-	 * Hỗ trợ các trạng thái: "In Transit", "Delivered", "Failed"
-	 */
+			// Nếu trạng thái mới là 'Shipped' thì ghi thêm log DRIVER_RECEIVE_ORDER
+			String shippedStepName = "DRIVER_RECEIVE_ORDER";
+			String statusName = String.valueOf(statusUpdate.getStatusId()).toLowerCase();
+			if (statusName.contains("shipped")) {
+				String receiveDetails = "Driver received order (" + statusUpdate.getStatusId() + ")";
+				checklistService.markStepCompleted(driverId, orderId, shippedStepName, receiveDetails);
+			}
+
+			result.put("message", "Cập nhật trạng thái thành công!");
+			ChecklistProgressResponse checklistLog = checklistService.getChecklistProgress(driverId, orderId);
+			result.put("checklistLog", checklistLog);
+			return ResponseEntity.ok(result);
+		} catch (Exception e) {
+			result.put("error", e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+		}
+	}
+	
 	@PatchMapping("/{driverId}/orders/{orderId}/delivery-status")
 	public ResponseEntity<Map<String, Object>> updateDeliveryStatus(
 			@PathVariable Long driverId,
@@ -191,8 +215,36 @@ public class DriverController {
 		@PathVariable Long driverId,
 		@PathVariable Long deliveryId,
 		@Valid @RequestBody LocationUpdateDTO locationUpdate) {
-		// TODO: Validate that delivery belongs to driver
-		trackingService.updateDeliveryLocation(driverId, deliveryId, locationUpdate);
-		return ResponseEntity.ok().build();
+		Map<String, Object> result = new HashMap<>();
+		try {
+			// Validate that delivery belongs to driver
+			Order order = orderService.getOrderById(deliveryId);
+			if (order.getDriver() == null || !order.getDriver().getId().equals(driverId)) {
+				result.put("error", "Driver không có quyền cập nhật đơn hàng này");
+				return ResponseEntity.status(HttpStatus.FORBIDDEN).body(result);
+			}
+			// Update location
+			trackingService.updateDeliveryLocation(driverId, deliveryId, locationUpdate);
+			// Update status to Delivered
+			Optional<Status> deliveredStatus = statusService.getStatusByTypeAndName("DELIVERY", "Delivered");
+			if (deliveredStatus.isPresent()) {
+				order.setStatus(deliveredStatus.get());
+				orderService.updateOrder(deliveryId, order);
+				// Log checklist progress
+				String details = "Driver delivered order via location update";
+				checklistService.markStepCompleted(driverId, deliveryId, "DRIVER_UPDATE_ORDER_STATUS", details);
+				checklistService.markStepCompleted(driverId, deliveryId, "DRIVER_RECEIVE_ORDER", "Order delivered");
+				ChecklistProgressResponse checklistLog = checklistService.getChecklistProgress(driverId, deliveryId);
+				result.put("message", "Cập nhật vị trí và trạng thái thành công!");
+				result.put("checklistLog", checklistLog);
+				return ResponseEntity.ok(result);
+			} else {
+				result.put("error", "Không tìm thấy status 'Delivered' trong hệ thống");
+				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+			}
+		} catch (Exception e) {
+			result.put("error", e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+		}
 	}
 }

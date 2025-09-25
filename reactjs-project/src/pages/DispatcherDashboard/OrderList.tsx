@@ -1,14 +1,17 @@
-// ...existing code...
-
 import { useState, useEffect } from "react";
+import { fetchOrderTimeline } from "../../services/ChecklistAPI";
+import OrderChecklistTimeline from "../../components/OrderChecklistTimeline";
+import type { TimelineStepDto } from "../../types/Order";
 import { fetchOrders, fetchOrderById } from "../../services/OrderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
 import { useQuery } from "@tanstack/react-query";
 
-
 export default function OrderList() {
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [timelineSteps, setTimelineSteps] = useState<TimelineStepDto[]>([]);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [searchId, setSearchId] = useState("");
   const [searching, setSearching] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -38,12 +41,24 @@ export default function OrderList() {
   const totalPages = isSearchMode ? 1 : (ordersResponse?.totalPages || 1);
 
   // Hàm chọn đơn hàng để hiển thị route
-  const handleOrderClick = (order: Order) => {
-    console.log('OrderList: Selected order:', order);
-    console.log('OrderList: Vehicle info:', order.vehicle);
-    console.log('OrderList: Vehicle ID:', order.vehicle?.id);
-    console.log('OrderList: Current driver:', order.vehicle?.currentDriver);
+  const handleOrderClick = async (order: Order) => {
     setSelectedOrder(order);
+    if (expandedOrderId === order.id) {
+      // Đang mở, click lại thì đóng
+      setExpandedOrderId(null);
+      setTimelineSteps([]);
+      return;
+    }
+    setExpandedOrderId(order.id);
+    setLoadingTimeline(true);
+    try {
+      const steps = await fetchOrderTimeline(order.id);
+      setTimelineSteps(steps);
+    } catch {
+      setTimelineSteps([]);
+    } finally {
+      setLoadingTimeline(false);
+    }
   };
 
   // Hàm tìm kiếm đơn hàng theo ID
@@ -141,66 +156,78 @@ export default function OrderList() {
           {/* Order list */}
           <div className="flex flex-col gap-4">
             {orders.map((order) => (
-              <div
-                key={order.id}
-                onClick={() => handleOrderClick(order)}
-                className={`rounded-2xl border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow hover:shadow-xl transition-all duration-200 cursor-pointer ${
-                  selectedOrder?.id === order.id 
-                    ? 'bg-blue-100/90 border-blue-400 ring-2 ring-blue-300' 
-                    : 'bg-white/90 border-blue-100 hover:bg-blue-50/80'
-                }`}
-              >
-                {/* Left: Order info */}
-                <div className="flex-1 min-w-0 flex flex-col gap-2">
-                  <div className="flex flex-wrap gap-2 items-center mb-1">
-                    <span className="font-extrabold text-lg text-blue-900">#{order.id}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
-                      ${order.status?.name === 'Pending'
-                        ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                        : order.status?.name === 'Completed'
-                        ? 'bg-green-100 text-green-800 border-green-300'
-                        : 'bg-blue-100 text-blue-700 border-blue-300'}
-                    `}>
-                      {order.status?.name}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
-                      ${order.status?.statusType === 'High'
-                        ? 'bg-red-100 text-red-700 border-red-300'
-                        : order.status?.statusType === 'Medium'
-                        ? 'bg-orange-100 text-orange-700 border-orange-300'
-                        : 'bg-green-100 text-green-700 border-green-300'}
-                    `}>
-                      {order.status?.statusType}
-                    </span>
+              <div key={order.id}>
+                <div
+                  onClick={() => handleOrderClick(order)}
+                  className={`rounded-2xl border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow hover:shadow-xl transition-all duration-200 cursor-pointer ${
+                    selectedOrder?.id === order.id 
+                      ? 'bg-blue-100/90 border-blue-400 ring-2 ring-blue-300' 
+                      : 'bg-white/90 border-blue-100 hover:bg-blue-50/80'
+                  }`}
+                >
+                  {/* Left: Order info */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-2">
+                    <div className="flex flex-wrap gap-2 items-center mb-1">
+                      <span className="font-extrabold text-lg text-blue-900">#{order.id}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
+                        ${order.status?.name === 'Pending'
+                          ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                          : order.status?.name === 'Completed'
+                          ? 'bg-green-100 text-green-800 border-green-300'
+                          : 'bg-blue-100 text-blue-700 border-blue-300'}
+                      `}>
+                        {order.status?.name}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
+                        ${order.status?.statusType === 'High'
+                          ? 'bg-red-100 text-red-700 border-red-300'
+                          : order.status?.statusType === 'Medium'
+                          ? 'bg-orange-100 text-orange-700 border-orange-300'
+                          : 'bg-green-100 text-green-700 border-green-300'}
+                      `}>
+                        {order.status?.statusType}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <div>
+                        <span className="font-semibold text-blue-700">Khách hàng:</span>
+                        <span className="text-blue-800"> {order.store?.storeName}</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-blue-700">Từ:</span>
+                        <span className="text-gray-700"> {order.store?.address}</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-blue-700">Đến:</span>
+                        <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-700">
-                    <div>
-                      <span className="font-semibold text-blue-700">Khách hàng:</span>
-                      <span className="text-blue-800"> {order.store?.storeName}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-blue-700">Từ:</span>
-                      <span className="text-gray-700"> {order.store?.address}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-blue-700">Đến:</span>
-                      <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
+                  {/* Right: Date & driver/vehicle */}
+                  <div className="flex flex-col items-end min-w-[180px] gap-1">
+                    <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold text-gray-500">Tài xế:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Chưa phân công"}</span>
+                      {order.vehicle?.licensePlate && (
+                        <>
+                          <span className="mx-1 text-gray-400">|</span>
+                          <span className="font-semibold text-blue-800">Xe: {order.vehicle.licensePlate}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
-                {/* Right: Date & driver/vehicle */}
-                <div className="flex flex-col items-end min-w-[180px] gap-1">
-                  <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
-                  <div className="text-sm text-gray-700">
-                    <span className="font-semibold text-gray-500">Tài xế:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Chưa phân công"}</span>
-                    {order.vehicle?.licensePlate && (
-                      <>
-                        <span className="mx-1 text-gray-400">|</span>
-                        <span className="font-semibold text-blue-800">Xe: {order.vehicle.licensePlate}</span>
-                      </>
+                {/* Checklist timeline dọc, chỉ hiển thị cho đơn hàng đang mở */}
+                {expandedOrderId === order.id && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    {/* <label className="block text-sm font-medium text-blue-700 mb-2">Checklist trạng thái đơn hàng</label> */}
+                    {loadingTimeline ? (
+                      <div className="text-blue-600">Đang tải checklist...</div>
+                    ) : (
+                      <OrderChecklistTimeline steps={timelineSteps} />
                     )}
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

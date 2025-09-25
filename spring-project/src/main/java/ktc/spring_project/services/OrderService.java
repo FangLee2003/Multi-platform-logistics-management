@@ -19,7 +19,7 @@ import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.HttpException;
 import ktc.spring_project.enums.StatusType;
-import lombok.extern.slf4j.Slf4j;
+import ktc.spring_project.repositories.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -29,17 +29,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 public class OrderService {
+    @Autowired
+    private OrderItemRepository orderItemRepository;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -64,7 +66,6 @@ public class OrderService {
     public Order createOrderFromDTO(ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO dto) {
         try {
             log.debug("Creating order from DTO: {}", dto);
-
             validateCreateOrderDTO(dto);
             // Chỉ kiểm tra trùng lặp nếu orderCode không null
             if (dto.getOrderCode() != null) {
@@ -72,15 +73,128 @@ public class OrderService {
             }
 
             Order order = buildOrderFromDTO(dto);
+            // Nếu chưa có status, gán status mặc định là "pending"
+            if (order.getStatus() == null) {
+                Optional<Status> pendingStatus = statusService.getStatusByTypeAndName("ORDER", "Pending");
+                if (pendingStatus.isPresent()) {
+                    order.setStatus(pendingStatus.get());
+                } else {
+                    throw new HttpException("Không tìm thấy status mặc định 'pending'", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            }
             Order createdOrder = createOrder(order);
-            
+            // Lưu checklist_progress cho bước CUSTOMER_CREATE_ORDER
+            if (createdOrder != null && createdOrder.getCreatedBy() != null) {
+                checklistService.markStepCompleted(
+                    createdOrder.getCreatedBy().getId(),
+                    createdOrder.getId(),
+                    "CUSTOMER_CREATE_ORDER",
+                    "Customer created order"
+                );
+            }
             return createdOrder;
-
         } catch (EntityDuplicateException | HttpException e) {
             throw e;
         } catch (Exception e) {
             throw new HttpException("Failed to create order: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * Lấy danh sách đơn hàng theo status với phân trang
+     */
+    public Page<OrderTimelineResponse> getOrdersByStatusPaginated(String statusName, int page, int size) {
+    validateNotBlank(statusName, "Status name");
+    validatePaginationParams(page, size);
+    Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+    Status status = statusRepository.findFirstByName(statusName)
+        .orElseThrow(() -> new EntityNotFoundException("Status not found: " + statusName));
+    Page<Order> orders = orderRepository.findByStatus(status, pageable);
+    List<OrderTimelineResponse> timelineResponses = orders.getContent().stream()
+        .map(this::convertToOrderTimelineResponse)
+        .toList();
+    return new PageImpl<>(timelineResponses, pageable, orders.getTotalElements());
+    }
+
+    /**
+     * Dispatcher xác nhận đơn hàng (accept order)
+     */
+    public OrderTimelineResponse acceptOrderByDispatcher(Long orderId, Long dispatcherId) {
+        validateId(dispatcherId, "Dispatcher ID");
+        validateId(orderId, "Order ID");
+        Order order = getOrderById(orderId);
+        // Cập nhật status sang "Processing"
+        Optional<Status> processingStatus = statusService.getStatusByTypeAndName("ORDER", "Processing");
+        if (processingStatus.isPresent()) {
+            order.setStatus(processingStatus.get());
+            orderRepository.save(order);
+            checklistService.markStepCompleted(dispatcherId, orderId, "DISPATCHER_RECEIVE_ORDER", "Order accepted by dispatcher");
+            log.info("Dispatcher {} accepted order {}", dispatcherId, orderId);
+        } else {
+            throw new HttpException("Processing status not found", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return convertToOrderTimelineResponse(order);
+    }
+
+
+    /**
+     * Lấy thông tin tóm tắt đơn hàng theo userId với phân trang
+     */
+    public Page<OrderSummaryDTO> getOrderSummariesByUserIdPaginated(Long userId, int page, int size) {
+        validateId(userId, "User ID");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        return orderRepository.findOrderSummariesByUserIdPaginated(userId, pageable);
+    }
+
+    /**
+     * Unified search: tìm kiếm đơn hàng theo nhiều tiêu chí với phân trang
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdWithFiltersPaginated(Long storeId, Long orderId, LocalDateTime fromDate, LocalDateTime toDate, List<String> statusList, int page, int size) {
+        validateId(storeId, "Store ID");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        return orderRepository.findOrderSummariesByStoreIdWithFiltersPaginated(storeId, orderId, fromDate, toDate, statusList, pageable);
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo storeId và orderId với phân trang
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdAndOrderIdPaginated(Long storeId, Long orderId, int page, int size) {
+        validateId(storeId, "Store ID");
+        validateId(orderId, "Order ID");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        List<OrderSummaryDTO> summaries = orderRepository.findOrderSummariesByStoreIdAndOrderId(storeId, orderId);
+        int start = (page - 1) * size;
+        int end = Math.min(start + size, summaries.size());
+        List<OrderSummaryDTO> pagedSummaries = summaries.subList(start, end);
+        return new PageImpl<>(pagedSummaries, pageable, summaries.size());
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo khoảng thời gian với phân trang
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdAndDateRangePaginated(Long storeId, LocalDateTime fromDate, LocalDateTime toDate, int page, int size) {
+        validateId(storeId, "Store ID");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        return orderRepository.findOrderSummariesByStoreIdAndDateRangePaginated(storeId, fromDate, toDate, pageable);
+    }
+
+    /**
+     * Lấy thống kê đơn hàng theo storeId
+     */
+    public ktc.spring_project.dtos.order.OrderStatsDto getOrderStatsByStoreId(Long storeId) {
+        validateId(storeId, "Store ID");
+        long totalOrders = orderRepository.countTotalOrdersByStoreId(storeId);
+        long processingOrders = orderRepository.countProcessingOrdersByStoreId(storeId);
+        long completedOrders = orderRepository.countCompletedOrdersByStoreId(storeId);
+        return ktc.spring_project.dtos.order.OrderStatsDto.builder()
+                .totalOrders(totalOrders)
+                .processingOrders(processingOrders)
+                .completedOrders(completedOrders)
+                .build();
     }
 
     public Order createOrder(Order order) {
@@ -311,17 +425,30 @@ public class OrderService {
         order.setOrderCode(dto.getOrderCode());
         order.setDescription(dto.getDescription());
         order.setTotalAmount(dto.getTotalAmount());
-        
+
+        // Gán thông tin khách hàng (customer)
+        if (dto.getCreatedBy() != null) {
+            order.setCreatedBy(dto.getCreatedBy());
+        }
+        // Gán địa chỉ
+        if (dto.getAddress() != null) {
+            order.setAddress(dto.getAddress());
+        }
+        // Gán store
+        if (dto.getStore() != null) {
+            order.setStore(dto.getStore());
+        }
+
         // Lưu thời gian buổi lấy hàng vào trường note
         String notes = dto.getNotes() != null ? dto.getNotes() : "";
         if (dto.getPickupTimePeriod() != null) {
             notes = notes.isEmpty() ? dto.getPickupTimePeriod() : notes + " | Buổi lấy hàng: " + dto.getPickupTimePeriod();
         }
         order.setNotes(notes);
-        
+
         order.setBenefitPerOrder(BigDecimal.ZERO);
         order.setOrderProfitPerOrder(BigDecimal.ZERO);
-        
+
         if (dto.getVehicleId() != null) {
             Vehicle vehicle = vehicleRepository.findById(dto.getVehicleId())
                     .orElseThrow(() -> new EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId()));
@@ -442,14 +569,31 @@ public class OrderService {
 
     // Helper method to convert Order to OrderSummaryDTO
     private OrderSummaryDTO convertToSummaryDTO(Order order) {
+        // Lấy số lượng sản phẩm từ OrderItemRepository
+        int totalItems = 0;
+        if (order.getId() != null) {
+            List<ktc.spring_project.entities.OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+            totalItems = items != null ? items.size() : 0;
+        }
+
+        // Lấy deliveryFee từ DeliveryRepository
+        java.math.BigDecimal deliveryFee = java.math.BigDecimal.ZERO;
+        if (order.getId() != null) {
+            List<ktc.spring_project.entities.Delivery> deliveries = deliveryRepository.findByOrderId(order.getId());
+            if (deliveries != null && !deliveries.isEmpty() && deliveries.get(0).getDeliveryFee() != null) {
+                deliveryFee = deliveries.get(0).getDeliveryFee();
+            }
+        }
+
         return new OrderSummaryDTO(
-                order.getId(),
-                null, // storeId - set to null or get from order if available
-                order.getCreatedAt(),
-                order.getAddress() != null ? order.getAddress().getAddress() : null,
-                0L, // totalItems - set to 0 or calculate if needed
-                order.getTotalAmount(),
-                order.getStatus() != null ? order.getStatus().getName() : null);
+            order.getId(),
+            order.getStore() != null ? order.getStore().getId() : null,
+            order.getCreatedAt(),
+            order.getAddress() != null ? order.getAddress().getAddress() : null,
+            totalItems,
+            deliveryFee,
+            order.getStatus() != null ? order.getStatus().getName() : null
+        );
     }
     
     // Helper method to convert Order to OrderTimelineResponse
@@ -478,7 +622,7 @@ public class OrderService {
                 .phone(order.getDriver().getPhone())
                 .role("DRIVER")
                 .build() : null)
-            .timeline(null) // Timeline will be populated separately if needed
+            .timeline(checklistService.buildTimelineSteps(order.getId()))
             .build();
     }
     

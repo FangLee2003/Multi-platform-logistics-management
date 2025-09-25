@@ -1,8 +1,7 @@
 package ktc.spring_project.services;
 
-
 import ktc.spring_project.exceptions.HttpException;
-// import ktc.spring_project.exceptions.EntityNotFoundException;
+import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.dtos.DeliveryFeeBreakdown;
 import ktc.spring_project.dtos.address.AddressResponseDTO;
@@ -27,25 +26,16 @@ import ktc.spring_project.services.VehicleService;
 import ktc.spring_project.services.UserService;
 import ktc.spring_project.services.RouteService;
 import ktc.spring_project.repositories.PaymentRepository;
-
-import jakarta.persistence.EntityNotFoundException;
+// import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.math.BigDecimal;
-import java.util.List;
 
-import ktc.spring_project.entities.Order;
-import java.util.stream.Collectors;
-
-@Service
 @Slf4j
+@Service
 public class DeliveryService {
 
     @Autowired
@@ -147,7 +137,7 @@ public class DeliveryService {
 
     public Delivery getDeliveryById(Long id) {
         return deliveryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Delivery not found with id: " + id));
+                .orElseThrow(() -> new ktc.spring_project.exceptions.EntityNotFoundException("Delivery not found with id: " + id));
     }
 
     public List<Delivery> getAllDeliveries() {
@@ -531,27 +521,27 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
                     log.warn("Order {} does not have delivery address, will skip fee calculation", dto.getOrderId());
                 }
             } catch (Exception e) {
-                throw new EntityNotFoundException("Order not found with id: " + dto.getOrderId());
+                throw new ktc.spring_project.exceptions.EntityNotFoundException("Order not found with id: " + dto.getOrderId());
             }
             if (dto.getVehicleId() != null) {
                 try {
                     delivery.setVehicle(vehicleService.getVehicleById(dto.getVehicleId()));
                 } catch (Exception e) {
-                    throw new EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId());
+                    throw new ktc.spring_project.exceptions.EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId());
                 }
             }
             if (dto.getDriverId() != null) {
                 try {
                     delivery.setDriver(userService.getUserById(dto.getDriverId()));
                 } catch (Exception e) {
-                    throw new EntityNotFoundException("Driver not found with id: " + dto.getDriverId());
+                    throw new ktc.spring_project.exceptions.EntityNotFoundException("Driver not found with id: " + dto.getDriverId());
                 }
             }
             if (dto.getRouteId() != null) {
                 try {
                     delivery.setRoute(routeService.getRouteById(dto.getRouteId()));
                 } catch (Exception e) {
-                    throw new EntityNotFoundException("Route not found with id: " + dto.getRouteId());
+                    throw new ktc.spring_project.exceptions.EntityNotFoundException("Route not found with id: " + dto.getRouteId());
                 }
             }
             delivery.setTransportMode(dto.getTransportMode());
@@ -573,7 +563,7 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
             } else {
                 return createDelivery(delivery);
             }
-        } catch (EntityNotFoundException | EntityDuplicateException e) {
+    } catch (ktc.spring_project.exceptions.EntityNotFoundException | EntityDuplicateException e) {
             log.error("Validation error creating delivery: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
@@ -626,7 +616,7 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
     public void driverReceiveDeliveryOrder(Long driverId, Long deliveryId) {
         try {
             Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new EntityNotFoundException("Delivery not found with id: " + deliveryId));
+                .orElseThrow(() -> new ktc.spring_project.exceptions.EntityNotFoundException("Delivery not found with id: " + deliveryId));
             
             // Log checklist step
             checklistService.markStepCompleted(
@@ -740,7 +730,7 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
         try {
             // ✅ Get delivery first to access order
             Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new EntityNotFoundException("Delivery not found"));
+                .orElseThrow(() -> new ktc.spring_project.exceptions.EntityNotFoundException("Delivery not found"));
                 
             checklistService.markStepCompleted(
                 driverId, 

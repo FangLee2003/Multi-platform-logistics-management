@@ -1,3 +1,8 @@
+import React, { useEffect, useState } from "react";
+import type { TimelineStepDto } from "../../types/Order";
+import { fetchOrderTimeline } from "../../services/ChecklistAPI";
+import OrderChecklistTimeline from "../../components/OrderChecklistTimeline";
+
 interface ProductItem {
   id: number;
   product: {
@@ -39,10 +44,34 @@ interface OrderDetailModalProps {
   productsTotalPages?: number;
   onProductsPageChange?: (page: number) => void;
 }
+export default function OrderDetailModal({ open, onClose, orderItem, products, deliveryFee, productsPage = 0, productsTotalPages = 1, onProductsPageChange, timelineSteps: timelineStepsProp = [] }: OrderDetailModalProps & { timelineSteps?: TimelineStepDto[] }) {
+  const [timelineSteps, setTimelineSteps] = useState<TimelineStepDto[]>(timelineStepsProp);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
 
-export default function OrderDetailModal({ open, onClose, orderItem, products, deliveryFee, productsPage = 0, productsTotalPages = 1, onProductsPageChange }: OrderDetailModalProps) {
+  useEffect(() => {
+    if (timelineStepsProp && Array.isArray(timelineStepsProp)) {
+      setTimelineSteps(timelineStepsProp);
+    } else {
+      async function fetchTimeline() {
+        if (open && orderItem && orderItem.code) {
+          setLoadingTimeline(true);
+          try {
+            const steps = await fetchOrderTimeline(orderItem.code);
+            setTimelineSteps(steps);
+          } catch {
+            setTimelineSteps([]);
+          } finally {
+            setLoadingTimeline(false);
+          }
+        } else {
+          setTimelineSteps([]);
+        }
+      }
+      fetchTimeline();
+    }
+  }, [open, orderItem?.code, timelineStepsProp]);
+
   if (!open || !orderItem) return null;
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -60,32 +89,32 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Mã đơn</label>
-              <p className="text-gray-900">{orderItem.code}</p>
+              <p className="text-gray-900">{orderItem?.code}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Khách hàng</label>
-              <p className="text-gray-900">{orderItem.customer}</p>
+              <p className="text-gray-900">{orderItem?.customer}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
-              <p className="text-gray-900">{orderItem.status}</p>
+              <p className="text-gray-900">{orderItem?.status}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Ngày tạo</label>
-              <p className="text-gray-900">{orderItem.date}</p>
+              <p className="text-gray-900">{orderItem?.date}</p>
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Địa chỉ giao hàng</label>
-            <p className="text-gray-900">{orderItem.address}</p>
+            <p className="text-gray-900">{orderItem?.address}</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Lộ trình</label>
             <div className="text-gray-900">
-              <p><strong>Từ:</strong> {orderItem.from}</p>
-              <p><strong>Đến:</strong> {orderItem.to}</p>
+              <p><strong>Từ:</strong> {orderItem?.from}</p>
+              <p><strong>Đến:</strong> {orderItem?.to}</p>
             </div>
           </div>
 
@@ -157,38 +186,60 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
             </div>
           )}
 
-          {orderItem.note && (
+          {orderItem?.note && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Ghi chú</label>
-              <p className="text-gray-900">{orderItem.note}</p>
+              <p className="text-gray-900">{orderItem?.note}</p>
             </div>
           )}
 
-          {orderItem.description && (
+          {orderItem?.description && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Mô tả</label>
-              <p className="text-gray-900">{orderItem.description}</p>
+              <p className="text-gray-900">{orderItem?.description}</p>
             </div>
           )}
 
-          {orderItem.assignedVehicle && (
+          {orderItem?.assignedVehicle && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Xe được gán</label>
               <p className="text-gray-900">
-                {orderItem.assignedVehicle.licensePlate} - {orderItem.assignedVehicle.vehicleType}
+                {orderItem?.assignedVehicle.licensePlate} - {orderItem?.assignedVehicle.vehicleType}
               </p>
             </div>
           )}
 
-          {orderItem.currentDriver && (
+          {orderItem?.currentDriver && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Tài xế</label>
               <p className="text-gray-900">
-                {orderItem.currentDriver.fullName || orderItem.currentDriver.username}
+                {orderItem?.currentDriver.fullName || orderItem?.currentDriver.username}
               </p>
             </div>
           )}
         </div>
+
+
+          {/* Checklist timeline dọc */}
+          <div>
+            
+            {loadingTimeline ? (
+              <div className="text-blue-600">Đang tải checklist...</div>
+            ) : (
+              <OrderChecklistTimeline
+                steps={(() => {
+                  // Luôn giữ 'Pending' ở đầu, các bước tiếp theo không được thay thế 'Pending'
+                  // Nếu API trả về 'Pending' ở vị trí khác, lọc bỏ các bước 'Pending' trùng, chỉ giữ duy nhất ở đầu
+                  const filteredSteps = timelineSteps.filter((s, idx) => s.stepCode !== "Pending" || idx === 0);
+                  if (!filteredSteps.length || filteredSteps[0].stepCode !== "Pending") {
+                    filteredSteps.unshift({ stepOrder: 1, stepCode: "Pending", stepName: "Pending", status: "Pending", completed: false });
+                  }
+                  // Nếu có nhiều bước 'Pending', chỉ giữ duy nhất ở đầu
+                  return [filteredSteps[0], ...filteredSteps.slice(1).filter(s => s.stepCode !== "Pending")];
+                })()}
+              />
+            )}
+          </div>
 
         <div className="flex justify-end mt-6">
           <button
