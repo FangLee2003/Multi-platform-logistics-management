@@ -5,6 +5,7 @@ requirements/PROJECT_KTC_2025.code-workspace
 # Node
 node_modules/
 package-lock.json
+.cursor
 ~/.cursor/mcp.json
 spring-project/document/ELECTRONIC_INVOICE_SYSTEM_GUIDE.md
 spring-project/document/migration_electronic_invoices.sql
