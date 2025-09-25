@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import DataTable, { TableRow, TableCell } from '../../components/DataTable';
 import type { Order } from '../../types/dashboard';
 
@@ -65,20 +64,13 @@ function formatDateTime(dateString: string) {
 }
 
 export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
-  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="flex items-center">
-        <h3 className="text-lg font-medium">{t('dashboard.operations.performance.recentOrders', 'Recent Orders')}</h3>
+        <h3 className="text-lg font-medium">Recent Orders</h3>
       </div>
       <div className="overflow-x-auto">
-        <DataTable headers={[
-          t('dashboard.operations.performance.headers.orderId', 'Order ID'),
-          t('dashboard.operations.performance.headers.customer', 'Customer'),
-          t('dashboard.operations.performance.headers.route', 'Route'),
-          t('dashboard.operations.performance.headers.createdTime', 'Created Time'),
-          t('dashboard.operations.performance.headers.status', 'Status')
-        ]} className="min-w-full">
+        <DataTable headers={['Order ID', 'Customer', 'Route', 'Created Time', 'Status']} className="min-w-full">
           {orders.map((order) => {
             const createdTime = formatDateTime(order.createdAt);
             

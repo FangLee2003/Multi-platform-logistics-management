@@ -397,10 +397,9 @@ public class InvoiceService {
      * Kiểm tra trạng thái đơn hàng có hợp lệ để xuất hóa đơn không
      */
     private boolean isValidOrderStatus(String statusName) {
-        return "COMPLETED".equalsIgnoreCase(statusName);
-        // "DELIVERED".equalsIgnoreCase(statusName) || 
-        //        "COMPLETED".equalsIgnoreCase(statusName) ||
-        //        "SHIPPED".equalsIgnoreCase(statusName);  // Chỉ chấp nhận DELIVERED, COMPLETED, SHIPPED £201
+        return "PROCESSED".equalsIgnoreCase(statusName) || 
+               "COMPLETED".equalsIgnoreCase(statusName) ||
+               "SHIPPED".equalsIgnoreCase(statusName);  // Thêm SHIPPED vì có 2452 orders
     }
 
     /**

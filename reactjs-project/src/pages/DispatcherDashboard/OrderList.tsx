@@ -1,7 +1,6 @@
 // ...existing code...
 
 import { useState, useEffect } from "react";
-import { useTranslation } from 'react-i18next';
 import { fetchOrders, fetchOrderById } from "../../services/OrderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
@@ -9,7 +8,6 @@ import { useQuery } from "@tanstack/react-query";
 
 
 export default function OrderList() {
-  const { t } = useTranslation();
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
   const [searchId, setSearchId] = useState("");
   const [searching, setSearching] = useState(false);
@@ -64,10 +62,10 @@ export default function OrderList() {
         setSearchResults([]);
         setIsSearchMode(true);
         setPage(1);
-        setError(t('dashboard.dispatcher.orders.orderNotFound'));
+        setError("Không tìm thấy đơn hàng với ID đã nhập");
       }
     } catch (err) {
-      setError(t('dashboard.dispatcher.orders.searchError'));
+      setError("Lỗi khi tìm kiếm đơn hàng");
     } finally {
       setSearching(false);
     }
@@ -90,15 +88,15 @@ export default function OrderList() {
     <div className="bg-gradient-to-br from-blue-50/80 via-white/90 to-blue-100/80 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl max-w-full overflow-x-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
-          <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">{t('dashboard.dispatcher.orders.title')}</div>
-          <div className="text-gray-500 text-base">{t('dashboard.dispatcher.subtitle')}</div>
-          <div className="text-sm text-blue-600 mt-1">💡 {t('dashboard.dispatcher.orders.clickToViewMap', 'Click on order to view route on map')}</div>
+          <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">Danh sách đơn hàng</div>
+          <div className="text-gray-500 text-base">Theo dõi trạng thái các đơn hàng trong hệ thống</div>
+          <div className="text-sm text-blue-600 mt-1">💡 Nhấn vào đơn hàng để xem đường đi trên bản đồ</div>
         </div>
         {/* Tìm kiếm đơn hàng theo ID */}
         <div className="flex items-center gap-2 bg-white/80 border border-blue-100 rounded-xl px-3 py-2 shadow">
           <input
             type="text"
-            placeholder={t('dashboard.dispatcher.orders.enterOrderId')}
+            placeholder="Nhập ID đơn hàng..."
             className="px-2 py-1 rounded border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
             value={searchId}
             onChange={e => setSearchId(e.target.value)}
@@ -110,7 +108,7 @@ export default function OrderList() {
             disabled={!searchId.trim() || loading || searching}
             className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded transition-colors duration-200 font-semibold"
           >
-            {searching ? t('common.loading') : t('dashboard.dispatcher.orders.search')}
+            {searching ? "Đang tìm..." : "Tìm kiếm"}
           </button>
         </div>
         {/* <button
@@ -121,14 +119,14 @@ export default function OrderList() {
           {loading ? (
             <>
               <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-              {t('common.loading')}
+              Đang tải...
             </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              {t('common.refresh', 'Refresh')}
+              Làm mới
             </>
           )}
         </button> */}
@@ -136,7 +134,7 @@ export default function OrderList() {
       
       {error || fetchError ? (
         <div className="text-center py-8 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
-          {error || (fetchError as Error)?.message || t('common.error')}
+          {error || (fetchError as Error)?.message || "Đã xảy ra lỗi"}
         </div>
       ) : (
         <div className="relative">
@@ -187,15 +185,15 @@ export default function OrderList() {
                   </div>
                   <div className="text-sm text-gray-700">
                     <div>
-                      <span className="font-semibold text-blue-700">{t('dashboard.dispatcher.orders.customer')}:</span>
+                      <span className="font-semibold text-blue-700">Khách hàng:</span>
                       <span className="text-blue-800"> {order.store?.storeName}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-blue-700">{t('common.from')}:</span>
+                      <span className="font-semibold text-blue-700">Từ:</span>
                       <span className="text-gray-700"> {order.store?.address}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-blue-700">{t('common.to')}:</span>
+                      <span className="font-semibold text-blue-700">Đến:</span>
                       <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
                     </div>
                   </div>
@@ -204,11 +202,11 @@ export default function OrderList() {
                 <div className="flex flex-col items-end min-w-[180px] gap-1">
                   <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
                   <div className="text-sm text-gray-700">
-                    <span className="font-semibold text-gray-500">{t('dashboard.dispatcher.orders.driver')}:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || t('dashboard.dispatcher.orders.notAssigned')}</span>
+                    <span className="font-semibold text-gray-500">Tài xế:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Chưa phân công"}</span>
                     {order.vehicle?.licensePlate && (
                       <>
                         <span className="mx-1 text-gray-400">|</span>
-                        <span className="font-semibold text-blue-800">{t('dashboard.dispatcher.orders.vehicle')}: {order.vehicle.licensePlate}</span>
+                        <span className="font-semibold text-blue-800">Xe: {order.vehicle.licensePlate}</span>
                       </>
                     )}
                   </div>
@@ -224,16 +222,16 @@ export default function OrderList() {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
             >
-              &lt; {t('common.previous')}
+              &lt; Trước
             </button>
-            <span className="mx-2 text-blue-900 font-semibold text-base">{t('common.page', 'Page')} {page} / {totalPages}</span>
+            <span className="mx-2 text-blue-900 font-semibold text-base">Trang {page} / {totalPages}</span>
             {/* <span className="mx-2 text-gray-500 text-sm">Tổng số: {totalRecords}</span> */}
             <button
               className="px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow disabled:opacity-50 transition-all duration-150 hover:bg-blue-200"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || loading}
             >
-              {t('common.next')} &gt;
+              Tiếp &gt;
             </button>
           </div>
         </div>

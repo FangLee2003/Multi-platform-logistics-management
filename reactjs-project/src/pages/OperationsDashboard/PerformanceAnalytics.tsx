@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import GlassCard from '../../components/GlassCard';
 import PerformanceStatCards from './PerformanceStatCards';
 import RecentOrdersTable from './RecentOrdersTable';
@@ -24,8 +23,6 @@ interface PerformanceMetrics {
 }
 
 export default function PerformanceAnalytics() {
-  const { t } = useTranslation();
-  
   // Function to refresh performance and orders data
   const handleRefresh = async () => {
     setLoading(true);
@@ -54,18 +51,6 @@ export default function PerformanceAnalytics() {
     'Completed',      // Completed (ID: 2)
     'Cancelled',      // Cancelled (ID: 3)
   ];
-
-  const getStatusLabel = (status: string) => {
-    const statusMap: Record<string, string> = {
-      'All': t('common.all', 'All'),
-      'Pending': t('common.pending', 'Pending'),
-      'Processing': t('dashboard.operations.status.processing', 'Processing'),
-      'Shipped': t('dashboard.operations.status.shipped', 'Shipped'),
-      'Completed': t('common.completed', 'Completed'),
-      'Cancelled': t('common.cancelled', 'Cancelled')
-    };
-    return statusMap[status] || status;
-  };
 
   // Server-side pagination states
   const [currentPage, setCurrentPage] = useState(0); // 0-based for API
@@ -174,32 +159,32 @@ export default function PerformanceAnalytics() {
   if (loading) {
     return (
       <GlassCard className="flex items-center justify-center h-64">
-        <div className="text-gray-800 text-lg">{t('dashboard.operations.performance.loadingData', 'Loading performance data...')}</div>
+        <div className="text-gray-800 text-lg">Loading performance data...</div>
       </GlassCard>
     );
   }
 
   const performanceData = metrics ? [
     { 
-      metric: t('dashboard.operations.performance.metrics.deliverySuccessRate', 'Delivery Success Rate'), 
+      metric: 'Delivery Success Rate', 
       current: metrics.deliverySuccessRate, 
       target: metrics.target.deliverySuccessRate, 
       trend: Number((metrics.deliverySuccessRate - metrics.target.deliverySuccessRate).toFixed(1))
     },
     { 
-      metric: t('dashboard.operations.performance.metrics.avgDeliveryTime', 'Average Delivery Time'), 
+      metric: 'Average Delivery Time', 
       current: metrics.avgDeliveryTime, 
       target: metrics.target.avgDeliveryTime, 
       trend: Number((metrics.target.avgDeliveryTime - metrics.avgDeliveryTime).toFixed(1))
     },
     { 
-      metric: t('dashboard.operations.performance.metrics.transportationCost', 'Transportation Cost/km'), 
+      metric: 'Transportation Cost/km', 
       current: metrics.costPerKm, 
       target: metrics.target.costPerKm, 
       trend: Number((((metrics.costPerKm - metrics.target.costPerKm) / metrics.target.costPerKm) * 100).toFixed(1))
     },
     { 
-      metric: t('dashboard.operations.performance.metrics.totalKmTransported', 'Total km Transported'), 
+      metric: 'Total km Transported', 
       current: metrics.totalDistanceKm, 
       target: 0, // No target for total distance as it's cumulative
       trend: 0 // No trend for total distance as it's cumulative
@@ -216,7 +201,7 @@ export default function PerformanceAnalytics() {
 
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold text-gray-800">{t('dashboard.operations.tabs.performance')}</h2>
+        <h2 className="text-xl font-semibold text-gray-800">Performance Analytics</h2>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <div className="flex flex-wrap gap-2">
             {statusOptions.map((status) => (
@@ -226,14 +211,14 @@ export default function PerformanceAnalytics() {
                 variant={selectedStatus === status ? 'primary' : 'secondary'}
                 onClick={() => handleStatusChange(status)}
               >
-{getStatusLabel(status)}
+                {status}
               </GlassButton>
             ))}
           </div>
           <GlassButton onClick={handleRefresh} size="sm" variant="primary" className="whitespace-nowrap self-start sm:self-auto" disabled={loading || ordersLoading}>
             <span className="flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4.93 19.07a10 10 0 1 0 0-14.14M4 4v5h5"/></svg>
-{t('common.refresh')}
+              Refresh
             </span>
           </GlassButton>
         </div>

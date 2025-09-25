@@ -1,7 +1,6 @@
 
 
 import { useEffect, useState } from "react";
-import { useTranslation } from 'react-i18next';
 import { fetchOrderStats } from "../../services/OrderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
@@ -20,7 +19,6 @@ interface StatsCardsProps {
 }
 
 export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
-  const { t } = useTranslation();
   const [totalOrders, setTotalOrders] = useState(0);
   const [sampleOrders, setSampleOrders] = useState<Order[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -76,14 +74,14 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
   const pendingPackages = sampleSize > 0 ? Math.round((pendingInSample / sampleSize) * totalOrders) : 0;
   const deliveredPackages = sampleSize > 0 ? Math.round((deliveredInSample / sampleSize) * totalOrders) : 0;
   const stats = [
-    { label: t('dashboard.dispatcher.orders.totalShipments'), value: totalShipments, icon: <PackageOpen size={28} color="#6366f1" /> }, // Indigo
-    { label: t('dashboard.dispatcher.orders.totalVehicles'), value: totalVehicles, icon: <Truck size={28} color="#10b981" /> }, // Green
-    { label: t('dashboard.dispatcher.orders.pendingPackages'), value: pendingPackages, icon: <Hourglass size={28} color="#f59e42" /> }, // Orange
-    { label: t('dashboard.dispatcher.orders.packagesDelivered'), value: deliveredPackages, icon: <CheckCircle size={28} color="#22c55e" /> }, // Emerald
+    { label: "Total shipments", value: totalShipments, icon: <PackageOpen size={28} color="#6366f1" /> }, // Indigo
+    { label: "Total vehicles", value: totalVehicles, icon: <Truck size={28} color="#10b981" /> }, // Green
+    { label: "Pending packages", value: pendingPackages, icon: <Hourglass size={28} color="#f59e42" /> }, // Orange
+    { label: "Packages delivered", value: deliveredPackages, icon: <CheckCircle size={28} color="#22c55e" /> }, // Emerald
   ];
 
   if (loading) {
-    return <div className="mb-6">{t('common.loading')}</div>;
+    return <div className="mb-6">Đang tải dữ liệu...</div>;
   }
   if (error) {
     return <div className="mb-6 text-red-500">{error}</div>;

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from 'react-i18next';
 import UserForm from "./UserForm";
 import {
   fetchUsers,
@@ -9,7 +8,27 @@ import {
 } from "../../services/adminAPI";
 import { FiEdit, FiEye, FiTrash2 } from "react-icons/fi";
 
-// Helper to map API role to display name and icon - moved inside component to use t()
+// Helper to map API role to display name and icon
+function getRoleDisplay(roleName: string) {
+  switch (roleName) {
+    case "DISPATCHER":
+      return { label: "Dispatcher", icon: null };
+    case "FLEET_MANAGER":
+    case "FLEET":
+      return { label: "Fleet Manager", icon: null };
+    case "DRIVER":
+      return { label: "Driver", icon: null };
+    case "ADMIN":
+      return { label: "Admin", icon: null };
+    case "OPERATIONS_MANAGER":
+    case "OPERATIONS":
+      return { label: "Operations Manager", icon: null };
+    case "CUSTOMER":
+      return { label: "Customer", icon: null };
+    default:
+      return { label: roleName, icon: null };
+  }
+}
 
 interface UserTableProps {
   onUserCountUpdate?: () => void;
@@ -32,29 +51,6 @@ interface DashboardUser {
 }
 
 export default function UserTable({ onUserCountUpdate }: UserTableProps) {
-  const { t } = useTranslation();
-  
-  // Helper to map API role to display name and icon
-  function getRoleDisplay(roleName: string) {
-    switch (roleName) {
-      case "DISPATCHER":
-        return { label: t('admin.roles.dispatcher', 'Dispatcher'), icon: null };
-      case "FLEET_MANAGER":
-      case "FLEET":
-        return { label: t('admin.roles.fleetManager', 'Fleet Manager'), icon: null };
-      case "DRIVER":
-        return { label: t('admin.roles.driver', 'Driver'), icon: null };
-      case "ADMIN":
-        return { label: t('admin.roles.admin', 'Admin'), icon: null };
-      case "OPERATIONS_MANAGER":
-      case "OPERATIONS":
-        return { label: t('admin.roles.operationsManager', 'Operations Manager'), icon: null };
-      case "CUSTOMER":
-        return { label: t('admin.roles.customer', 'Customer'), icon: null };
-      default:
-        return { label: roleName, icon: null };
-    }
-  }
   const [users, setUsers] = useState<DashboardUser[]>([]);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -247,7 +243,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      alert(t('admin.userTable.errors.addUser', 'Lỗi khi thêm user mới. Vui lòng thử lại!'));
+      alert("Lỗi khi thêm user mới. Vui lòng thử lại!");
     }
   };
 
@@ -380,9 +376,9 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
     } catch (err) {
       console.error("[UserTable] Update error:", err);
       alert(
-        t('admin.userTable.errors.updateUser', 'Lỗi khi cập nhật user: {{error}}. Vui lòng thử lại!', {
-          error: err instanceof Error ? err.message : "Unknown error"
-        })
+        `Lỗi khi cập nhật user: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }. Vui lòng thử lại!`
       );
     }
   };
@@ -443,7 +439,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
-        alert(t('admin.userTable.errors.deleteUser', 'Lỗi khi xóa user. Vui lòng thử lại!'));
+        alert("Lỗi khi xóa user. Vui lòng thử lại!");
       }
     }
   };
@@ -453,7 +449,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-start sm:items-center mb-4">
         <input
           className="border rounded px-4 py-2 w-full sm:w-72"
-          placeholder={t('admin.userTable.searchPlaceholder', 'Search user...')}
+          placeholder="Search user..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -464,7 +460,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
             setEditUser(null);
           }}
         >
-          <span className="text-xl">+</span> <span className="hidden sm:inline">{t('admin.userTable.addUser', 'Add User')}</span><span className="sm:hidden">{t('admin.userTable.add', 'Add')}</span>
+          <span className="text-xl">+</span> <span className="hidden sm:inline">Add User</span><span className="sm:hidden">Add</span>
         </button>
       </div>
       {showForm && (
@@ -478,7 +474,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
         />
       )}
       <div>
-        <h2 className="text-2xl font-bold mb-5">{t('admin.userTable.title', 'User List')}</h2>
+        <h2 className="text-2xl font-bold mb-5">User List</h2>
         {fetchError && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
             {fetchError}
@@ -488,12 +484,12 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
           <table className="min-w-full">
             <thead>
               <tr className="text-left text-gray-600 border-b">
-                <th className="py-2 pr-4">{t('admin.userTable.headers.fullName', 'Full Name')}</th>
-                <th className="py-2 pr-4">{t('admin.userTable.headers.email', 'Email')}</th>
-                <th className="py-2 pr-4">{t('admin.userTable.headers.role', 'Role')}</th>
-                <th className="py-2 pr-4">{t('admin.userTable.headers.status', 'Status')}</th>
-                <th className="py-2 pr-4 hidden sm:table-cell">{t('admin.userTable.headers.lastLogin', 'Last Login')}</th>
-                <th className="py-2 pr-4">{t('admin.userTable.headers.actions', 'Actions')}</th>
+                <th className="py-2 pr-4">Full Name</th>
+                <th className="py-2 pr-4">Email</th>
+                <th className="py-2 pr-4">Role</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4 hidden sm:table-cell">Last Login</th>
+                <th className="py-2 pr-4">Actions</th>
               </tr>
             </thead>
             <tbody>

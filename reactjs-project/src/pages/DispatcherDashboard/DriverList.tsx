@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { useTranslation } from 'react-i18next';
 import { editUser, updateUserStatus } from "../../services/adminAPI";
 import type { User } from "../../types/User";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 
 export default function DriverList() {
-  const { t } = useTranslation();
   const { drivers, driversLoading, driversError, refreshDrivers } = useDispatcherContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
@@ -131,7 +129,7 @@ export default function DriverList() {
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">{t('dashboard.dispatcher.drivers.title')}</h2>
+            <h2 className="text-2xl font-bold mb-2">Quản lý tài xế</h2>
             
           </div>
           
@@ -149,7 +147,7 @@ export default function DriverList() {
             </div>
             <input
               type="text"
-              placeholder={t('dashboard.dispatcher.drivers.searchPlaceholder', 'Search by name, email or phone...')}
+              placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
@@ -202,13 +200,13 @@ export default function DriverList() {
                 <thead className="bg-gray-50/80 backdrop-blur-sm">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('dashboard.dispatcher.drivers.name', 'Tài xế')}
+                      Tài xế
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('dashboard.dispatcher.drivers.contactInfo', 'Thông tin liên hệ')}
+                      Thông tin liên hệ
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('dashboard.dispatcher.drivers.status', 'Trạng thái')}
+                      Trạng thái
                     </th>
                   </tr>
                 </thead>
