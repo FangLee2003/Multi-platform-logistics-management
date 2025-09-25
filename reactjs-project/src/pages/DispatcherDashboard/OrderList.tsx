@@ -64,10 +64,10 @@ export default function OrderList() {
         setSearchResults([]);
         setIsSearchMode(true);
         setPage(1);
-        setError("Không tìm thấy đơn hàng với ID đã nhập");
+        setError(t('dashboard.dispatcher.orders.orderNotFound'));
       }
     } catch (err) {
-      setError("Lỗi khi tìm kiếm đơn hàng");
+      setError(t('dashboard.dispatcher.orders.searchError'));
     } finally {
       setSearching(false);
     }
@@ -187,15 +187,15 @@ export default function OrderList() {
                   </div>
                   <div className="text-sm text-gray-700">
                     <div>
-                      <span className="font-semibold text-blue-700">Khách hàng:</span>
+                      <span className="font-semibold text-blue-700">{t('dashboard.dispatcher.orders.customer')}:</span>
                       <span className="text-blue-800"> {order.store?.storeName}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-blue-700">Từ:</span>
+                      <span className="font-semibold text-blue-700">{t('common.from')}:</span>
                       <span className="text-gray-700"> {order.store?.address}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-blue-700">Đến:</span>
+                      <span className="font-semibold text-blue-700">{t('common.to')}:</span>
                       <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
                     </div>
                   </div>
@@ -204,11 +204,11 @@ export default function OrderList() {
                 <div className="flex flex-col items-end min-w-[180px] gap-1">
                   <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
                   <div className="text-sm text-gray-700">
-                    <span className="font-semibold text-gray-500">Tài xế:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Chưa phân công"}</span>
+                    <span className="font-semibold text-gray-500">{t('dashboard.dispatcher.orders.driver')}:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || t('dashboard.dispatcher.orders.notAssigned')}</span>
                     {order.vehicle?.licensePlate && (
                       <>
                         <span className="mx-1 text-gray-400">|</span>
-                        <span className="font-semibold text-blue-800">Xe: {order.vehicle.licensePlate}</span>
+                        <span className="font-semibold text-blue-800">{t('dashboard.dispatcher.orders.vehicle')}: {order.vehicle.licensePlate}</span>
                       </>
                     )}
                   </div>

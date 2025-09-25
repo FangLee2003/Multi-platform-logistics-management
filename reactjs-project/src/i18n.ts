@@ -56,9 +56,7 @@ const resources = {
         "duration": "Duration",
         "unknown": "Unknown",
         "all": "All",
-        "searching": "Searching...",
-        "previous": "Previous",
-        "next": "Next"
+        "searching": "Searching..."
       },
       "auth": {
         "login": {
@@ -111,7 +109,13 @@ const resources = {
             "enterOrderId": "Enter order ID...",
             "search": "Search",
             "clickToViewMap": "Click on order to view route on map",
-            "selectOrderToViewMap": "Select an order to view route on map"
+            "selectOrderToViewMap": "Select an order to view route on map",
+            "customer": "Customer",
+            "driver": "Driver",
+            "vehicle": "Vehicle",
+            "notAssigned": "Not assigned",
+            "orderNotFound": "Order not found with the entered ID",
+            "searchError": "Error searching for order"
           },
             "vehicles": {
               "title": "Vehicle List",
@@ -241,42 +245,6 @@ const resources = {
           },
           "errors": {
             "loadMaintenanceHistory": "Cannot load maintenance data."
-          }
-        },
-        "fleet": {
-          "vehicleTypes": {
-            "truck": "Truck",
-            "van": "Van",
-            "motorcycle": "Motorcycle",
-            "car": "Car"
-          },
-          "validation": {
-            "licensePlateMinLength": "License plate must have at least 6 characters",
-            "licensePlateMaxLength": "License plate cannot exceed 15 characters",
-            "licensePlateFormat": "License plate must contain both numbers and letters (e.g., 30A-12345)",
-            "mustBeNumber": "{{field}} must be a valid number",
-            "mustBePositive": "{{field}} must be positive",
-            "tooLarge": "{{field}} is too large",
-            "notesMaxLength": "Notes cannot exceed 500 characters"
-          },
-          "form": {
-            "addVehicle": "Add Vehicle",
-            "editVehicle": "Edit Vehicle",
-            "addVehicleSubtitle": "Enter vehicle information into the system",
-            "updateVehicleSubtitle": "Update vehicle information for {{plate}}",
-            "licensePlate": "License Plate",
-            "notesPlaceholder": "Enter additional vehicle information...",
-            "addSuccess": "Vehicle added successfully!",
-            "updateSuccess": "Vehicle updated successfully!",
-            "adding": "Adding...",
-            "updating": "Updating..."
-          },
-          "search": {
-            "title": "Vehicle Management",
-            "subtitle": "Search and filter vehicle list", 
-            "hideForm": "Hide Form",
-            "placeholder": "Search by license plate, brand, model, driver...",
-            "allStatus": "All Status"
           }
         },
         "admin": {
@@ -410,8 +378,15 @@ const resources = {
         },
         "auth": {
           "login": {
+            "title": "Account Login",
+            "subtitle": "Welcome back! Please log in to access your information",
+            "email": "Email",
+            "password": "Password",
             "emailPlaceholder": "Enter your email address",
-            "passwordPlaceholder": "Enter your password"
+            "passwordPlaceholder": "Enter your password",
+            "loginButton": "Login",
+            "invalidCredentials": "Invalid credentials. Please try again.",
+            "loginSuccess": "Login successful"
           }
         },
         "search": {
@@ -515,9 +490,7 @@ const resources = {
         "duration": "Thời gian",
         "unknown": "Không rõ",
         "all": "Tất cả",
-        "searching": "Đang tìm kiếm...",
-        "previous": "Trước",
-        "next": "Tiếp"
+        "searching": "Đang tìm kiếm..."
       },
       "auth": {
         "login": {
@@ -570,7 +543,13 @@ const resources = {
             "enterOrderId": "Nhập ID đơn hàng...",
             "search": "Tìm kiếm",
             "clickToViewMap": "Nhấn vào đơn hàng để xem đường đi trên bản đồ",
-            "selectOrderToViewMap": "Chọn một đơn hàng để xem lộ trình trên bản đồ"
+            "selectOrderToViewMap": "Chọn một đơn hàng để xem lộ trình trên bản đồ",
+            "customer": "Khách hàng",
+            "driver": "Tài xế",
+            "vehicle": "Xe",
+            "notAssigned": "Chưa phân công",
+            "orderNotFound": "Không tìm thấy đơn hàng với ID đã nhập",
+            "searchError": "Lỗi khi tìm kiếm đơn hàng"
           },
             "vehicles": {
               "title": "Danh sách phương tiện",
@@ -869,8 +848,15 @@ const resources = {
         },
         "auth": {
           "login": {
+            "title": "Đăng nhập tài khoản",
+            "subtitle": "Chào mừng trở lại! Vui lòng nhập thông tin đăng nhập",
+            "email": "Email",
+            "password": "Mật khẩu",
             "emailPlaceholder": "Nhập địa chỉ email của bạn",
-            "passwordPlaceholder": "Nhập mật khẩu của bạn"
+            "passwordPlaceholder": "Nhập mật khẩu của bạn",
+            "loginButton": "Đăng nhập",
+            "invalidCredentials": "Thông tin đăng nhập không hợp lệ. Vui lòng thử lại.",
+            "loginSuccess": "Đăng nhập thành công"
           }
         },
         "search": {
@@ -929,7 +915,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    debug: process.env.NODE_ENV === 'development',
+    debug: typeof process !== 'undefined' && process.env.NODE_ENV === 'development',
 
     interpolation: {
       escapeValue: false, // React already escapes values

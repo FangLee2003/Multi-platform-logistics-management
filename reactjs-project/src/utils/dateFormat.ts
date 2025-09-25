@@ -61,3 +61,4 @@ export function formatNumber(number: number, locale: string = 'en'): string {
     return new Intl.NumberFormat('en-US').format(number);
   }
 }
+

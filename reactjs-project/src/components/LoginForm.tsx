@@ -81,6 +81,11 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
       {/* Animated Background Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/30 via-purple-900/20 to-indigo-900/30 backdrop-blur-sm z-0"></div>
       
+      {/* Language Switcher - positioned at top right of screen */}
+      <div className="absolute top-6 right-6 z-20 drop-shadow-lg">
+        <LanguageSwitcher />
+      </div>
+
       {/* Floating Animation Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
@@ -89,10 +94,6 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
       </div>
 
       <div className="relative z-10 flex flex-col items-center w-full max-w-md px-6">
-        {/* Language Switcher */}
-        <div className="absolute top-8 right-8">
-          <LanguageSwitcher />
-        </div>
 
         {/* Logo/Brand Section */}
         <div className="mb-8 text-center">
