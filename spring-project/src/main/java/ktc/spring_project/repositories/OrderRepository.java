@@ -1,7 +1,9 @@
+
 package ktc.spring_project.repositories;
 
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
 import ktc.spring_project.entities.Order;
+import ktc.spring_project.entities.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ktc.spring_project.entities.Status;
@@ -22,16 +24,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Kiểm tra trùng lặp orderCode
     boolean existsByOrderCode(String orderCode);
 
-    List<Order> findByStatus_Id(Short statusId);
+       List<Order> findByStatus_Id(Short statusId);
+       Page<Order> findByStatus_Id(Short statusId, org.springframework.data.domain.Pageable pageable);
+
+       // Lấy các đơn hàng chưa hoàn thành (status_id != 2) có phân trang
+       @Query("SELECT o FROM Order o WHERE o.status.id <> 2")
+       Page<Order> findNotCompletedOrders(Pageable pageable);
+
+       // Lấy tất cả đơn hàng chưa hoàn thành, sort id giảm dần
+       @Query("SELECT o FROM Order o WHERE o.status.id <> 2 ORDER BY o.id DESC")
+       List<Order> findAllNotCompletedOrdersSortedByIdDesc();
     List<Order> findByStore_Id(Long storeId);
     List<Order> findByCreatedBy_Id(Long createdBy);
-
-    // Tìm đơn hàng theo status với phân trang
-    Page<Order> findByStatus(Status status, Pageable pageable);
 
     // Query các đơn hàng có trạng thái AVAILABLE
     @Query("SELECT o FROM Order o WHERE o.status.name = 'AVAILABLE'")
     List<Order> findAvailableOrders();
+
+    // Đếm orders theo khoảng thời gian (tối ưu cho dashboard)
+    long countByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
 
     // Query các đơn hàng theo tên trạng thái, mới nhất lên đầu
     // @Query("SELECT o FROM Order o WHERE o.status.name = :statusName ORDER BY o.createdAt DESC")
@@ -226,4 +237,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.store.id = :storeId AND o.status.name = 'Completed'")
     long countCompletedOrdersByStoreId(@Param("storeId") Long storeId);
+
+    // Count all completed orders (for performance metrics)
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status.name = 'Completed'")
+    long countAllCompletedOrders();
 }

@@ -1,13 +1,13 @@
 import { MdManageAccounts } from "react-icons/md";
 import { RiShieldKeyholeLine } from "react-icons/ri";
 import { AiOutlineSetting, AiOutlineSafetyCertificate } from "react-icons/ai";
-import { FiActivity } from "react-icons/fi";
+import { FiActivity, FiBarChart2, FiHome, FiUsers } from "react-icons/fi";
 import { HiOutlineDocumentReport } from "react-icons/hi";
 import logo from "../assets/logo.png";
 
 
 
-export type DispatcherTab = "orders" | "resources" | "assignment";
+export type DispatcherTab = "orders" | "resources" | "assignment" | "completedOrders";
 export type OperationsTab = "overview" | "performance" | "monitoring" | "staff";
 export type AdminTab = "users" | "roles" | "settings" | "logs";
 export type FleetTab = "vehicles" | "maintenance" | "schedule";
@@ -33,14 +33,15 @@ interface MenuItem<T extends TabType> {
 const ALL_MENUS: Record<UserRole, MenuItem<any>[]> = {
   dispatcher: [
     { key: "orders", label: "Orders", icon: <MdManageAccounts /> },
+    { key: "completedOrders", label: "Completed Orders", icon: <AiOutlineSafetyCertificate /> },
     { key: "resources", label: "Resources", icon: <RiShieldKeyholeLine /> },
     { key: "assignment", label: "Assignment", icon: <AiOutlineSetting /> },
   ],
  operations : [
-    { key: "overview", label: "Overview", icon: <MdManageAccounts /> },
-    { key: "performance", label: "Performance", icon: <AiOutlineSafetyCertificate /> },
-    { key: "monitoring", label: "Monitoring", icon: <HiOutlineDocumentReport /> },
-    { key: "staff", label: "Staff", icon: <RiShieldKeyholeLine /> },
+    { key: "overview", label: "Overview", icon: <FiHome /> },
+    { key: "performance", label: "Performance", icon: <FiBarChart2 /> },
+    { key: "monitoring", label: "Monitoring", icon: <FiActivity /> },
+    { key: "staff", label: "Staff", icon: <FiUsers /> },
   ],
   fleet: [
     { key: "vehicles", label: "Quản lý phương tiện", icon: <MdManageAccounts /> },

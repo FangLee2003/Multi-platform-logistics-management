@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { logTrackingConsistency, getDisplayOrderId, getDisplayDeliveryId } from "../../utils/debugTracking";
 
 export default function MapboxTrackingMap() {
   const { selectedOrder } = useDispatcherContext();
@@ -26,6 +27,56 @@ export default function MapboxTrackingMap() {
   const [route, setRoute] = useState<Route | null>(null);
   const [waypoints, setWaypoints] = useState<[number, number][]>([]);
   const [vehiclePos, setVehiclePos] = useState<[number, number] | null>(null);
+  const [trackingData, setTrackingData] = useState<any>(null); // Store tracking info from API
+  const [deliveryData, setDeliveryData] = useState<any>(null); // Store delivery info from API
+  // State tạm để lưu deliveryId nếu selectedOrder không có
+  const [fallbackDeliveryId, setFallbackDeliveryId] = useState<string | number | null>(null);
+  // Đảm bảo fetch delivery/tracking luôn đúng order, tránh race condition
+  const currentOrderIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    setDeliveryData(null);
+    setTrackingData(null);
+    setFallbackDeliveryId(null);
+    if (!selectedOrder?.id) return;
+    currentOrderIdRef.current = selectedOrder.id;
+    if (!selectedOrder?.delivery?.id) {
+      const fetchDelivery = async () => {
+        const thisOrderId = selectedOrder.id;
+        try {
+          const res = await fetch(`http://localhost:8080/api/deliveries?orderId=${thisOrderId}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          if (res.ok) {
+            const deliveries = await res.json();
+            const correctDelivery = Array.isArray(deliveries)
+              ? deliveries.find(d => (d.orderId === thisOrderId || d.order?.id === thisOrderId))
+              : null;
+            if (correctDelivery && currentOrderIdRef.current === thisOrderId) {
+              setFallbackDeliveryId(correctDelivery.id);
+              setDeliveryData(correctDelivery);
+              console.log('✅ Fetched delivery by orderId:', thisOrderId, '-> deliveryId:', correctDelivery.id);
+              logTrackingConsistency('After fetching delivery data', selectedOrder, correctDelivery, trackingData);
+            } else if (!correctDelivery) {
+              setFallbackDeliveryId(null);
+              setDeliveryData(null);
+              console.log('⚠️ No correct delivery found for orderId:', thisOrderId, deliveries);
+            }
+          } else {
+            setFallbackDeliveryId(null);
+            setDeliveryData(null);
+            console.log('❌ Failed to fetch delivery, status:', res.status);
+          }
+        } catch (err) {
+          setFallbackDeliveryId(null);
+          setDeliveryData(null);
+          console.error('❌ Error fetching delivery by orderId:', err);
+        }
+      };
+      fetchDelivery();
+    }
+  }, [selectedOrder]);
   const realTruckMarker = useRef<mapboxgl.Marker | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -55,152 +106,56 @@ export default function MapboxTrackingMap() {
     import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
     "pk.eyJ1IjoieHVhbmh1eTEiLCJhIjoiY21lN3liN21tMDlzaTJtbXF3MjU0Z2JzaSJ9.vmH3qH_f7qf1ewBC_pJoSg";
 
+  console.log('🗺️ MapboxTrackingMap: MAPBOX_TOKEN length:', MAPBOX_TOKEN?.length || 0);
+
   // Fetch vehicle position every 5s
   useEffect(() => {
-    // Get vehicle ID from selectedOrder
-    const vehicleId = selectedOrder?.vehicle?.id;
+    // Get delivery ID from selectedOrder - tracking theo delivery_id, KHÔNG phải vehicleId
+    const deliveryId = selectedOrder?.delivery?.id;
+    const orderId = selectedOrder?.id;
     
     console.log('🔍 MapboxTrackingMap: selectedOrder changed:', selectedOrder);
-    console.log('🔍 MapboxTrackingMap: vehicleId found:', vehicleId);
+    console.log('🔍 MapboxTrackingMap: deliveryId found:', deliveryId);
+    console.log('🔍 MapboxTrackingMap: orderId found:', orderId);
+    console.log('🔍 MapboxTrackingMap: delivery object:', selectedOrder?.delivery);
     
-    if (!vehicleId) return;
+    if (!deliveryId && !orderId) {
+      console.warn('⚠️ MapboxTrackingMap: No deliveryId or orderId found, cannot fetch tracking data');
+      return;
+    }
 
-    // Function để lưu vị trí xe vào tracking database
-    const saveVehicleLocationToTracking = async (vehicleId: number, coords: [number, number]) => {
+    // Function để fetch delivery data cho popup (chỉ set nếu orderId vẫn là selectedOrder.id)
+    const fetchDeliveryData = async (orderId: number) => {
+      const currentOrderId = orderId;
       try {
-        // Lấy deliveryId từ orderId trước khi lưu tracking
-        let deliveryId = null;
-        if (selectedOrder?.id) {
-          try {
-            const deliveryResponse = await fetch(`http://localhost:8080/api/deliveries/order/${selectedOrder.id}`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              }
-            });
-            
-            if (deliveryResponse.ok) {
-              const deliveries = await deliveryResponse.json();
-              if (deliveries && deliveries.length > 0) {
-                deliveryId = deliveries[0].id;
-                console.log('🔍 MapboxTrackingMap: Found deliveryId:', deliveryId, 'for orderId:', selectedOrder.id);
-              } else {
-                console.warn('❌ MapboxTrackingMap: No delivery found for orderId:', selectedOrder.id, '- deliveries:', deliveries);
-              }
-            } else {
-              console.warn('❌ MapboxTrackingMap: Could not find delivery for orderId:', selectedOrder.id, '- status:', deliveryResponse.status);
-            }
-          } catch (error) {
-            console.error('❌ MapboxTrackingMap: Error fetching delivery:', error);
-          }
-        }
-
-        if (!deliveryId) {
-          console.warn('⚠️ MapboxTrackingMap: No delivery found, attempting to create one...');
-          
-          // Tự động tạo delivery cho order này
-          try {
-            const createDeliveryData = {
-              orderId: selectedOrder.id,
-              vehicleId: vehicleId,
-              driverId: selectedOrder.vehicle?.currentDriver?.id,
-              transportMode: 'ROAD',
-              serviceType: 'STANDARD',
-              scheduleDeliveryTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-              deliveryNotes: `Auto-created delivery for tracking - Order #${selectedOrder.id}`
-            };
-            
-            console.log('🔧 MapboxTrackingMap: Creating delivery:', createDeliveryData);
-            
-            const createResponse = await fetch('http://localhost:8080/api/deliveries', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              },
-              body: JSON.stringify(createDeliveryData)
-            });
-            
-            if (createResponse.ok) {
-              const newDelivery = await createResponse.json();
-              deliveryId = newDelivery.id;
-              console.log('✅ MapboxTrackingMap: Delivery created successfully with ID:', deliveryId);
-            } else {
-              const errorText = await createResponse.text();
-              console.error('❌ MapboxTrackingMap: Failed to create delivery:', createResponse.status, errorText);
-              return;
-            }
-          } catch (createError) {
-            console.error('❌ MapboxTrackingMap: Error creating delivery:', createError);
-            return;
-          }
-        }
-        
-        if (!deliveryId) {
-          console.error('❌ MapboxTrackingMap: Still no deliveryId after creation attempt');
-          return;
-        }
-
-        const trackingData = {
-          vehicleId: vehicleId,
-          deliveryId: deliveryId, // Sử dụng deliveryId thay vì orderId
-          latitude: coords[1], // latitude
-          longitude: coords[0], // longitude
-          location: selectedOrder?.store?.storeName ? `At store: ${selectedOrder.store.storeName}` : 'At pickup location',
-          notes: `Vehicle positioned at store for order #${selectedOrder?.id}`
-        };
-        
-        console.log('🔍 MapboxTrackingMap: Saving vehicle location to tracking:', trackingData);
-        
-        // Kiểm tra xem đã có tracking record cho vehicle+delivery này chưa
-        let existingTrackingId = null;
-        try {
-          const checkResponse = await fetch(`http://localhost:8080/api/tracking/vehicle/${vehicleId}/delivery/${deliveryId}`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          
-          if (checkResponse.ok) {
-            const existingTracking = await checkResponse.json();
-            if (existingTracking && existingTracking.id) {
-              existingTrackingId = existingTracking.id;
-              console.log('🔍 MapboxTrackingMap: Found existing tracking ID:', existingTrackingId);
-            }
-          }
-        } catch (checkError) {
-          console.log('🔍 MapboxTrackingMap: No existing tracking found, will create new');
-        }
-        
-        // Quyết định POST (tạo mới) hay PUT (cập nhật)
-        const isUpdate = existingTrackingId !== null;
-        const method = isUpdate ? 'PUT' : 'POST';
-        const url = isUpdate 
-          ? `http://localhost:8080/api/tracking/vehicle-location/${existingTrackingId}`
-          : 'http://localhost:8080/api/tracking/vehicle-location';
-          
-        console.log(`🔍 MapboxTrackingMap: ${isUpdate ? 'Updating' : 'Creating'} tracking record...`);
-        
-        const response = await fetch(url, {
-          method: method,
+        const deliveryUrl = `http://localhost:8080/api/deliveries?orderId=${currentOrderId}`;
+        console.log('🔍 MapboxTrackingMap: Fetching delivery data from:', deliveryUrl);
+        const res = await fetch(deliveryUrl, {
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(trackingData)
+          }
         });
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log(`✅ MapboxTrackingMap: Vehicle location ${isUpdate ? 'updated' : 'saved'} successfully:`, result);
+        if (res.ok) {
+          const deliveries = await res.json();
+          if (Array.isArray(deliveries) && deliveries.length > 0) {
+            // Chỉ set nếu orderId vẫn là selectedOrder.id
+            if (selectedOrder?.id === currentOrderId) {
+              setDeliveryData(deliveries[0]);
+              logTrackingConsistency('After fetchDeliveryData', selectedOrder, deliveries[0], trackingData);
+              return deliveries[0];
+            } else {
+              console.log('⚠️ Skipped setDeliveryData: selectedOrder.id changed during fetch.');
+            }
+          } else {
+            console.log('⚠️ No deliveries found for orderId:', currentOrderId);
+          }
         } else {
-          const errorText = await response.text();
-          console.log(`❌ MapboxTrackingMap: Failed to ${isUpdate ? 'update' : 'save'} tracking data:`, response.status, errorText);
+          console.log('❌ Failed to fetch delivery data, status:', res.status);
         }
       } catch (error) {
-        console.error('❌ MapboxTrackingMap: Error saving tracking data:', error);
+        console.error('❌ MapboxTrackingMap: Error fetching delivery data:', error);
       }
+      return null;
     };
 
     const useStoreCoordinatesAsDefault = () => {
@@ -225,47 +180,62 @@ export default function MapboxTrackingMap() {
     };
     
     const fetchVehiclePos = async () => {
-      console.log('🔍 MapboxTrackingMap: Fetching position for vehicleId:', vehicleId);
+      console.log('🔍 MapboxTrackingMap: Fetching tracking data for deliveryId:', deliveryId);
       
       try {
-        // Thử lấy tracking data từ Spring Boot API
-        const apiUrl = `http://localhost:8080/api/tracking/vehicle/${vehicleId}/current`;
+        // Ưu tiên fetch theo delivery_id từ delivery_tracking table
+        let apiUrl = '';
+        let trackingSource = '';
+        const currentOrderId = selectedOrder?.id;
+        if (deliveryId) {
+          apiUrl = `http://localhost:8080/api/tracking/delivery/${deliveryId}/current`;
+          trackingSource = 'delivery_tracking table (by delivery_id)';
+        } else if (orderId) {
+          apiUrl = `http://localhost:8080/api/tracking/order/${orderId}/current`;
+          trackingSource = 'delivery_tracking table (by order_id)';
+        }
         console.log('🔍 MapboxTrackingMap: API URL:', apiUrl);
-        
+        console.log('🔍 MapboxTrackingMap: Tracking source:', trackingSource);
         const res = await fetch(apiUrl, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
-        
         console.log('🔍 MapboxTrackingMap: API response status:', res.status);
-        
         if (res.ok) {
           const data = await res.json();
-          console.log('🔍 MapboxTrackingMap: vehicle position data from API:', data);
-          
-          if (data && typeof data.latitude === "number" && typeof data.longitude === "number") {
-            const coords: [number, number] = [data.longitude, data.latitude];
-            console.log('🔍 MapboxTrackingMap: Setting vehicle position:', coords);
-            setVehiclePos(coords);
-            if (map.current) {
-              map.current.flyTo({
-                center: coords,
-                speed: 1.2,
-                curve: 1.5,
-              });
+          console.log('🔍 MapboxTrackingMap: tracking data from', trackingSource, ':', data);
+          // Chỉ set nếu orderId vẫn là selectedOrder.id
+          if (selectedOrder?.id === currentOrderId) {
+            setTrackingData({
+              ...data,
+              source: trackingSource
+            });
+            if (data && typeof data.latitude === "number" && typeof data.longitude === "number") {
+              const coords: [number, number] = [data.longitude, data.latitude];
+              console.log('🔍 MapboxTrackingMap: Setting vehicle position from tracking data:', coords);
+              setVehiclePos(coords);
+              if (map.current) {
+                map.current.flyTo({
+                  center: coords,
+                  speed: 1.2,
+                  curve: 1.5,
+                });
+              }
+              return; // Thành công, không cần fallback
+            } else {
+              console.log('🔍 MapboxTrackingMap: No valid coordinates in tracking API response');
             }
-            return; // Thành công, không cần fallback
           } else {
-            console.log('🔍 MapboxTrackingMap: No valid coordinates in API response');
+            console.log('⚠️ Skipped setTrackingData: selectedOrder.id changed during fetch.');
           }
         } else {
-          console.log('🔍 MapboxTrackingMap: API response not ok:', res.status);
+          console.log('🔍 MapboxTrackingMap: Tracking API response not ok:', res.status);
           const errorText = await res.text();
           console.log('🔍 MapboxTrackingMap: Error response:', errorText);
         }
       } catch (err) {
-        console.error("Error fetching vehicle position from API:", err);
+        console.error("❌ Error fetching tracking data from delivery_tracking:", err);
       }
       
       // Fallback: Sử dụng tọa độ store và lưu vào tracking
@@ -276,6 +246,11 @@ export default function MapboxTrackingMap() {
     // Luôn cập nhật vehicle position với store coordinates khi chọn order mới
     console.log('🔍 MapboxTrackingMap: Updating vehicle position with store coordinates');
     useStoreCoordinatesAsDefault();
+    
+    // Fetch delivery data for popup
+    if (orderId) {
+      fetchDeliveryData(orderId);
+    }
     
     fetchVehiclePos();
     const interval = setInterval(fetchVehiclePos, 3600000); // 1 tiếng
@@ -292,41 +267,237 @@ export default function MapboxTrackingMap() {
 
   // Draw vehicle marker
   useEffect(() => {
-      // Chỉ hiển thị marker xe nếu có tài xế
-      if (!map.current || !vehiclePos || !isLoaded) return;
-      
-      // Check if current driver exists
-      const currentDriver = selectedOrder?.vehicle?.currentDriver;
-      
-      if (!currentDriver) {
-        // Nếu không có tài xế, xóa marker nếu có
-        if (realTruckMarker.current) {
-          realTruckMarker.current.remove();
-          realTruckMarker.current = null;
-        }
-        return;
-      }
-      if (!realTruckMarker.current) {
-        const truckEl = document.createElement("div");
-        truckEl.style.width = "32px";
-        truckEl.style.height = "32px";
-        truckEl.style.display = "flex";
-        truckEl.style.alignItems = "center";
-        truckEl.style.justifyContent = "center";
-        truckEl.style.fontSize = "28px";
-        truckEl.style.background = "rgba(255,255,255,0.85)";
-        truckEl.style.borderRadius = "50%";
-        truckEl.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-        truckEl.innerHTML = "🚚";
-        realTruckMarker.current = new mapboxgl.Marker(truckEl)
-          .setLngLat(vehiclePos)
-          .addTo(map.current);
-      } else {
-        realTruckMarker.current.setLngLat(vehiclePos);
-      }
-    }, [vehiclePos, isLoaded, selectedOrder]);
+    // Luôn clear marker/popup cũ khi selectedOrder, vehiclePos, trackingData, deliveryData thay đổi
+    if (realTruckMarker.current) {
+      realTruckMarker.current.remove();
+      realTruckMarker.current = null;
+    }
+    if (!map.current || !vehiclePos || !isLoaded) return;
+    // Check if current driver exists
+    const currentDriver = selectedOrder?.vehicle?.currentDriver;
+    if (!currentDriver) return;
 
-  // Đã xóa code vẽ waypoint markers (các chấm xanh và xám)
+    const truckEl = document.createElement("div");
+    truckEl.style.width = "32px";
+    truckEl.style.height = "32px";
+    truckEl.style.display = "flex";
+    truckEl.style.alignItems = "center";
+    truckEl.style.justifyContent = "center";
+    truckEl.style.fontSize = "28px";
+    truckEl.style.background = "rgba(255,255,255,0.85)";
+    truckEl.style.borderRadius = "50%";
+    truckEl.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+    truckEl.style.cursor = "pointer";
+    truckEl.innerHTML = "🚚";
+
+    // Tạo popup với thông tin tracking, luôn lấy từ state mới nhất
+    const createTrackingPopup = () => {
+      // Lấy dữ liệu trực tiếp từ selectedOrder để đảm bảo đồng bộ
+      const orderId = selectedOrder?.id || 'N/A';
+      const vehicleId = selectedOrder?.vehicle?.id || 'N/A';
+      const driverId = selectedOrder?.vehicle?.currentDriver?.id || 'N/A';
+      const driverName = selectedOrder?.vehicle?.currentDriver?.fullName || 'N/A';
+      // Ưu tiên lấy delivery info từ trackingData.delivery nếu có, fallback sang deliveryData
+      let deliveryId = 'N/A';
+      let deliveryStatus = 'N/A';
+      let deliveryAddress = selectedOrder?.address?.address || 'N/A';
+      let deliveryContactName = 'N/A';
+      let deliveryContactPhone = 'N/A';
+      if (trackingData && trackingData.delivery) {
+        deliveryId = trackingData.delivery.id || 'N/A';
+        deliveryStatus = trackingData.delivery.status || 'N/A';
+        // Nếu có order/address trong trackingData.delivery, ưu tiên lấy
+        deliveryAddress = trackingData.delivery.order?.address?.address || deliveryAddress;
+        deliveryContactName = trackingData.delivery.order?.address?.contactName || 'N/A';
+        deliveryContactPhone = trackingData.delivery.order?.address?.contactPhone || 'N/A';
+      } else if (deliveryData && (deliveryData.orderId === selectedOrder?.id || deliveryData.order?.id === selectedOrder?.id)) {
+        deliveryId = deliveryData.id || 'N/A';
+        deliveryStatus = deliveryData.status || 'N/A';
+        deliveryAddress = deliveryData.order?.address?.address || deliveryAddress;
+        deliveryContactName = deliveryData.order?.address?.contactName || 'N/A';
+        deliveryContactPhone = deliveryData.order?.address?.contactPhone || 'N/A';
+      }
+      // TrackingId lấy từ trackingData nếu có và đúng order
+      let trackingId = 'N/A', lat = 'N/A', lng = 'N/A', location = 'N/A', timestamp = '';
+      let trackingWarning = '';
+      // Nếu có trackingData và có id thì luôn show trackingId
+      if (trackingData && trackingData.id) {
+        trackingId = trackingData.id;
+        lat = trackingData.latitude ? trackingData.latitude.toFixed(6) : (vehiclePos ? vehiclePos[1].toFixed(6) : 'N/A');
+        lng = trackingData.longitude ? trackingData.longitude.toFixed(6) : (vehiclePos ? vehiclePos[0].toFixed(6) : 'N/A');
+        location = trackingData.location || selectedOrder?.store?.storeName || 'Điểm tracking mới';
+        timestamp = trackingData.timestamp ? new Date(trackingData.timestamp).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN');
+      } else {
+        trackingWarning = '<div style="color: #FFD700; font-size: 13px; margin-bottom: 8px;">Chưa có tracking cho đơn này hoặc tracking không khớp!</div>';
+        lat = vehiclePos ? vehiclePos[1].toFixed(6) : 'N/A';
+        lng = vehiclePos ? vehiclePos[0].toFixed(6) : 'N/A';
+        location = selectedOrder?.store?.storeName || 'Chưa có tracking';
+        timestamp = new Date().toLocaleString('vi-VN');
+      }
+      // Debug log để kiểm tra dữ liệu
+      logTrackingConsistency('Before creating popup', selectedOrder, deliveryData, trackingData);
+      return new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        closeOnMove: true,
+        offset: [0, -40],
+        className: 'tracking-popup'
+      }).setHTML(`
+        <div style="
+          padding: 12px; 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border-radius: 8px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+          min-width: 300px;
+          max-width: 380px;
+          font-size: 12px;
+        ">
+          <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; text-align: center;">
+            🚛 Thông tin Tracking
+          </div>
+          ${trackingWarning}
+          <div style="font-size: 13px; line-height: 1.6;">
+            <div style="margin-bottom: 6px; background: rgba(255,255,255,0.1); padding: 6px; border-radius: 4px;">
+              <strong>📦 Đơn hàng:</strong> #${orderId} | <strong>🚚 Xe:</strong> #${vehicleId}
+              <br><strong>🚚 Delivery:</strong> #${deliveryId} | <strong>📊:</strong> ${deliveryStatus}
+            </div>
+            <div style="margin-bottom: 6px; background: rgba(255,255,255,0.1); padding: 6px; border-radius: 4px;">
+              <strong>👨‍💼 Tài xế:</strong> ${driverName} | <strong>🆔 Tracking:</strong> #${trackingId}
+            </div>
+            <div style="margin-bottom: 6px; background: rgba(255,255,255,0.1); padding: 6px; border-radius: 4px;">
+              <strong>📍 GPS:</strong> ${lat}, ${lng}
+              <br><strong>📍 Tại:</strong> ${location}
+              <div style="font-size: 10px; color: #90EE90; margin-top: 2px;">
+                ${trackingId !== 'N/A'
+                  ? `🟢 Từ Tracking API (ID: ${trackingId})`
+                  : '🟡 Từ Store (Fallback)'}
+              </div>
+            </div>
+            <div style="margin-bottom: 8px; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px;">
+              <strong style="color: #FFE066;">� Thông tin Giao hàng</strong>
+              <div style="margin-top: 4px; color: #E0E0E0; font-size: 12px;">
+                ${deliveryAddress}
+              </div>
+              ${deliveryContactName !== 'N/A' ? `<div style=\"color: #E0E0E0; font-size: 12px;\">Liên hệ: ${deliveryContactName}</div>` : ''}
+              ${deliveryContactPhone !== 'N/A' ? `<div style=\"color: #E0E0E0; font-size: 12px;\">SĐT: ${deliveryContactPhone}</div>` : ''}
+            </div>
+            <div style="font-size: 10px; color: #C0C0C0; text-align: center; margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px;">
+              ⏰ ${timestamp}
+            </div>
+          </div>
+        </div>
+      `);
+    };
+
+    // Thêm event listeners cho hover
+    let hoverPopup: mapboxgl.Popup | null = null;
+    truckEl.addEventListener('mouseenter', () => {
+      if (hoverPopup) hoverPopup.remove();
+      const popup = createTrackingPopup();
+      if (popup) {
+        hoverPopup = popup;
+        hoverPopup.addTo(map.current!);
+        realTruckMarker.current?.setPopup(hoverPopup);
+      }
+    });
+    truckEl.addEventListener('mouseleave', () => {
+      if (hoverPopup) {
+        hoverPopup.remove();
+        hoverPopup = null;
+      }
+    });
+    realTruckMarker.current = new mapboxgl.Marker(truckEl)
+      .setLngLat(vehiclePos)
+      .addTo(map.current);
+  }, [vehiclePos, isLoaded, selectedOrder, trackingData, deliveryData]);
+
+
+  // Helper: Render tracking popup content (always use selectedOrder for order_id)
+  const renderTrackingPopup = () => {
+    // Luôn lấy orderId/deliveryId/trackingId từ selectedOrder để đồng bộ với header
+    const order = selectedOrder;
+    const orderId = order?.id || 'N/A';
+    const vehicle = order?.vehicle;
+    const vehicleId = vehicle?.id || 'N/A';
+    const driver = vehicle?.currentDriver;
+    const driverName = driver?.fullName || 'N/A';
+    // Nếu deliveryData khớp orderId thì lấy, không thì bỏ qua
+    let deliveryId = 'N/A';
+    if (deliveryData && (deliveryData.orderId === order?.id || deliveryData.order?.id === order?.id)) {
+      deliveryId = deliveryData.id || 'N/A';
+    }
+
+    // Xử lý trường hợp không có deliveryData
+    if (!deliveryData) {
+      return (
+        <div className="rounded-2xl bg-yellow-100/90 border border-yellow-300 shadow-xl p-4 min-w-[320px] max-w-[400px] mx-auto flex flex-col gap-2">
+          <div className="font-bold text-yellow-900 text-lg flex items-center gap-2">
+            <span role="img" aria-label="warning">⚠️</span> Chưa có giao hàng cho đơn này
+          </div>
+          <div className="text-base text-yellow-800">Đơn hàng: <span className="text-blue-700">#{orderId}</span></div>
+          <div className="text-sm text-yellow-700">Hệ thống chưa tạo delivery cho đơn này. Vui lòng kiểm tra lại việc gán xe và backend.</div>
+        </div>
+      );
+    }
+
+    // Xử lý trường hợp có delivery nhưng không có trackingData
+    if (!trackingData) {
+      return (
+        <div className="rounded-2xl bg-orange-100/90 border border-orange-300 shadow-xl p-4 min-w-[320px] max-w-[400px] mx-auto flex flex-col gap-2">
+          <div className="font-bold text-orange-900 text-lg flex items-center gap-2">
+            <span role="img" aria-label="warning">🛈</span> Chưa có tracking cho đơn này
+          </div>
+          <div className="text-base text-orange-800">Đơn hàng: <span className="text-blue-700">#{orderId}</span></div>
+          <div className="text-base text-orange-800">Delivery: <span className="text-blue-700">#{deliveryId}</span></div>
+          <div className="text-sm text-orange-700">Hệ thống chưa ghi nhận tracking cho delivery này.</div>
+        </div>
+      );
+    }
+
+    // Tracking chỉ hiển thị nếu trackingData thuộc đúng order hiện tại
+    let trackingId = 'N/A', lat = 'N/A', lng = 'N/A', location = 'N/A', notes = '', statusName = 'N/A', statusDesc = '', timestamp = '';
+    if (trackingData && trackingData.id) {
+      trackingId = trackingData.id;
+      lat = trackingData.latitude ?? 'N/A';
+      lng = trackingData.longitude ?? 'N/A';
+      location = trackingData.location || 'N/A';
+      notes = trackingData.notes || '';
+      statusName = trackingData.status?.name || 'N/A';
+      statusDesc = trackingData.status?.description || '';
+      timestamp = trackingData.timestamp || '';
+    } else {
+      // Nếu không có trackingData thì không hiển thị gì
+      return null;
+    }
+    return (
+      <div className="rounded-2xl bg-indigo-100/90 border border-indigo-300 shadow-xl p-4 min-w-[320px] max-w-[400px] mx-auto flex flex-col gap-2">
+        <div className="font-bold text-indigo-900 text-lg flex items-center gap-2">
+          <span role="img" aria-label="truck">🚚</span> Thông tin Tracking
+        </div>
+        <div className="flex flex-wrap gap-2 text-base font-semibold text-indigo-800">
+          <span>Đơn hàng: <span className="text-blue-700">#{orderId}</span></span>
+          <span>| Xe: <span className="text-blue-700">#{vehicleId}</span></span>
+          <span>| Delivery: <span className="text-blue-700">#{deliveryId}</span></span>
+          <span>| ID: <span className="text-blue-700">{trackingId}</span></span>
+        </div>
+        <div className="flex flex-wrap gap-2 text-base text-indigo-700">
+          <span>🧑‍✈️ Tài xế: <span className="font-bold">{driverName}</span></span>
+          <span>| Trạng thái: <span className="font-bold">{statusName}</span></span>
+        </div>
+        <div className="text-sm text-gray-700">
+          <span>📍 GPS: <span className="font-mono">{lat}, {lng}</span></span>
+        </div>
+        <div className="text-sm text-gray-700">
+          <span>🏠 Tại: <span className="font-semibold">{location}</span></span>
+        </div>
+        {notes && <div className="text-xs text-gray-500 italic">{notes}</div>}
+        <div className="text-xs text-gray-500">{statusDesc}</div>
+        <div className="text-xs text-gray-400 text-right mt-2">{timestamp}</div>
+      </div>
+    );
+  };
 
   // Update route when selectedOrder changes
   useEffect(() => {
@@ -368,6 +539,10 @@ export default function MapboxTrackingMap() {
     }
 
   if (selectedOrder && selectedOrder.vehicle && selectedOrder.store && selectedOrder.address) {
+      console.log('🗺️ MapboxTrackingMap: Order has all required data');
+      console.log('🗺️ MapboxTrackingMap: Store coords:', selectedOrder.store.latitude, selectedOrder.store.longitude);
+      console.log('🗺️ MapboxTrackingMap: Address coords:', selectedOrder.address.latitude, selectedOrder.address.longitude);
+      
       const store = selectedOrder.store;
       const address = selectedOrder.address;
       if (
@@ -390,27 +565,60 @@ export default function MapboxTrackingMap() {
           )};${endCoord.join(
             ","
           )}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+          
+          console.log('🗺️ MapboxTrackingMap: Fetching route from:', url);
+          console.log('🗺️ MapboxTrackingMap: Start coord:', startCoord);
+          console.log('🗺️ MapboxTrackingMap: End coord:', endCoord);
+          
           try {
             const res = await fetch(url);
+            console.log('🗺️ MapboxTrackingMap: Route API response status:', res.status);
+            
             if (res.ok) {
               const data = await res.json();
+              console.log('🗺️ MapboxTrackingMap: Route data:', data);
+              
               if (data.routes && data.routes[0]) {
+                console.log('✅ MapboxTrackingMap: Route found, setting route and waypoints');
                 setRoute(data.routes[0]);
                 setWaypoints(data.routes[0].geometry.coordinates);
+                
+                // Fit map to route bounds
+                if (map.current && data.routes[0].geometry.coordinates.length > 0) {
+                  const coordinates = data.routes[0].geometry.coordinates;
+                  const bounds = new mapboxgl.LngLatBounds();
+                  coordinates.forEach((coord: [number, number]) => bounds.extend(coord));
+                  map.current.fitBounds(bounds, { padding: 50 });
+                }
+              } else {
+                console.warn('⚠️ MapboxTrackingMap: No routes found in response');
               }
+            } else {
+              const errorText = await res.text();
+              console.error('❌ MapboxTrackingMap: Route API error:', res.status, errorText);
             }
           } catch (err) {
-            console.error("Error fetching route:", err);
+            console.error("❌ MapboxTrackingMap: Error fetching route:", err);
           }
         };
         fetchRoute();
       }
     }
-  }, [selectedOrder]);
+  }, [selectedOrder, MAPBOX_TOKEN]);
 
   // Draw start/end markers, route line, và traveled path (màu xám)
   useEffect(() => {
-    if (!map.current || !start || !end || !route) return;
+    console.log('🗺️ MapboxTrackingMap: Draw route useEffect called');
+    console.log('🗺️ MapboxTrackingMap: map.current:', !!map.current);
+    console.log('🗺️ MapboxTrackingMap: isLoaded:', isLoaded);
+    console.log('🗺️ MapboxTrackingMap: start:', start);
+    console.log('🗺️ MapboxTrackingMap: end:', end);
+    console.log('🗺️ MapboxTrackingMap: route:', !!route);
+    
+    if (!map.current || !isLoaded || !start || !end || !route) {
+      console.log('🗺️ MapboxTrackingMap: Skipping route draw - missing requirements');
+      return;
+    }
     // Remove old markers
     markers.current.forEach((marker) => marker.remove());
     markers.current = [];
@@ -439,6 +647,7 @@ export default function MapboxTrackingMap() {
       .addTo(map.current);
     markers.current.push(endMarker);
     // Draw route line
+    console.log('🗺️ MapboxTrackingMap: Drawing route line with coordinates:', route.geometry.coordinates.length);
     const routeFeature: GeoJSON.Feature<GeoJSON.LineString> = {
       type: "Feature",
       geometry: {
@@ -448,10 +657,12 @@ export default function MapboxTrackingMap() {
       properties: {},
     };
     if (map.current.getSource("route")) {
+      console.log('🗺️ MapboxTrackingMap: Updating existing route source');
       (map.current.getSource("route") as mapboxgl.GeoJSONSource).setData(
         routeFeature
       );
     } else {
+      console.log('🗺️ MapboxTrackingMap: Adding new route source and layer');
       map.current.addSource("route", {
         type: "geojson",
         data: routeFeature,
@@ -492,7 +703,7 @@ export default function MapboxTrackingMap() {
         paint: { "line-color": "#888", "line-width": 5, "line-opacity": 0.7 },
       });
     }
-  }, [route, start, end, vehiclePos, waypoints]);
+  }, [route, start, end, vehiclePos, waypoints, isLoaded]);
 
   // Initialize map
   useEffect(() => {
@@ -506,13 +717,23 @@ export default function MapboxTrackingMap() {
         center: [106.660172, 10.762622],
         zoom: 12,
       });
-      map.current.on("load", () => setIsLoaded(true));
+      map.current.on("load", () => {
+        setIsLoaded(true);
+        // Force resize after load to fix white space issue
+        setTimeout(() => {
+          map.current && map.current.resize();
+        }, 200);
+      });
       map.current.on("error", (error) => {
         console.error("MapboxTrackingMap: Map error:", error);
       });
     } catch (error) {
       console.error("MapboxTrackingMap: Initialization error:", error);
     }
+    // Force resize after mount (in case of login/tab switch)
+    setTimeout(() => {
+      map.current && map.current.resize();
+    }, 400);
     return () => {
       markers.current.forEach((marker) => marker.remove());
       markers.current = [];
@@ -555,6 +776,7 @@ export default function MapboxTrackingMap() {
                 <strong>Driver:</strong> {selectedOrder.vehicle.currentDriver.fullName}
               </span>
             </div>
+            {/* Đã xóa nút làm mới đường đi theo yêu cầu */}
           </div>
           {route &&
             typeof route.distance === "number" &&

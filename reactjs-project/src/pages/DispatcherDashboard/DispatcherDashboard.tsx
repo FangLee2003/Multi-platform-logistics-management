@@ -1,9 +1,9 @@
 import { useState } from "react";
 import OrderOverview from "./OrderOverview";
 import OrderList from "./OrderList";
-import ResourceOverview from "./ResourceOverview";
 import OrderAssignment from "./OrderAssignment";
 import Sidebar, { type DispatcherTab } from "../../components/Sidebar";
+import CompletedOrdersList from "./CompletedOrdersList";
 import Navbar from "../../components/Navbar";
 import MapboxTrackingMap from "./MapboxTrackingMap";
 import MapErrorBoundary from '../../components/MapErrorBoundary';
@@ -11,6 +11,18 @@ import type { User } from "../../types/User";
 import VehicleList from "./VehicleList";
 import DriverList from "./DriverList";
 import { DispatcherProvider } from "../../contexts/DispatcherContext";
+// Nút reload trang không logout
+function ReloadButton() {
+  return (
+    <button
+      onClick={() => window.location.reload()}
+      className="ml-2 px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+      title="Tải lại trang (không đăng xuất)"
+    >
+      🔄 Tải lại trang
+    </button>
+  );
+}
 
 interface DispatcherDashboardProps {
   user: User;
@@ -51,6 +63,11 @@ export default function DispatcherDashboard({
                   <MapboxTrackingMap />
                 </MapErrorBoundary>
               </div>
+            </div>
+
+            {/* Completed Orders Tab */}
+            <div className={tab === "completedOrders" ? "block" : "hidden"}>
+              <CompletedOrdersList />
             </div>
 
             {/* Resources Tab */}

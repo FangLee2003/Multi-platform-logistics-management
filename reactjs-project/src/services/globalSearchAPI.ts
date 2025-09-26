@@ -9,7 +9,7 @@ import type { Order } from '../types/Order';
 import type { User } from '../types/User';
 import type { Vehicle } from '../types/Operations';
 import { fetchVehicles } from './VehicleListAPI';
-import { fetchOrderStats } from './OrderAPI';
+import { fetchOrderStats } from './orderAPI';
 
 const API_BASE_URL = "http://localhost:8080/api";
 

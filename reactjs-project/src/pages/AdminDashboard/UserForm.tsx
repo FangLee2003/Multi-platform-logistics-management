@@ -257,7 +257,7 @@ const handleSubmit = (e: React.FormEvent) => {
             ))}
           </select>
         </div>
-        <div>
+        {/* <div>
           <label className="block mb-1 font-semibold">Status</label>
           <select
             className="border rounded px-3 py-2 w-full"
@@ -268,7 +268,7 @@ const handleSubmit = (e: React.FormEvent) => {
             <option value="inactive">Inactive</option>
             <option value="suspended">Suspended</option>
           </select>
-        </div>
+        </div> */}
         <div className="flex gap-2 justify-end pt-2">
           <button
             type="button"

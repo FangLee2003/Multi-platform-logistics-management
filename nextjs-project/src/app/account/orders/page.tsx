@@ -14,24 +14,19 @@ import {
   Modal,
   Timeline,
   message,
+  Grid,
 } from "antd";
-import {
-  orderApi,
-  type PaginatedOrderSummaryResponse,
-  type OrderSummary,
-} from "@/services/orderService";
+import { orderApi, type OrderSummary } from "@/services/orderService";
 import OrderDetailModal from "./components/OrderDetailModal";
 import { OrderFilters } from "./components/OrderFilters";
 import type { Dayjs } from "dayjs";
-import {
-  PlusOutlined,
-  EyeOutlined,
-  HistoryOutlined,
-  FilePdfOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined, EyeOutlined, HistoryOutlined } from "@ant-design/icons";
+import InvoiceButton from "@/components/InvoiceButton";
 import { useRouter } from "next/navigation";
 
 const { Title } = Typography;
+const { useBreakpoint } = Grid;
+
 interface Order {
   id: string;
   created_at: string;
@@ -72,12 +67,14 @@ const getStatusColor = (status: string): string => {
     DELIVERED: "success",
     COMPLETED: "success",
     CANCELLED: "error",
+    FAILED: "error",
   };
   return colorMap[status] || "default";
 };
 
 export default function OrdersPage() {
   const router = useRouter();
+  const screens = useBreakpoint();
   const [messageApi, contextHolder] = message.useMessage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,29 +86,21 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<number[]>([]);
   const [isTrackingModalVisible, setIsTrackingModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);
-
-  // Modal chi tiết đơn hàng
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
-
-  // Store ID để sử dụng cho search
   const [storeId, setStoreId] = useState<number | null>(null);
 
   const fetchOrders = useCallback(
     async (page: number = 1, size: number = 10) => {
       setLoading(true);
       try {
-        // Get user from localStorage
         const userStr = localStorage.getItem("user");
-        if (!userStr) {
-          console.error("User not found in localStorage");
-          return;
-        }
+        if (!userStr) return;
         const user = JSON.parse(userStr);
+
         const response = await orderApi.getOrdersByUserPaginated(
           user.id,
           page,
@@ -124,7 +113,7 @@ export default function OrdersPage() {
           store_name: `Store ${order.storeId || "Unknown"}`,
           shipping_address: order.deliveryAddress || "No address provided",
           total_items: order.totalItems || 0,
-          cod_amount: 0, // Not available in the API
+          cod_amount: 0,
           shipping_fee: order.deliveryFee || 0,
           status: {
             id: getStatusId(order.orderStatus || "PENDING"),
@@ -146,7 +135,6 @@ export default function OrdersPage() {
         setTotalRecords(response.totalRecords);
         setCurrentPage(response.pageNumber);
 
-        // Lấy storeId từ đơn hàng đầu tiên để sử dụng cho search
         if (response.data.length > 0 && !storeId) {
           setStoreId(response.data[0].storeId);
         }
@@ -163,32 +151,26 @@ export default function OrdersPage() {
     fetchOrders(currentPage, pageSize);
   }, [currentPage, pageSize, fetchOrders]);
 
-  // Effect để xử lý tìm kiếm thống nhất
   useEffect(() => {
     const performUnifiedSearch = async () => {
       if (!storeId) return;
-
       try {
         setLoading(true);
 
-        // Prepare search parameters
         let orderId: number | undefined;
         let fromDate: string | undefined;
         let toDate: string | undefined;
 
-        // Check if searchText is a valid orderId
         const orderIdNumber = parseInt(searchText.trim());
         if (!isNaN(orderIdNumber) && searchText.trim()) {
           orderId = orderIdNumber;
         }
 
-        // Prepare date range
         if (dateRange && dateRange[0] && dateRange[1]) {
           fromDate = dateRange[0].format("YYYY-MM-DD");
           toDate = dateRange[1].format("YYYY-MM-DD");
         }
 
-        // Prepare status filter - convert status IDs to status names (support multiple)
         let statusList: string[] | undefined;
         if (statusFilter.length > 0) {
           const statusMap: { [key: number]: string } = {
@@ -200,11 +182,10 @@ export default function OrdersPage() {
             6: "CANCELLED",
           };
           statusList = statusFilter
-            .map((statusId) => statusMap[statusId])
-            .filter((statusName) => statusName); // Filter out undefined values
+            .map((id) => statusMap[id])
+            .filter(Boolean) as string[];
         }
 
-        // Call unified search API
         const searchResults = await orderApi.searchOrdersUnified(
           storeId,
           currentPage,
@@ -215,7 +196,6 @@ export default function OrdersPage() {
           statusList
         );
 
-        // Format results
         const formattedSearchResults: Order[] = searchResults.data.map(
           (order: OrderSummary) => ({
             id: order.orderId?.toString() || "N/A",
@@ -252,18 +232,15 @@ export default function OrdersPage() {
       }
     };
 
-    // Determine if we should use unified search or load regular list
     const hasSearchCriteria =
-      (searchText.trim() && !isNaN(parseInt(searchText.trim()))) || // Valid orderId
-      (dateRange && dateRange[0] && dateRange[1]) || // Date range selected
-      statusFilter.length > 0; // Status filter selected
+      (searchText.trim() && !isNaN(parseInt(searchText.trim()))) ||
+      (dateRange && dateRange[0] && dateRange[1]) ||
+      statusFilter.length > 0;
 
     if (hasSearchCriteria) {
-      // Use unified search
       const timeoutId = setTimeout(performUnifiedSearch, 500);
       return () => clearTimeout(timeoutId);
     } else {
-      // Load regular list when no search criteria
       fetchOrders(currentPage, pageSize);
     }
   }, [
@@ -285,17 +262,17 @@ export default function OrdersPage() {
   const handleCopyOrderId = (orderId: string) => {
     navigator.clipboard
       .writeText(orderId)
-      .then(() => {
-        messageApi.success(`Đã sao chép mã đơn hàng: ${orderId}`);
-      })
-      .catch(() => {
-        messageApi.error("Không thể sao chép mã đơn hàng");
-      });
+      .then(() => messageApi.success(`Đã sao chép mã đơn hàng: ${orderId}`))
+      .catch(() => messageApi.error("Không thể sao chép mã đơn hàng"));
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleViewInvoice = (orderId: string) => {
-    // TODO: Implement invoice viewing functionality
+  const handleInvoiceCreated = (invoice: { invoiceNumber: string }) => {
+    messageApi.success(
+      `Hóa đơn ${invoice.invoiceNumber} đã được tạo thành công!`
+    );
+    setTimeout(() => {
+      fetchOrders(currentPage, pageSize);
+    }, 1500);
   };
 
   const columns = [
@@ -372,13 +349,12 @@ export default function OrdersPage() {
               onClick={() => showTrackingModal(record)}
             />
           </Tooltip>
-          <Tooltip title="Hoá đơn điện tử">
-            <Button
-              type="text"
-              icon={<FilePdfOutlined />}
-              onClick={() => handleViewInvoice(record.id)}
-            />
-          </Tooltip>
+          <InvoiceButton
+            orderId={parseInt(record.id)}
+            orderStatus={record.status?.name}
+            onInvoiceCreated={handleInvoiceCreated}
+            type="text"
+          />
         </Space>
       ),
     },
@@ -392,15 +368,19 @@ export default function OrdersPage() {
             justify="space-between"
             align="middle"
             style={{ marginBottom: 24 }}
+            wrap
           >
-            <Col>
-              <Title level={2}>Quản lý đơn hàng</Title>
+            <Col xs={24} sm="auto">
+              <Title level={2} style={{ marginBottom: 12 }}>
+                Quản lý đơn hàng
+              </Title>
             </Col>
-            <Col>
+            <Col xs={24} sm="auto">
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => router.push("/account/orders/new")}
+                block={!screens.md}
               >
                 Tạo đơn hàng
               </Button>
@@ -422,6 +402,7 @@ export default function OrdersPage() {
           dataSource={orders}
           loading={loading}
           rowKey="id"
+          scroll={{ x: "max-content" }}
           pagination={{
             current: currentPage,
             pageSize: pageSize,
@@ -439,7 +420,6 @@ export default function OrdersPage() {
         />
       </Card>
 
-      {/* Modal chi tiết đơn hàng */}
       {isDetailModalVisible && detailOrderId && (
         <OrderDetailModal
           orderId={Number(detailOrderId)}
@@ -447,7 +427,6 @@ export default function OrdersPage() {
         />
       )}
 
-      {/* Tracking Modal */}
       <Modal
         title={
           <Space>
@@ -458,7 +437,9 @@ export default function OrdersPage() {
         open={isTrackingModalVisible}
         onCancel={() => setIsTrackingModalVisible(false)}
         footer={null}
-        width={600}
+        width={screens.md ? 600 : "100%"}
+        style={{ top: screens.md ? 100 : 0 }}
+        styles={{ body: { padding: screens.md ? 24 : 12 } }}
       >
         {selectedOrder && (
           <>
@@ -488,4 +469,3 @@ export default function OrdersPage() {
     </>
   );
 }
-// ...existing code...

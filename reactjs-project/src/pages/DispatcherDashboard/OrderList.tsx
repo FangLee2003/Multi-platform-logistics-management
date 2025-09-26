@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { fetchOrders, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import OrderChecklistTimeline from "../../components/OrderChecklistTimeline";
-import { fetchOrders, fetchOrderById } from "../../services/OrderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
 import { useQuery } from "@tanstack/react-query";
@@ -17,27 +17,37 @@ export default function OrderList() {
   const [searchResults, setSearchResults] = useState<Order[]>([]);
   const [error, setError] = useState("");
 
-  // Use React Query to fetch orders with pagination
+  // Sử dụng React Query để fetch orders với pagination
   const {
     data: ordersResponse,
     isLoading: loading,
     error: fetchError
-  } = useQuery({
-    queryKey: ['ordersForList', page, PAGE_SIZE],
+  } = useQuery<FetchNotCompletedOrdersResponse>({
+    queryKey: ['ordersForList', 'not-completed', page],
     queryFn: async () => {
       const token = localStorage.getItem("token") || "";
-      return await fetchOrders(page, PAGE_SIZE, token);
+      return await fetchNotCompletedOrders(page, PAGE_SIZE, token);
     },
-    enabled: !isSearchMode, // Only fetch when not in search mode
-    staleTime: 30 * 1000, // Cache for 30 seconds
+    enabled: !isSearchMode, // Chỉ fetch khi không ở chế độ tìm kiếm
+    staleTime: 30 * 1000, // Cache 30 giây
     refetchOnWindowFocus: true,
   });
+
+  // Nếu đang search theo ID thì chỉ hiển thị searchResults, không phân trang
+  // Sắp xếp theo orderId giảm dần (cao -> thấp)
+  const paginatedOrders: Order[] = isSearchMode
+    ? searchResults
+    : (ordersResponse?.content || []).slice().sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
 
   const orders = isSearchMode ? searchResults : (ordersResponse?.data || []);
   const totalPages = isSearchMode ? 1 : (ordersResponse?.totalPages || 1);
 
   // Function to select order for route display
   const handleOrderClick = async (order: Order) => {
+    console.log('OrderList: Selected order:', order);
+    console.log('OrderList: Vehicle info:', order.vehicle);
+    console.log('OrderList: Vehicle ID:', order.vehicle?.id);
+    console.log('OrderList: Current driver:', order.vehicle?.currentDriver);
     setSelectedOrder(order);
     if (expandedOrderId === order.id) {
       // Currently open, click again to close
@@ -141,66 +151,75 @@ export default function OrderList() {
         <div className="relative">
           {/* Order list */}
           <div className="flex flex-col gap-4">
-            {orders.map((order) => (
-              <div key={order.id}>
-                <div
-                  onClick={() => handleOrderClick(order)}
-                  className={`rounded-2xl border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow hover:shadow-xl transition-all duration-200 cursor-pointer ${
-                    selectedOrder?.id === order.id 
-                      ? 'bg-blue-100/90 border-blue-400 ring-2 ring-blue-300' 
-                      : 'bg-white/90 border-blue-100 hover:bg-blue-50/80'
-                  }`}
-                >
-                  {/* Left: Order info */}
-                  <div className="flex-1 min-w-0 flex flex-col gap-2">
-                    <div className="flex flex-wrap gap-2 items-center mb-1">
-                      <span className="font-extrabold text-lg text-blue-900">#{order.id}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
-                        ${order.status?.name === 'Pending'
-                          ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                          : order.status?.name === 'Completed'
-                          ? 'bg-green-100 text-green-800 border-green-300'
-                          : 'bg-blue-100 text-blue-700 border-blue-300'}
-                      `}>
-                        {order.status?.name === 'Delivered' ? 'Shipping' : order.status?.name}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
-                        ${order.status?.statusType === 'High'
-                          ? 'bg-red-100 text-red-700 border-red-300'
-                          : order.status?.statusType === 'Medium'
-                          ? 'bg-orange-100 text-orange-700 border-orange-300'
-                          : 'bg-green-100 text-green-700 border-green-300'}
-                      `}>
-                        {order.status?.statusType}
-                      </span>
+            {paginatedOrders.map((order: Order) => (
+              <div
+                key={order.id}
+                onClick={() => handleOrderClick(order)}
+                className={`rounded-2xl border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow hover:shadow-xl transition-all duration-200 cursor-pointer ${
+                  selectedOrder?.id === order.id 
+                    ? 'bg-blue-100/90 border-blue-400 ring-2 ring-blue-300' 
+                    : 'bg-white/90 border-blue-100 hover:bg-blue-50/80'
+                }`}
+              >
+                {/* Left: Order info */}
+                <div className="flex-1 min-w-0 flex flex-col gap-2">
+                  <div className="flex flex-wrap gap-2 items-center mb-1">
+                    <span className="font-extrabold text-lg text-blue-900">#{order.id}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
+                      ${order.status?.name === 'Pending'
+                        ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                        : order.status?.name === 'Processing'
+                        ? 'bg-purple-100 text-purple-800 border-purple-300'
+                        : order.status?.name === 'Shipping'
+                        ? 'bg-blue-100 text-blue-800 border-blue-300'
+                        : order.status?.name === 'Delivered'
+                        ? 'bg-green-100 text-green-800 border-green-300'
+                        : order.status?.name === 'Completed'
+                        ? 'bg-green-100 text-green-800 border-green-300'
+                        : order.status?.name === 'Cancelled'
+                        ? 'bg-red-100 text-red-800 border-red-300'
+                        : order.status?.name === 'FAILED'
+                        ? 'bg-red-100 text-red-800 border-red-300'
+                        : 'bg-gray-100 text-gray-700 border-gray-300'}
+                    `}>
+                      {order.status?.name}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
+                      ${order.status?.statusType === 'High'
+                        ? 'bg-red-100 text-red-700 border-red-300'
+                        : order.status?.statusType === 'Medium'
+                        ? 'bg-orange-100 text-orange-700 border-orange-300'
+                        : 'bg-green-100 text-green-700 border-green-300'}
+                    `}>
+                      {order.status?.statusType}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    <div>
+                      <span className="font-semibold text-blue-700">Khách hàng:</span>
+                      <span className="text-blue-800"> {order.store?.storeName}</span>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      <div>
-                        <span className="font-semibold text-blue-700">Customer:</span>
-                        <span className="text-blue-800"> {order.store?.storeName}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-blue-700">From:</span>
-                        <span className="text-gray-700"> {order.store?.address}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-blue-700">To:</span>
-                        <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
-                      </div>
+                    <div>
+                      <span className="font-semibold text-blue-700">Từ:</span>
+                      <span className="text-gray-700"> {order.store?.address}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-blue-700">Đến:</span>
+                      <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
                     </div>
                   </div>
-                  {/* Right: Date & driver/vehicle */}
-                  <div className="flex flex-col items-end min-w-[180px] gap-1">
-                    <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
-                    <div className="text-sm text-gray-700">
-                      <span className="font-semibold text-gray-500">Driver:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Not assigned"}</span>
-                      {order.vehicle?.licensePlate && (
-                        <>
-                          <span className="mx-1 text-gray-400">|</span>
-                          <span className="font-semibold text-blue-800">Vehicle: {order.vehicle.licensePlate}</span>
-                        </>
-                      )}
-                    </div>
+                </div>
+                {/* Right: Date & driver/vehicle */}
+                <div className="flex flex-col items-end min-w-[180px] gap-1">
+                  <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
+                  <div className="text-sm text-gray-700">
+                    <span className="font-semibold text-gray-500">Tài xế:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Chưa phân công"}</span>
+                    {order.vehicle?.licensePlate && (
+                      <>
+                        <span className="mx-1 text-gray-400">|</span>
+                        <span className="font-semibold text-blue-800">Xe: {order.vehicle.licensePlate}</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 {/* Checklist timeline vertical, only display for expanded order */}

@@ -77,14 +77,20 @@ public class DeliveryController {
             @RequestParam(required = false) Long driverId,
             @RequestParam(required = false) Long vehicleId,
             @RequestParam(required = false) String dateFrom,
-            @RequestParam(required = false) String dateTo) {
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) Long orderId) {
 
         // Lấy tất cả giao hàng
-        List<Delivery> allDeliveries = deliveryService.getAllDeliveries();
+        List<Delivery> deliveries;
+        if (orderId != null) {
+            deliveries = deliveryService.findByOrderId(orderId);
+        } else {
+            deliveries = deliveryService.getAllDeliveries();
+        }
 
         // Chuyển đổi từ Delivery sang Map để dễ dàng thêm thông tin bổ sung nếu cần
         List<Map<String, Object>> deliveriesMap = new ArrayList<>();
-        for (Delivery delivery : allDeliveries) {
+        for (Delivery delivery : deliveries) {
             Map<String, Object> deliveryMap = new HashMap<>();
             deliveryMap.put("id", delivery.getId());
             deliveryMap.put("orderId", delivery.getOrder() != null ? delivery.getOrder().getId() : null);
@@ -491,5 +497,56 @@ public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id)
                 "description", "This endpoint will identify deliveries that may be delayed based on predictive analysis"
             )
         ));
+    }
+
+    /**
+     * Tính tổng doanh thu cho ngày cụ thể từ các delivery đã hoàn thành
+     * GET /api/deliveries/revenue-by-date?date=2025-09-15
+     */
+    @GetMapping("/revenue-by-date")
+    public ResponseEntity<Long> getRevenueByDate(@RequestParam String date) {
+        try {
+            Long revenue = deliveryService.calculateRevenueByDate(date);
+            return ResponseEntity.ok(revenue);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(0L);
+        }
+    }
+
+    /**
+     * Tính performance statistics cho 2 tuần (tuần này vs tuần trước)
+     * GET /api/deliveries/performance-stats
+     */
+    @GetMapping("/performance-stats")
+    public ResponseEntity<Map<String, Object>> getPerformanceStats() {
+        try {
+            Map<String, Object> stats = deliveryService.calculatePerformanceStats();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            Map<String, Object> errorStats = new HashMap<>();
+            errorStats.put("percentage", 0);
+            errorStats.put("changePercent", 0.0);
+            errorStats.put("trend", "stable");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorStats);
+        }
+    }
+
+    /**
+     * Tính doanh thu theo tháng trong 12 tháng gần nhất
+     * GET /api/deliveries/monthly-revenue
+     */
+    @GetMapping("/monthly-revenue")
+    public ResponseEntity<Map<String, Object>> getMonthlyRevenue() {
+        try {
+            Map<String, Object> monthlyData = deliveryService.calculateMonthlyRevenue();
+            return ResponseEntity.ok(monthlyData);
+        } catch (Exception e) {
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("monthlyRevenue", new ArrayList<>());
+            errorData.put("totalRevenue", 0L);
+            errorData.put("growthPercent", 0.0);
+            errorData.put("averageRevenue", 0L);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorData);
+        }
     }
 }

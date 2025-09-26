@@ -1,3 +1,5 @@
+
+
 package ktc.spring_project.controllers;
 
 import ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO;
@@ -26,6 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.PageRequest;
 
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -70,30 +73,55 @@ public class OrderController {
     private ChecklistService checklistService;
 
     /**
-     * Get order by ID with items included
-     */
-    @GetMapping("/{orderId}")
-    public ResponseEntity<Order> getOrder(@PathVariable Long orderId) {
-        Order order = orderService.getOrderById(orderId);
-        return ResponseEntity.ok(order);
+ * Get order by ID with items included
+ */
+@GetMapping("/{orderId}")
+public ResponseEntity<Order> getOrder(@PathVariable Long orderId) {
+    Order order = orderService.getOrderById(orderId);
+    if (order == null) {
+        return ResponseEntity.notFound().build();
     }
-    
+    return ResponseEntity.ok(order);
+}
+
     /**
-     * Get all orders with pagination (simple version)
-     * @deprecated Use the detailed version with more filters instead
+     * API: Lấy tất cả đơn hàng chưa completed, sort id giảm dần (không phân trang)
      */
-    // Commented out to fix duplicate mapping
-    /*
-    @GetMapping
-    public ResponseEntity<Page<Order>> getAllOrders(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<Order> orders = orderService.getAllOrders(
-                org.springframework.data.domain.PageRequest.of(page, size));
+    @GetMapping("/not-completed/all")
+    public ResponseEntity<List<Order>> getAllNotCompletedOrdersSortedByIdDesc() {
+        List<Order> orders = orderService.getAllNotCompletedOrdersSortedByIdDesc();
         return ResponseEntity.ok(orders);
     }
-    */
-
+/**
+     * API: Lấy đơn hàng đã giao thành công (status_id = 2) có phân trang
+     */
+    @GetMapping("/completed/paginated")
+    public ResponseEntity<Page<Order>> getCompletedOrdersPaginated(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        // Lấy trực tiếp từ repository với status_id = 2
+    Page<Order> completedOrders = orderService.getOrdersByStatusIdPaginated((short)2, PageRequest.of(page - 1, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id")));
+        return ResponseEntity.ok(completedOrders);
+    }
+    /**
+     * API: Lấy tất cả đơn hàng đã giao thành công (status_id = 2)
+     */
+    @GetMapping("/completed")
+    public ResponseEntity<List<Order>> getCompletedOrders() {
+        // Lấy tất cả đơn hàng có status_id = 2
+        List<Order> completedOrders = orderService.getAllOrders().stream()
+            .filter(order -> order.getStatus() != null && order.getStatus().getId() == 2)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(completedOrders);
+    }
+    @GetMapping("/not-completed")
+    public ResponseEntity<Page<Order>> getNotCompletedOrders(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageRequest = PageRequest.of(page - 1, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"));
+        Page<Order> notCompletedOrders = orderService.getNotCompletedOrdersPaginated(pageRequest);
+        return ResponseEntity.ok(notCompletedOrders);
+    }
     /**
      * Tạo đơn hàng mới
      */
@@ -137,12 +165,59 @@ public class OrderController {
     }
 
     /**
+     * Lấy số lượng đơn hàng theo ngày (tối ưu cho dashboard)
+     */
+    @GetMapping("/count-by-date")
+    public ResponseEntity<Map<String, Object>> getOrderCountByDate(
+            @RequestParam(required = false) String date) {
+        try {
+            // Nếu không có date parameter, tính cho hôm nay và hôm qua
+            java.time.LocalDate targetDate = date != null ? 
+                java.time.LocalDate.parse(date) : java.time.LocalDate.now();
+            java.time.LocalDate yesterday = targetDate.minusDays(1);
+            
+            // Sử dụng database query trực tiếp thay vì load toàn bộ data
+            long todayCount = orderService.countOrdersByDate(targetDate);
+            long yesterdayCount = orderService.countOrdersByDate(yesterday);
+            
+            // Tính phần trăm thay đổi
+            double changePercent = 0;
+            String trend = "stable";
+            
+            if (yesterdayCount > 0) {
+                changePercent = ((double)(todayCount - yesterdayCount) / yesterdayCount) * 100;
+            } else if (todayCount > 0) {
+                changePercent = 100;
+            }
+            
+            if (changePercent > 0) {
+                trend = "increase";
+            } else if (changePercent < 0) {
+                trend = "decrease";
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("date", targetDate.toString());
+            result.put("count", todayCount);
+            result.put("previousCount", yesterdayCount);
+            result.put("changePercent", Math.round(changePercent * 10.0) / 10.0);
+            result.put("trend", trend);
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            System.err.println("Error getting order count by date: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * Lấy tất cả đơn hàng (có phân trang)
      */
     @GetMapping
     public ResponseEntity<PaginatedOrderResponseDto> getAllOrders(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long driverId,
             @RequestParam(required = false) Long vehicleId,
@@ -281,12 +356,12 @@ public ResponseEntity<Order> putOrder(
 // ...existing code...
 
     // DTO đơn giản để nhận statusId
-    public static class UpdateOrderStatusDTO {
+    static class UpdateOrderStatusDTO {
         public Long statusId;
     }
 
     // DTO đơn giản để nhận vehicleId
-    public static class UpdateOrderVehicleDTO {
+    static class UpdateOrderVehicleDTO {
         public Long vehicleId;
     }
 

@@ -9,6 +9,7 @@ import ktc.spring_project.entities.User;
 import ktc.spring_project.dtos.auth.LoginRequestDTO;
 import ktc.spring_project.exceptions.HttpException;
 import ktc.spring_project.exceptions.EntityDuplicateException;
+import ktc.spring_project.config.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +18,10 @@ import org.springframework.web.bind.annotation.*;
 import ktc.spring_project.services.CustomUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.Date;
+import java.util.HashMap;
 
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +49,9 @@ public class AuthController {
 
     @Autowired
     private TotpService totpService;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     
 
@@ -216,6 +223,60 @@ public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
     public ResponseEntity<Map<String, Object>> getCurrentUser(Authentication authentication) {
         Map<String, Object> userInfo = authService.getCurrentUserInfo(authentication);
         return ResponseEntity.ok(userInfo);
+    }
+
+    /**
+     * Check token expiration status
+     * Provides information about when the current JWT token will expire
+     */
+    @GetMapping("/token-status")
+    public ResponseEntity<Map<String, Object>> getTokenStatus(HttpServletRequest request) {
+        String token = extractTokenFromRequest(request);
+        
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "No token provided"));
+        }
+
+        try {
+            Date expiration = jwtTokenProvider.getExpirationDateFromToken(token);
+            long currentTime = System.currentTimeMillis();
+            long expirationTime = expiration.getTime();
+            long timeRemaining = expirationTime - currentTime;
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("valid", timeRemaining > 0);
+            response.put("expiresAt", expiration.toString());
+            response.put("timeRemainingMs", timeRemaining);
+            response.put("timeRemainingMinutes", Math.max(0, timeRemaining / 60000));
+            response.put("isExpired", timeRemaining <= 0);
+            
+            if (timeRemaining <= 0) {
+                response.put("message", "Token has expired. Please log in again.");
+            } else if (timeRemaining < 300000) { // Less than 5 minutes
+                response.put("message", "Token will expire soon. Consider refreshing.");
+                response.put("shouldRefresh", true);
+            } else {
+                response.put("message", "Token is valid.");
+                response.put("shouldRefresh", false);
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Invalid token", "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Helper method to extract JWT token from request
+     */
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 
     /**

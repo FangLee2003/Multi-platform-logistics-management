@@ -1,7 +1,7 @@
 
 
 import { useEffect, useState } from "react";
-import { fetchOrderStats } from "../../services/OrderAPI";
+import { fetchOrderStats } from "../../services/orderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
 import { PackageOpen, Truck, Hourglass, CheckCircle } from "lucide-react";
@@ -54,13 +54,6 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
   
   // Tính tỷ lệ từ sample để ước tính
   const sampleSize = sampleOrders.length;
-  const pendingInSample = sampleOrders.filter(
-    o => (
-      typeof o.status === "object" && o.status && typeof (o.status as any).name === "string"
-        ? ((o.status as { name: string }).name.toLowerCase() === "pending")
-        : (typeof o.status === "string" && o.status.toLowerCase() === "pending")
-    )
-  ).length;
 
   const deliveredInSample = sampleOrders.filter(
     o => (
@@ -71,13 +64,13 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
   ).length;
   
   // Ước tính từ sample
-  const pendingPackages = sampleSize > 0 ? Math.round((pendingInSample / sampleSize) * totalOrders) : 0;
   const deliveredPackages = sampleSize > 0 ? Math.round((deliveredInSample / sampleSize) * totalOrders) : 0;
+  const activeShipments = totalShipments - deliveredPackages;
   const stats = [
     { label: "Total shipments", value: totalShipments, icon: <PackageOpen size={28} color="#6366f1" /> }, // Indigo
-    { label: "Total vehicles", value: totalVehicles, icon: <Truck size={28} color="#10b981" /> }, // Green
-    { label: "Pending packages", value: pendingPackages, icon: <Hourglass size={28} color="#f59e42" /> }, // Orange
+    { label: "Active shipments", value: activeShipments, icon: <Hourglass size={28} color="#f59e42" /> }, // Orange
     { label: "Packages delivered", value: deliveredPackages, icon: <CheckCircle size={28} color="#22c55e" /> }, // Emerald
+    { label: "Total vehicles", value: totalVehicles, icon: <Truck size={28} color="#10b981" /> }, // Green
   ];
 
   if (loading) {

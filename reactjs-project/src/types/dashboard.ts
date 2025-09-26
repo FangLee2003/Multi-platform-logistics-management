@@ -19,38 +19,39 @@ export interface Vehicle {
   id: string;
   name: string;
   type: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
-  status: 'ACTIVE' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE';
+  status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING';
+  statusDisplay?: string; // Vietnamese display name for status
+  statusCode?: string; // status.name
+  statusDescription?: string; // status.description
+  created_at?: string;
   driver?: {
     id: string;
     name: string;
     phone: string;
   };
-  location: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
-  fuel: number;
   mileage: number;
   lastMaintenance: string;
   nextMaintenance: string;
 }
 
-// Order interface từ operationsAPI.ts (ưu tiên bản chi tiết hơn)
+// Order interface từ operationsAPI.ts (unified version)
 export interface Order {
   id: string;
+  orderCode?: string; // New field from API
+  description?: string; // New field from API
+  totalAmount?: string; // New field from API
   customerName: string;
   customerPhone: string;
-  pickupAddress: string;
+  pickupAddress?: string; // Optional for backward compatibility
   deliveryAddress: string;
-  status: 'PENDING' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  status: string; // Can be Vietnamese status or English enum
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; // Optional for backward compatibility
   assignedVehicle?: string;
   assignedDriver?: string;
-  estimatedDeliveryTime: string;
+  estimatedDeliveryTime?: string; // Optional for backward compatibility
   actualDeliveryTime?: string;
-  weight: number;
-  value: number;
+  weight?: number; // Optional for backward compatibility
+  value?: number; // Optional for backward compatibility
   createdAt: string;
   updatedAt: string;
 }
@@ -61,7 +62,7 @@ export interface Staff {
   name: string;
   email: string;
   phone: string;
-  role: 'DRIVER' | 'DISPATCHER' | 'WAREHOUSE_STAFF' | 'MAINTENANCE';
+  role: 'DRIVER' | 'DISPATCHER' | 'FLEET';
   status: 'ACTIVE' | 'ON_LEAVE' | 'SICK_LEAVE' | 'TERMINATED';
   department: string;
   shiftStart: string;
@@ -113,31 +114,12 @@ export interface Role {
   permissions: string[];
 }
 
-// Order (chuẩn hóa theo backend và code thực tế)
-export interface Order {
-  id: string;
-  customerName: string;
-  customerPhone: string;
-  pickupAddress: string;
-  deliveryAddress: string;
-  status: 'PENDING' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  assignedVehicle?: string;
-  assignedDriver?: string;
-  estimatedDeliveryTime: string;
-  actualDeliveryTime?: string;
-  weight: number;
-  value: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 // Vehicle (chuẩn hóa theo backend và code thực tế)
 export interface Vehicle {
   id: string;
   name: string;
   type: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
-  status: 'ACTIVE' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE';
+  status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING';
   driver?: {
     id: string;
     name: string;
@@ -152,22 +134,6 @@ export interface Vehicle {
   mileage: number;
   lastMaintenance: string;
   nextMaintenance: string;
-}
-
-// Staff (chuẩn hóa theo backend và code thực tế)
-export interface Staff {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: 'DRIVER' | 'DISPATCHER' | 'WAREHOUSE_STAFF' | 'MAINTENANCE';
-  status: 'ACTIVE' | 'ON_LEAVE' | 'SICK_LEAVE' | 'TERMINATED';
-  department: string;
-  shiftStart: string;
-  shiftEnd: string;
-  performanceScore: number;
-  totalDeliveries: number;
-  onTimeDeliveries: number;
 }
 
 // SystemMetrics

@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import OrderDetailModal from "./OrderDetailModal";
 import { fetchOrderItemsByOrderIdPaged, fetchOrdersTotalQuantityBatch } from "../../services/OrderItemAPI";
 import type { ProductItem } from "../../services/OrderItemAPI";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchOrdersRaw, updateOrderVehicle } from "../../services/OrderAPI";
+import { fetchOrdersRaw, updateOrderVehicle, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
 import { FaUserCog, FaCheck, FaTimes, FaCar } from "react-icons/fa";
@@ -22,9 +22,12 @@ type OrderType = {
   from: string;
   to: string;
   description: string;
-  status: string;
+  status: {
+    name: string;
+    statusType?: string;
+  };
   priority: string;
-  storeId?: number; // Add store ID for getting coordinates
+  storeId?: number;
   currentDriver: {
     id: number;
     fullName?: string;
@@ -43,6 +46,11 @@ type OrderType = {
     };
   } | null;
   createdAt: string;
+  addressDetail?: {
+    contactName?: string;
+    contactPhone?: string;
+  };
+  order?: any;
 };
 
 // interface OrdersAssignmentProps {
@@ -95,7 +103,7 @@ export default function OrdersAssignment(_props: any) {
       }
 
       // Lấy thông tin order để có store coordinates
-      const order = data.find(o => o.id === orderId);
+  const order = paginatedData.find((o: OrderType) => o.id === orderId);
       if (!order) return;
 
       const trackingData = {
@@ -137,21 +145,7 @@ export default function OrdersAssignment(_props: any) {
     console.log('🛠️ Development mode: Use window.testDeliveryTracking() to test delivery tracking flow');
   }
 
-  // Sử dụng React Query để cache dữ liệu orders theo trang (server-side pagination)
-  const {
-    data: ordersPage = { data: [], total: 0 },
-    isLoading: ordersLoading,
-    error: ordersError
-  } = useQuery({
-    queryKey: ['orders', currentPage, PAGE_SIZE],
-    queryFn: ({ queryKey }) => {
-      const [, page, size] = queryKey as [string, number, number];
-      return fetchOrdersRaw(page, size);
-    },
-    placeholderData: (previous) => previous,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  // Đã thay thế bằng rawOrdersPage ở dưới để tránh trùng biến
 
   // Sử dụng React Query để cache dữ liệu vehicles
   const { data: vehiclesData, isLoading: vehiclesLoading, error: vehiclesError } = useQuery({
@@ -164,58 +158,110 @@ export default function OrdersAssignment(_props: any) {
   // Extract vehicles array from the response
   const vehicles = vehiclesData?.sampleVehicles || [];
 
-  // Map dữ liệu orders - server trả về { data: [], total: number }
-  const data = (Array.isArray((ordersPage as { data: unknown[]; total: number })?.data) ? (ordersPage as { data: unknown[]; total: number }).data : []).map((item: unknown): OrderType => {
+  // Để luôn đủ 5 đơn chưa hoàn thành trên mỗi trang:
+  // 1. Lấy nhiều đơn hơn từ API (gấp 3-4 lần PAGE_SIZE)
+  // 2. Map và filter loại bỏ đơn completed/status_id=2
+  // 3. Phân trang lại ở client
+  // Để không bị giới hạn số lượng đơn hàng, lấy một số rất lớn hoặc lấy total từ API nếu có
+  // Lấy danh sách đơn hàng chưa hoàn thành từ API /not-completed (phân trang backend)
+  const {
+    data: ordersPage,
+    isLoading: ordersLoading,
+    error: ordersError
+  } = useQuery<FetchNotCompletedOrdersResponse>({
+    queryKey: ['orders', 'not-completed', currentPage],
+    queryFn: async () => {
+      const token = localStorage.getItem("token") || "";
+      return await fetchNotCompletedOrders(currentPage, PAGE_SIZE, token);
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+   const data = (Array.isArray((ordersPage as { data: unknown[]; total: number })?.data) ? (ordersPage as { data: unknown[]; total: number }).data : []).map((item: unknown): OrderType => {
     const orderItem = item as Record<string, unknown>;
     
     // Debug log để kiểm tra structure
     if (import.meta.env.DEV) {
       console.log('🔍 OrderAssignment: Raw order item:', orderItem);
     }
-    
-    return {
-      id: Number(orderItem.id),
-      code: (orderItem.code || orderItem.orderCode || orderItem.id) as string,
-      customer: (orderItem.customer || (orderItem.store as { storeName: string })?.storeName || "") as string,
-      address: ((orderItem.address as { address: string })?.address || orderItem.toAddress || orderItem.to || "") as string,
-      note: (orderItem.note || "") as string,
-      date: (orderItem.date || (orderItem.createdAt as string)?.slice(0, 10) || "") as string,
-      from: (orderItem.from || orderItem.fromAddress || (orderItem.store as { address: string })?.address || "") as string,
-      to: (orderItem.to || orderItem.toAddress || (orderItem.address as { address: string })?.address || "") as string,
-      description: (orderItem.description || "") as string,
-      status: ((orderItem.status as { name: string })?.name || orderItem.status || "") as string,
-      priority: (orderItem.priority || (orderItem.status as { statusType: string })?.statusType || "") as string,
-      storeId: orderItem.storeId ? Number(orderItem.storeId) : ((orderItem.store as { id: number })?.id ? Number((orderItem.store as { id: number }).id) : undefined),
-      currentDriver: orderItem.currentDriver ? {
-        id: Number((orderItem.currentDriver as { id: number }).id),
-        fullName: (orderItem.currentDriver as { fullName?: string }).fullName,
-        username: (orderItem.currentDriver as { username: string }).username,
-        phone: (orderItem.currentDriver as { phone?: string }).phone,
-      } : null,
-      assignedVehicle: orderItem.assignedVehicle ? {
-        id: Number((orderItem.assignedVehicle as { id: number }).id),
-        licensePlate: (orderItem.assignedVehicle as { licensePlate: string }).licensePlate,
-        vehicleType: (orderItem.assignedVehicle as { vehicleType: string }).vehicleType,
-        currentDriver: (orderItem.assignedVehicle as { currentDriver?: unknown }).currentDriver ? {
-          id: Number(((orderItem.assignedVehicle as { currentDriver: { id: number } }).currentDriver as { id: number }).id),
-          fullName: ((orderItem.assignedVehicle as { currentDriver: { fullName?: string } }).currentDriver as { fullName?: string }).fullName,
-          username: ((orderItem.assignedVehicle as { currentDriver: { username: string } }).currentDriver as { username: string }).username,
-          phone: ((orderItem.assignedVehicle as { currentDriver: { phone?: string } }).currentDriver as { phone?: string }).phone,
-        } : undefined,
-      } : (orderItem.vehicle ? {
-        id: Number((orderItem.vehicle as { id: number }).id),
-        licensePlate: (orderItem.vehicle as { licensePlate: string }).licensePlate,
-        vehicleType: (orderItem.vehicle as { vehicleType: string }).vehicleType || 'TRUCK',
-        currentDriver: (orderItem.vehicle as { currentDriver?: unknown }).currentDriver ? {
-          id: Number(((orderItem.vehicle as { currentDriver: { id: number } }).currentDriver as { id: number }).id),
-          fullName: ((orderItem.vehicle as { currentDriver: { fullName?: string } }).currentDriver as { fullName?: string }).fullName,
-          username: ((orderItem.vehicle as { currentDriver: { username: string } }).currentDriver as { username: string }).username,
-          phone: ((orderItem.vehicle as { currentDriver: { phone?: string } }).currentDriver as { phone?: string }).phone,
-        } : undefined,
-      } : null),
-      createdAt: (orderItem.createdAt || "") as string,
-    };
-  });
+
+  // Map dữ liệu trả về từ backend sang OrderType[]
+  const paginatedData: OrderType[] = (ordersPage?.content || [])
+    .map((item: unknown): OrderType => {
+      const orderItem = item as Record<string, unknown>;
+      let addressValue: any = orderItem.address;
+      let addressField: any = addressValue;
+      let addressDetail: { contactName?: string; contactPhone?: string } | undefined = undefined;
+      if (addressValue && typeof addressValue === 'object') {
+        addressDetail = {
+          contactName: (addressValue as any).contactName,
+          contactPhone: (addressValue as any).contactPhone,
+        };
+        addressField = addressValue;
+      } else {
+        addressField = addressValue || orderItem.toAddress || orderItem.to || "";
+      }
+      let statusObj: { name: string; statusType?: string } = { name: '', statusType: '' };
+      if (typeof orderItem.status === 'object' && orderItem.status !== null && 'name' in orderItem.status && typeof (orderItem.status as any).name === 'string' && (orderItem.status as any).name.trim() !== '') {
+        statusObj = {
+          name: (orderItem.status as any).name,
+          statusType: (orderItem.status as any).statusType || String(orderItem.priority || "")
+        };
+      } else if (typeof orderItem.status === 'string' && orderItem.status.trim() !== '') {
+        statusObj = {
+          name: orderItem.status as string,
+          statusType: String(orderItem.priority || "")
+        };
+      } else {
+        statusObj = { name: 'Unknown', statusType: '' };
+      }
+      return {
+        id: Number(orderItem.id),
+        code: (orderItem.code || orderItem.orderCode || orderItem.id) as string,
+        customer: (orderItem.customer || (orderItem.store as { storeName: string })?.storeName || "") as string,
+        address: addressField,
+        note: (orderItem.note || "") as string,
+        date: (orderItem.date || (orderItem.createdAt as string)?.slice(0, 10) || "") as string,
+        from: (orderItem.from || orderItem.fromAddress || (orderItem.store as { address: string })?.address || "") as string,
+        to: (orderItem.to || orderItem.toAddress || (typeof addressValue === 'object' && addressValue !== null && 'address' in addressValue ? (addressValue as any).address : addressValue) || "") as string,
+        description: (orderItem.description || "") as string,
+        status: statusObj,
+        priority: (orderItem.priority || (orderItem.status as { statusType: string })?.statusType || "") as string,
+        storeId: orderItem.storeId ? Number(orderItem.storeId) : ((orderItem.store as { id: number })?.id ? Number((orderItem.store as { id: number }).id) : undefined),
+        currentDriver: orderItem.currentDriver ? {
+          id: Number((orderItem.currentDriver as { id: number }).id),
+          fullName: (orderItem.currentDriver as { fullName?: string }).fullName,
+          username: (orderItem.currentDriver as { username: string }).username,
+          phone: (orderItem.currentDriver as { phone?: string }).phone,
+        } : null,
+        assignedVehicle: orderItem.assignedVehicle ? {
+          id: Number((orderItem.assignedVehicle as { id: number }).id),
+          licensePlate: (orderItem.assignedVehicle as { licensePlate: string }).licensePlate,
+          vehicleType: (orderItem.assignedVehicle as { vehicleType: string }).vehicleType,
+          currentDriver: (orderItem.assignedVehicle as { currentDriver?: unknown }).currentDriver ? {
+            id: Number(((orderItem.assignedVehicle as { currentDriver: { id: number } }).currentDriver as { id: number }).id),
+            fullName: ((orderItem.assignedVehicle as { currentDriver: { fullName?: string } }).currentDriver as { fullName?: string }).fullName,
+            username: ((orderItem.assignedVehicle as { currentDriver: { username: string } }).currentDriver as { username: string }).username,
+            phone: ((orderItem.assignedVehicle as { currentDriver: { phone?: string } }).currentDriver as { phone?: string }).phone,
+          } : undefined,
+        } : (orderItem.vehicle ? {
+          id: Number((orderItem.vehicle as { id: number }).id),
+          licensePlate: (orderItem.vehicle as { licensePlate: string }).licensePlate,
+          vehicleType: (orderItem.vehicle as { vehicleType: string }).vehicleType || 'TRUCK',
+          currentDriver: (orderItem.vehicle as { currentDriver?: unknown }).currentDriver ? {
+            id: Number(((orderItem.vehicle as { currentDriver: { id: number } }).currentDriver as { id: number }).id),
+            fullName: ((orderItem.vehicle as { currentDriver: { fullName?: string } }).currentDriver as { fullName?: string }).fullName,
+            username: ((orderItem.vehicle as { currentDriver: { username: string } }).currentDriver as { username: string }).username,
+            phone: ((orderItem.vehicle as { currentDriver: { phone?: string } }).currentDriver as { phone?: string }).phone,
+          } : undefined,
+        } : null),
+        createdAt: (orderItem.createdAt || "") as string,
+        addressDetail,
+        order: orderItem,
+      };
+    });
+  const totalPages = ordersPage?.totalPages || 1;
   const totalOrders =
     typeof ordersPage === "object" &&
     ordersPage !== null &&
@@ -265,10 +311,10 @@ export default function OrdersAssignment(_props: any) {
 
     setAssigningOrders(prev => ({ ...prev, [orderId]: true }));
     try {
-      // --- Giữ lại code cũ: Gán xe cho đơn hàng ---
+      // Gán xe cho đơn hàng
       await updateOrderVehicle(orderId, Number(selectedVehicle.id));
 
-      // --- Gọi thêm API ghi log checklist ---
+        // --- Gọi thêm API ghi log checklist ---
       const assignDriverPayload = {
         driverId: selectedVehicle.currentDriver.id,
         vehicleId: selectedVehicle.id
@@ -297,7 +343,8 @@ export default function OrdersAssignment(_props: any) {
         console.error('❌ Lỗi khi gọi API assign-driver:', dispatcherResponse.status, errorText);
       }
 
-      // --- Giữ lại code cũ: Tạo/cập nhật tracking ---
+
+      // Sau khi gán xe thành công, tự động tạo/cập nhật tracking
       const updatedOrder = data.find(o => o.id.toString() === orderId);
       if (updatedOrder && selectedVehicle.id) {
         try {
@@ -308,14 +355,65 @@ export default function OrdersAssignment(_props: any) {
         }
       }
 
-      // Force refetch ngay lập tức tất cả các cache liên quan để đảm bảo dữ liệu mới nhất
+      // Nếu trạng thái đơn hàng là Pending (id 1), chuyển sang Processing (id 4)
+      const statusAny = updatedOrder?.status as any;
+      if (
+        updatedOrder && (
+          updatedOrder.status?.name === 'Pending' ||
+          updatedOrder.status?.statusType === '1' ||
+          (typeof statusAny?.id === 'number' && statusAny.id === 1)
+        )
+      ) {
+        try {
+          await fetch(`http://localhost:8080/api/orders/${orderId}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ statusId: 4 })
+          });
+        } catch (err) {
+          console.error('Failed to update order status to Processing:', err);
+        }
+      }
+
+      // Không cần cập nhật local list nữa, chỉ cần refetch lại query
+      setDetailOrder(prev => {
+        if (prev && prev.id.toString() === orderId) {
+          return {
+            ...prev,
+            assignedVehicle: {
+              id: Number(selectedVehicle.id),
+              licensePlate: selectedVehicle.licensePlate,
+              vehicleType: selectedVehicle.vehicleType,
+              currentDriver: selectedVehicle.currentDriver ? {
+                id: Number(selectedVehicle.currentDriver.id),
+                fullName: selectedVehicle.currentDriver.fullName,
+                username: (selectedVehicle.currentDriver as any).username || "",
+                phone: selectedVehicle.currentDriver.phone,
+              } : undefined,
+            },
+            currentDriver: selectedVehicle.currentDriver ? {
+              id: Number(selectedVehicle.currentDriver.id),
+              fullName: selectedVehicle.currentDriver.fullName,
+              username: (selectedVehicle.currentDriver as any).username || "",
+              phone: selectedVehicle.currentDriver.phone,
+            } : null,
+          };
+        }
+        return prev;
+      });
+
+      // Refetch đúng queryKey để đảm bảo UI cập nhật xe mới ngay
       await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['orders', currentPage, PAGE_SIZE] }),
-        queryClient.refetchQueries({ queryKey: ['ordersForList'] }), // Cập nhật OrderList
+        queryClient.invalidateQueries({ queryKey: ['orders', 'not-completed'] }),
+        queryClient.refetchQueries({ queryKey: ['orders', 'not-completed', currentPage] }),
+        queryClient.refetchQueries({ queryKey: ['ordersForList'] }),
         queryClient.refetchQueries({ queryKey: ['vehicles'] }),
         queryClient.invalidateQueries({ queryKey: ['ordersTotalQuantity'] })
       ]);
-      console.log('✅ OrderAssignment: Cache refreshed successfully');
+      console.log('✅ OrderAssignment: Orders and vehicles cache refreshed after assignment');
 
       // Cập nhật selectedOrder nếu đây là order đang được chọn để tracking
       if (selectedOrder && selectedOrder.id.toString() === orderId) {
@@ -334,7 +432,7 @@ export default function OrdersAssignment(_props: any) {
 
       // Debug: Log updated order data
       setTimeout(() => {
-        const updatedOrder = data.find(o => o.id.toString() === orderId);
+        const updatedOrder = paginatedData.find((o: OrderType) => o.id.toString() === orderId);
         console.log('🔍 Updated order after assignment:', updatedOrder);
       }, 200);
 
@@ -411,10 +509,40 @@ export default function OrdersAssignment(_props: any) {
 
   // Hàm mở modal chi tiết đơn hàng, fetch thêm sản phẩm và deliveryFee
   const handleOpenDetail = async (order: OrderType) => {
-    setDetailOrder(order);
-    setOrderProductsPage(0);
-    setDetailOpen(true);
-    fetchOrderProductsPaged(order.id, 0);
+    try {
+      // Fetch order detail từ API để lấy đầy đủ thông tin
+      const orderDetail = await fetchOrderById(order.id);
+      
+      // Lấy contact info từ order detail nếu có
+      const contactName = orderDetail?.address?.contactName;
+      const contactPhone = orderDetail?.address?.contactPhone;
+      
+      console.log('🔍 OrderAssignment: orderDetail from API:', orderDetail);
+      console.log('🔍 OrderAssignment: contactName from API:', contactName);
+      console.log('🔍 OrderAssignment: contactPhone from API:', contactPhone);
+      
+      // Cập nhật order với contact info
+      const orderWithContact = {
+        ...order,
+        addressDetail: {
+          contactName,
+          contactPhone
+        }
+      };
+      
+      setDetailOrder(orderWithContact);
+      setOrderProductsPage(0);
+      setDetailOpen(true);
+      
+      // Fetch products như cũ
+      fetchOrderProductsPaged(order.id, 0);
+    } catch (error) {
+      console.error('Error fetching order detail:', error);
+      setDetailOrder(order);
+      setOrderProductsPage(0);
+      setDetailOpen(true);
+      fetchOrderProductsPaged(order.id, 0);
+    }
   };
 
   // Hàm fetch sản phẩm theo trang
@@ -434,7 +562,7 @@ export default function OrdersAssignment(_props: any) {
   };
 
   // Use React Query for batch total quantity calls with proper caching
-  const orderIds = useMemo(() => data.map(order => order.id), [data]);
+  const orderIds = useMemo(() => paginatedData.map((order: OrderType) => order.id), [paginatedData]);
   
   const {
     data: batchCounts = {},
@@ -468,7 +596,7 @@ export default function OrdersAssignment(_props: any) {
         orderItem={detailOrder ? {
           code: detailOrder.code,
           customer: detailOrder.customer,
-          status: detailOrder.status,
+          status: detailOrder.status.name, // Pass only the status name as string
           date: detailOrder.date,
           address: detailOrder.address,
           from: detailOrder.from,
@@ -485,6 +613,14 @@ export default function OrdersAssignment(_props: any) {
             ? {
                 fullName: detailOrder.currentDriver.fullName,
                 username: detailOrder.currentDriver.username,
+              }
+            : undefined,
+          addressDetail: (detailOrder && detailOrder.addressDetail) 
+            ? detailOrder.addressDetail
+            : (typeof detailOrder.address === 'object' && detailOrder.address !== null)
+            ? {
+                contactName: (detailOrder.address as any).contactName,
+                contactPhone: (detailOrder.address as any).contactPhone,
               }
             : undefined,
         } : null}
@@ -554,14 +690,24 @@ export default function OrdersAssignment(_props: any) {
                           <span className="font-bold text-lg text-blue-900">{order.code}</span>
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm ml-2
-                              ${order.status === 'Pending'
+                              ${order.status.name === 'Pending'
                                 ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                                : order.status === 'Completed'
+                                : order.status.name === 'Processing'
+                                ? 'bg-purple-100 text-purple-800 border-purple-300'
+                                : order.status.name === 'Shipping'
+                                ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                : order.status.name === 'Delivered'
                                 ? 'bg-green-100 text-green-800 border-green-300'
+                                : order.status.name === 'Completed'
+                                ? 'bg-green-100 text-green-800 border-green-300'
+                                : order.status.name === 'Cancelled'
+                                ? 'bg-red-100 text-red-800 border-red-300'
+                                : order.status.name === 'FAILED'
+                                ? 'bg-red-100 text-red-800 border-red-300'
                                 : 'bg-gray-100 text-gray-700 border-gray-300'}
                             `}
                           >
-                            {order.status}
+                            {order.status.name}
                           </span>
                         </div>
                       </td>
@@ -579,8 +725,8 @@ export default function OrdersAssignment(_props: any) {
                       </td>
                       <td className="p-5 align-top min-w-[180px]">
                         <div className="text-sm text-gray-700">
-                          <div><span className="font-semibold text-blue-700">From:</span> {order.from}</div>
-                          <div><span className="font-semibold text-blue-700">To:</span> {order.to}</div>
+                          <div><span className="font-semibold text-blue-700">Từ:</span> {order.from}</div>
+                          <div><span className="font-semibold text-blue-700">Đến:</span> {order.to}</div>
                         </div>
                       </td>
                       <td className="p-5 align-top">
@@ -867,7 +1013,7 @@ export default function OrdersAssignment(_props: any) {
             )}
           </div>
 
-          {data.length === 0 && (
+          {paginatedData.length === 0 && (
             <div className="text-center py-16 text-gray-500">
               <FaUserCog className="text-5xl mx-auto mb-4 opacity-40" />
               <p className="text-xl font-semibold">No orders waiting for assignment</p>

@@ -33,7 +33,8 @@ public class AuthService {
     @Value("${jwt.secret:defaultSecretKey}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration:86400000}")
+    // Updated to use 15 minutes (900000ms) as default for JWT tokens
+    @Value("${jwt.expiration:900000}")
     private long jwtExpiration;
 
     @Value("${jwt.refresh-expiration:604800000}")

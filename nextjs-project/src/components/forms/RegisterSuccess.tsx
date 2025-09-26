@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
+import QRCode from "react-qr-code";
 import { useRouter } from "next/navigation";
 
 interface RegisterSuccessProps {
@@ -13,9 +13,12 @@ interface RegisterSuccessProps {
 
 export default function RegisterSuccess({ response, user }: RegisterSuccessProps) {
   const router = useRouter();
-  const qrUrl = response?.totpQrUrl;
-  const [showQR, setShowQR] = useState(true);
-  const [showOtpForm, setShowOtpForm] = useState(!!qrUrl);
+  // Chuẩn hóa chuỗi QR: loại bỏ mọi khoảng trắng và xuống dòng
+  const rawQrUrl = response?.otpauthUrl || "";
+  const cleanQrUrl = rawQrUrl.trim();
+  // Hiển thị QR đầu tiên, chỉ khi bấm nút mới hiện OTP
+  const [showQR, setShowQR] = useState(!!rawQrUrl);
+  const [showOtpForm, setShowOtpForm] = useState(false);
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpSuccess, setOtpSuccess] = useState(false);
@@ -35,9 +38,16 @@ export default function RegisterSuccess({ response, user }: RegisterSuccessProps
       if (result.valid === true) {
         setOtpSuccess(true);
         setShowOtpForm(false);
-        setTimeout(() => {
-          router.push('/login');
-        }, 1200);
+        // Nếu backend trả về token/user sau khi xác thực OTP, lưu lại vào localStorage
+        if (result.token) {
+          localStorage.setItem("token", result.token);
+          // Lưu token vào cookie để middleware có thể kiểm tra
+          document.cookie = `token=${result.token}; path=/;`;
+        }
+        if (result.user) {
+          localStorage.setItem("user", JSON.stringify(result.user));
+        }
+        // Không tự động chuyển trang, để người dùng tự thao tác
       } else {
         setOtpError("Invalid or expired OTP code!");
       }
@@ -58,26 +68,40 @@ export default function RegisterSuccess({ response, user }: RegisterSuccessProps
           <h2 className="text-2xl font-bold text-white drop-shadow-lg text-center">Registration Successful!</h2>
           <p className="text-white/80 text-base text-center max-w-xs">Congratulations <span className="font-semibold text-blue-200">{user.fullName}</span>, your account has been created.</p>
         </div>
-        {qrUrl && showQR && (
+        {rawQrUrl && showQR && (
           <div className="flex flex-col items-center gap-4 mt-4">
             <h3 className="text-lg text-white font-semibold">Scan the QR code with your Authenticator app</h3>
-            <QRCodeCanvas value={qrUrl ? qrUrl.replace(/\n/g, '').trim() : ''} size={180} />
-            <p className="text-white/80 text-sm break-all">Or open this link: <a href={qrUrl} target="_blank" className="text-blue-300 underline">{qrUrl}</a></p>
+              <div style={{background: '#fff', padding: '16px', borderRadius: '12px'}}>
+                <QRCode value={cleanQrUrl} size={240} />
+              </div>
+            <p className="text-white/80 text-sm break-all">Or open this link:<a href={cleanQrUrl} target="_blank" className="text-blue-300 underline">{cleanQrUrl}</a></p>
             <button 
               onClick={() => setShowQR(false)}
               className="mt-4 px-6 py-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600/80 transition-all duration-200"
             >
-              Hide QR Code
+              Ẩn mã QR
+            </button>
+            <button
+              onClick={() => { setShowQR(false); setShowOtpForm(true); }}
+              className="mt-2 px-6 py-2 bg-blue-500/80 text-white rounded-lg hover:bg-blue-600/80 transition-all duration-200"
+            >
+              Tiếp tục
             </button>
           </div>
         )}
-        {qrUrl && !showQR && (
+        {rawQrUrl && !showQR && !showOtpForm && (
           <div className="flex flex-col items-center gap-4 mt-4">
             <button 
               onClick={() => setShowQR(true)}
               className="px-6 py-3 bg-blue-500/80 text-white rounded-lg hover:bg-blue-600/80 transition-all duration-200 font-semibold"
             >
-              Show QR Code
+              Hiện lại mã QR
+            </button>
+            <button
+              onClick={() => setShowOtpForm(true)}
+              className="mt-2 px-6 py-2 bg-blue-500/80 text-white rounded-lg hover:bg-blue-600/80 transition-all duration-200"
+            >
+              Tiếp tục
             </button>
           </div>
         )}
@@ -107,14 +131,16 @@ export default function RegisterSuccess({ response, user }: RegisterSuccessProps
             {otpError && <div className="text-red-400 text-center font-semibold mt-2">{otpError}</div>}
           </form>
         )}
-        {otpSuccess && <div className="text-green-400 font-semibold text-center text-lg">OTP verified! Two-factor authentication is now enabled.</div>}
-        {!qrUrl && !showOtpForm && (
-          <button
-            className="mt-8 w-full bg-white border border-white/20 text-black font-semibold py-3 rounded-xl shadow-lg hover:bg-white/70 hover:text-black-300 transition-all duration-200 text-lg"
-            onClick={() => router.push('/login')}
-          >
-            Go to Login
-          </button>
+        {otpSuccess && (
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <div className="text-green-400 font-semibold text-center text-lg">OTP verified! Two-factor authentication is now enabled.</div>
+            <button
+              className="mt-8 w-full bg-white border border-white/20 text-black font-semibold py-3 rounded-xl shadow-lg hover:bg-white/70 hover:text-black-300 transition-all duration-200 text-lg"
+              onClick={() => router.push('/login')}
+            >
+              Đăng nhập
+            </button>
+          </div>
         )}
       </div>
     </div>
