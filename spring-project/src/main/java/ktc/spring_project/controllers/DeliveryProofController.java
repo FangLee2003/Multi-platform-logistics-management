@@ -140,5 +140,59 @@ public ResponseEntity<Void> deleteDeliveryProof(
         }
     }
 
-
+    /**
+     * Serve delivery proof image file with authentication
+     * This endpoint provides authenticated access to proof images
+     * @param filename The filename of the image to retrieve
+     * @return The image file as a byte array with appropriate content type
+     */
+    @GetMapping("/files/{filename:.+}")
+    public ResponseEntity<byte[]> getDeliveryProofFile(@PathVariable String filename) {
+        try {
+            // Construct file path
+            String rootPath = System.getProperty("user.dir");
+            String filePath = rootPath + java.io.File.separator + "uploads" + 
+                              java.io.File.separator + "delivery_proofs" + 
+                              java.io.File.separator + filename;
+            
+            java.io.File file = new java.io.File(filePath);
+            if (!file.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Read file bytes
+            byte[] fileContent = java.nio.file.Files.readAllBytes(file.toPath());
+            
+            // Determine content type
+            String contentType = determineContentType(filename);
+            
+            // Return file with proper content type
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(fileContent);
+                
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * Helper method to determine content type from filename
+     * @param filename The file name to analyze
+     * @return Content type string (MIME type)
+     */
+    private String determineContentType(String filename) {
+        if (filename.toLowerCase().endsWith(".jpg") || filename.toLowerCase().endsWith(".jpeg")) {
+            return "image/jpeg";
+        } else if (filename.toLowerCase().endsWith(".png")) {
+            return "image/png";
+        } else if (filename.toLowerCase().endsWith(".gif")) {
+            return "image/gif";
+        } else if (filename.toLowerCase().endsWith(".pdf")) {
+            return "application/pdf";
+        }
+        // Default to binary stream if unknown
+        return "application/octet-stream";
+    }
 }

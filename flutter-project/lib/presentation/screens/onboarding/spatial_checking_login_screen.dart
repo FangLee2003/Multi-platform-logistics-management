@@ -45,7 +45,7 @@ class _SpatialCheckingLoginScreenState extends State<SpatialCheckingLoginScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: SpatialComponents.backgroundContainer(
-        useDarkMode: true, // Sử dụng dark mode
+        useDarkMode: true, // Using dark mode
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -60,9 +60,9 @@ class _SpatialCheckingLoginScreenState extends State<SpatialCheckingLoginScreen>
               ),
               const SizedBox(height: 32),
               Text(
-                'Đang kiểm tra phiên đăng nhập...',
+                'Checking login session...',
                 style: TextStyle(
-                  color: Colors.white, // Sử dụng màu trắng cho dark mode
+                  color: Colors.white, // Using white for dark mode
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),

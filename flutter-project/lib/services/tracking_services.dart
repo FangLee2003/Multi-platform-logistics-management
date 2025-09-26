@@ -318,34 +318,49 @@ class LocationService {
   /// Check if location permissions are granted
   /// Requests permissions if not already granted
   Future<bool> _checkLocationPermission() async {
-    // Check if location services are enabled
-    if (!await Geolocator.isLocationServiceEnabled()) {
-      debugPrint('Location services are disabled');
-      return false;
-    }
-
-    // Check location permission
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        debugPrint('Location permission denied');
+    try {
+      // Check if location services are enabled
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        debugPrint('Location services are disabled');
+        // Hiển thị dialog yêu cầu bật dịch vụ vị trí có thể được thêm ở đây
         return false;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      debugPrint('Location permission denied permanently');
+      // Check location permission
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        // Yêu cầu quyền và kiểm tra kết quả
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          debugPrint('Location permission denied by user');
+          return false;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('Location permission denied permanently, cannot request again');
+        // Ở đây có thể hiển thị dialog hướng dẫn người dùng vào settings để bật quyền
+        return false;
+      }
+
+      // Request background permission on iOS
+      if (Platform.isIOS) {
+        final status = await Permission.locationAlways.request();
+        debugPrint('iOS background location permission status: $status');
+        if (status.isDenied || status.isPermanentlyDenied) {
+          debugPrint('iOS background location permission not granted');
+          // Có thể thực hiện tracking trong foreground thay vì background
+          return permission == LocationPermission.whileInUse || 
+                 permission == LocationPermission.always;
+        }
+      }
+
+      return permission == LocationPermission.whileInUse || 
+             permission == LocationPermission.always;
+    } catch (e) {
+      debugPrint('Error checking location permission: $e');
       return false;
     }
-
-    // Request background permission on iOS
-    if (Platform.isIOS) {
-      final status = await Permission.locationAlways.request();
-      debugPrint('iOS background location permission status: $status');
-    }
-
-    return true;
   }
 
   /// Show foreground notification for Android background service
@@ -434,6 +449,27 @@ class LocationService {
     }
   }
 
+  /// Hiển thị thông báo khi quyền vị trí bị từ chối
+  void showLocationPermissionDeniedNotification() {
+    // Sử dụng local notifications để hiển thị thông báo
+    const androidDetails = AndroidNotificationDetails(
+      'permission_channel',
+      'Permission Alerts',
+      channelDescription: 'Alerts about app permissions',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    
+    const notificationDetails = NotificationDetails(android: androidDetails);
+    
+    _notificationsPlugin.show(
+      999,
+      'Cần quyền truy cập vị trí',
+      'Ứng dụng KTC Logistics cần quyền truy cập vị trí để ghi nhận lộ trình giao hàng. Vui lòng vào Cài đặt để bật quyền.',
+      notificationDetails,
+    );
+  }
+
   /// Starts tracking for a specific delivery
   /// This method incorporates functionality from the previous driver_tracking_service
   Future<void> startDeliveryTracking({
@@ -442,6 +478,12 @@ class LocationService {
     required int vehicleId,
     required int statusId,
   }) async {
+    // Kiểm tra quyền vị trí trước
+    if (!await _checkLocationPermission()) {
+      debugPrint('Location permission denied, will continue with limited functionality');
+      showLocationPermissionDeniedNotification();
+    }
+    
     // Lưu thông tin tracking vào SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_activeDriverIdKey, driverId);
@@ -455,32 +497,59 @@ class LocationService {
     }
     
     // Get current position
-    final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+    Position position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+    } catch (e) {
+      debugPrint('Error getting position: $e');
+      // Fallback to default position if permission denied or other error
+      position = Position(
+        longitude: 0,
+        latitude: 0,
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        altitudeAccuracy: 0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0,
+      );
+    }
     
     // Start general tracking
-    await startTracking(
-      latitude: position.latitude, 
-      longitude: position.longitude,
-      speed: position.speed,
-      heading: position.heading,
-      vehicleStatus: 'ACTIVE',
-      updateInterval: const Duration(minutes: 30) // 30 minute interval as requested
-    );
-    
-    // Send tracking data specifically for this delivery
-    await updateDeliveryTracking(
-      deliveryId, 
-      DriverLocation(
-        latitude: position.latitude,
+    try {
+      await startTracking(
+        latitude: position.latitude, 
         longitude: position.longitude,
         speed: position.speed,
         heading: position.heading,
-        timestamp: DateTime.now().toIso8601String(),
-        vehicleStatus: 'ACTIVE'
-      ),
-      statusId: statusId
-    );
+        vehicleStatus: 'ACTIVE',
+        updateInterval: const Duration(minutes: 30) // 30 minute interval as requested
+      );
+    } catch (e) {
+      debugPrint('Failed to start tracking: $e');
+      // Continue anyway to try to update delivery tracking once
+    }
+    
+    // Send tracking data specifically for this delivery
+    try {
+      await updateDeliveryTracking(
+        deliveryId, 
+        DriverLocation(
+          latitude: position.latitude,
+          longitude: position.longitude,
+          speed: position.speed,
+          heading: position.heading,
+          timestamp: DateTime.now().toIso8601String(),
+          vehicleStatus: 'ACTIVE'
+        ),
+        statusId: statusId
+      );
+    } catch (e) {
+      debugPrint('Failed to update delivery tracking: $e');
+    }
     
     debugPrint('🚀 Started driver location tracking for Delivery #$deliveryId');
   }

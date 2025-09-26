@@ -47,29 +47,9 @@ android {
     applicationVariants.all {
         val variant = this
         variant.outputs.all {
-            // Tùy chỉnh tên file APK
-            val versionName = variant.versionName
-            val buildType = variant.buildType.name
-            val fileName = "FastRoute_v${versionName}_${buildType}.apk"
-            
-            // Đặt tên cho output file
-            this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            outputFileName = fileName
-            
-            // Chuyển APK đến thư mục Flutter tìm kiếm
-            val flutterOutputDir = "$rootDir/../build/app/outputs/flutter-apk"
-            val debugOutputDir = "$rootDir/app/build/outputs/apk/${variant.buildType.name}"
-
-            // Fix doLast issue by using tasks.named approach
-            val outputId = this.name
-            tasks.named("package${variant.name.capitalize()}").configure {
-                doLast {
-                    copy {
-                        from("$debugOutputDir/$outputFileName")
-                        into(flutterOutputDir)
-                    }
-                }
-            }
+            // QUAN TRỌNG: Không đổi tên APK để Flutter có thể tìm thấy nó dễ dàng
+            // Bỏ việc tùy chỉnh tên file APK để sử dụng tên mặc định
+            // Các file này sẽ được copy với tên chính xác trong task riêng
         }
     }
 }
@@ -96,38 +76,85 @@ flutter {
 // Thêm task copy APK sau khi build hoàn tất
 tasks.register("copyApkToFlutterDir") {
     doLast {
-        // Fix for deprecated buildDir
+        // Sử dụng đường dẫn chính xác của Flutter
         val sourceDir = "${layout.buildDirectory.asFile.get()}/outputs/apk"
         val targetDir = "${rootProject.projectDir}/../build/app/outputs/flutter-apk"
-
+        
         // Tạo thư mục đích nếu chưa tồn tại
         mkdir(targetDir)
-
-        // Copy APK debug
-        val debugApk = file("${sourceDir}/debug/app-debug.apk")
+        
+        // QUAN TRỌNG: Flutter tìm kiếm các file có tên cụ thể, không phải tên tùy chỉnh
+        // Copy debug APK với tên mà Flutter mong đợi
+        val debugApk = file("${sourceDir}/debug")
         if (debugApk.exists()) {
-            copy {
-                from(debugApk)
-                into(targetDir)
+            debugApk.listFiles()?.firstOrNull { it.name.endsWith(".apk") }?.let { apk ->
+                copy {
+                    from(apk)
+                    into(targetDir)
+                    rename { "app-debug.apk" }  // Flutter tìm kiếm chính xác tên này
+                }
+                println("Copied debug APK to ${targetDir}/app-debug.apk")
             }
-            println("Copied debug APK to ${targetDir}/app-debug.apk")
         }
-
-        // Copy APK release
-        val releaseApk = file("${sourceDir}/release/app-release.apk")
+        
+        // Copy release APK nếu có
+        val releaseApk = file("${sourceDir}/release")
         if (releaseApk.exists()) {
-            copy {
-                from(releaseApk)
-                into(targetDir)
+            releaseApk.listFiles()?.firstOrNull { it.name.endsWith(".apk") }?.let { apk ->
+                copy {
+                    from(apk)
+                    into(targetDir)
+                    rename { "app-release.apk" }  // Flutter tìm kiếm chính xác tên này
+                }
+                println("Copied release APK to ${targetDir}/app-release.apk")
             }
-            println("Copied release APK to ${targetDir}/app-release.apk")
         }
     }
 }
 
 // Gắn task copy vào sau khi build
 tasks.whenTaskAdded {
-    if (name.contains("assemble")) {
+    if (name.contains("assemble") || name.contains("package")) {
         finalizedBy("copyApkToFlutterDir")
+    }
+}
+
+// Task để hiển thị vị trí APK - hữu ích cho debugging
+tasks.register("showApkLocations") {
+    doLast {
+        println("======== APK LOCATION DEBUG INFO ========")
+        println("Standard build location: ${layout.buildDirectory.asFile.get()}/outputs/apk")
+        println("Flutter expected location: ${rootProject.projectDir}/../build/app/outputs/flutter-apk")
+        println("Flutter expected files: app-debug.apk, app-release.apk")
+        println("=========================================")
+        
+        // Kiểm tra APK mà Flutter đang tìm
+        val flutterDebugApk = file("${rootProject.projectDir}/../build/app/outputs/flutter-apk/app-debug.apk")
+        if (flutterDebugApk.exists()) {
+            println("✓ Flutter debug APK found: ${flutterDebugApk.absolutePath}")
+        } else {
+            println("✗ Flutter debug APK missing at: ${flutterDebugApk.absolutePath}")
+        }
+        
+        // Liệt kê các APK hiện có để debug
+        println("Other APK files in build folders:")
+        fileTree(rootProject.projectDir.parentFile) {
+            include("**/build/**/*.apk")
+            exclude("**/build/app/outputs/flutter-apk/app-debug.apk") // Đã kiểm tra ở trên
+            exclude("**/build/app/outputs/flutter-apk/app-release.apk") // Đã kiểm tra ở trên
+        }.forEach { file ->
+            println("- ${file.absolutePath}")
+        }
+    }
+}
+
+// Thêm hook đặc biệt cho Flutter build process
+afterEvaluate {
+    tasks.named("assembleDebug").configure {
+        finalizedBy("copyApkToFlutterDir", "showApkLocations")
+    }
+    
+    tasks.named("assembleRelease").configure {
+        finalizedBy("copyApkToFlutterDir", "showApkLocations")
     }
 }

@@ -2,6 +2,7 @@ package ktc.spring_project.services;
 
 import ktc.spring_project.entities.DeliveryProof;
 import ktc.spring_project.repositories.DeliveryProofRepository;
+import ktc.spring_project.dtos.deliveryproof.SimplifiedDeliveryProofResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class DeliveryProofService {
@@ -109,9 +111,32 @@ public DeliveryProof updateProof(
         Authentication authentication) {
     // TODO: Implement the update logic
     throw new UnsupportedOperationException("Not implemented yet");
-        }
+    }
+
     public void deleteById(Long id, Authentication authentication) {
-    // TODO: Implement the logic to delete a DeliveryProof by id, possibly checking authentication
-    throw new UnsupportedOperationException("Not implemented yet");
-}
+        // TODO: Implement the logic to delete a DeliveryProof by id, possibly checking authentication
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+    
+    public List<DeliveryProof> findByOrder(ktc.spring_project.entities.Order order) {
+        return deliveryProofRepository.findByOrderId(order.getId());
+    }
+    
+    public List<DeliveryProof> findByOrderId(Long orderId) {
+        return deliveryProofRepository.findByOrderId(orderId);
+    }
+    
+    // New method to get simplified delivery proofs for mobile app
+    public List<SimplifiedDeliveryProofResponseDTO> findSimplifiedByOrderId(Long orderId) {
+        List<DeliveryProof> proofs = deliveryProofRepository.findByOrderId(orderId);
+        return proofs.stream().map(proof -> new SimplifiedDeliveryProofResponseDTO(
+            proof.getId(),
+            proof.getProofType(),
+            proof.getFilePath(),
+            proof.getFileName(),
+            proof.getRecipientName(),
+            proof.getNotes(),
+            proof.getCapturedAt()
+        )).collect(Collectors.toList());
+    }
 }

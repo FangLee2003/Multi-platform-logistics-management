@@ -5,6 +5,7 @@ import 'package:ktc_logistics_driver/data/network/http_client.dart';
 import 'package:ktc_logistics_driver/domain/models/order/order_details_response.dart';
 import 'package:ktc_logistics_driver/domain/models/order/orders_by_status_response.dart';
 import 'package:ktc_logistics_driver/domain/models/order/order_status_update.dart';
+import 'package:ktc_logistics_driver/services/auth_services.dart';
 
 /// OrdersServices - Handles all API operations related to orders
 class OrdersServices {
@@ -12,6 +13,7 @@ class OrdersServices {
   final Environment _env = Environment.getInstance();
   final SecureStorageFrave secureStorage = SecureStorageFrave();
   late final HttpClient _httpClient;
+  final AuthServices _authServices = AuthServices();
 
   // Constructor
   OrdersServices() {
@@ -137,15 +139,46 @@ class OrdersServices {
     }
 
     try {
-      await _httpClient.patch<Map<String, dynamic>>(
+      // Thay đổi kiểu trả về thành bool thay vì Map<String, dynamic>
+      await _httpClient.patch<bool>(
         '/drivers/$dId/orders/$orderId/status',
         body: statusUpdate.toJson(),
-        fromJson: (json) => json,
       );
 
       return true;
     } catch (e) {
-      debugPrint('Error updating order status: $e');
+      // Log chi tiết lỗi để debug
+      if (e is ApiException) {
+        debugPrint('API Error updating order status: Code=${e.statusCode}, Message=${e.message}');
+        debugPrint('Response body: ${e.body}');
+        
+        // Nếu là lỗi 401, có thể token đã hết hạn
+        if (e.statusCode == 401) {
+          debugPrint('Unauthorized error - trying to refresh token');
+          
+          try {
+            // Thử làm mới token
+            final loginResponse = await _authServices.refreshToken();
+            
+            if (loginResponse.accessToken.isNotEmpty) {
+              debugPrint('Token refreshed successfully, trying update again');
+              
+              // Thử lại cập nhật trạng thái đơn hàng
+              await _httpClient.patch<bool>(
+                '/drivers/$dId/orders/$orderId/status',
+                body: statusUpdate.toJson(),
+              );
+              
+              return true;
+            }
+          } catch (refreshError) {
+            debugPrint('Failed to refresh token: $refreshError');
+          }
+          return false;
+        }
+      } else {
+        debugPrint('Error updating order status: ${e.toString()}');
+      }
       return false;
     }
   }

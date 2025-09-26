@@ -14,6 +14,10 @@ import ktc.spring_project.services.DeliveryService;
 import ktc.spring_project.services.OrderService;
 import ktc.spring_project.services.RouteService;
 import ktc.spring_project.services.DeliveryTrackingService;
+import ktc.spring_project.services.DeliveryProofService;
+
+import java.util.Map;
+import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.validation.Valid;
@@ -27,17 +31,20 @@ public class DriverController {
 	private final OrderService orderService;
 	private final RouteService routeService;
 	private final DeliveryTrackingService trackingService;
+	private final DeliveryProofService deliveryProofService;
 
 	@Autowired
 	public DriverController(
 		DeliveryService deliveryService,
 		OrderService orderService,
 		RouteService routeService,
-		DeliveryTrackingService trackingService) {
+		DeliveryTrackingService trackingService,
+		DeliveryProofService deliveryProofService) {
 		this.deliveryService = deliveryService;
 		this.orderService = orderService;
 		this.routeService = routeService;
 		this.trackingService = trackingService;
+		this.deliveryProofService = deliveryProofService;
 	}
 
 	// Kept for backward compatibility
@@ -48,11 +55,24 @@ public class DriverController {
 
 	// Updated to include driverId in path
 	@GetMapping("/{driverId}/orders/{orderId}")
-	public OrderDetailResponseDTO getOrderDetail(
+	public ResponseEntity<?> getOrderDetail(
 		@PathVariable Long driverId, 
 		@PathVariable Long orderId) {
 		// TODO: Validate that order belongs to driver
-		return deliveryService.getOrderDetailById(orderId);
+		OrderDetailResponseDTO orderDetail = deliveryService.getOrderDetailById(orderId);
+		
+		// Get simplified delivery proofs for this order and include them in response
+		try {
+			// Verify order exists
+			orderService.getOrderById(orderId);
+			
+			Map<String, Object> response = new HashMap<>();
+			response.put("orderDetail", orderDetail);
+			response.put("deliveryProofs", deliveryProofService.findSimplifiedByOrderId(orderId));
+			return ResponseEntity.ok(response);
+		} catch (Exception e) {
+			return ResponseEntity.ok(orderDetail); // Fallback to just order details if error
+		}
 	}
 	
 	// New endpoint to get driver's deliveries

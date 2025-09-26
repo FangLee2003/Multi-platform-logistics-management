@@ -243,9 +243,13 @@ public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
             long currentTime = System.currentTimeMillis();
             long expirationTime = expiration.getTime();
             long timeRemaining = expirationTime - currentTime;
+            
+            // Thêm kiểm tra hết hạn sớm (nếu còn ít hơn 5 phút)
+            boolean needsRefresh = timeRemaining > 0 && timeRemaining < 300000; // 5 phút
 
             Map<String, Object> response = new HashMap<>();
             response.put("valid", timeRemaining > 0);
+            response.put("needsRefresh", needsRefresh);
             response.put("expiresAt", expiration.toString());
             response.put("timeRemainingMs", timeRemaining);
             response.put("timeRemainingMinutes", Math.max(0, timeRemaining / 60000));
