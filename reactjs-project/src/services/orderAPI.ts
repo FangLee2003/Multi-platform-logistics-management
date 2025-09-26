@@ -1,32 +1,3 @@
-// Lấy tất cả đơn hàng chưa completed (status_id != 2)
-import type { Order } from '../types/Order';
-// Lấy đơn hàng chưa completed (status_id != 2) có phân trang
-export interface FetchNotCompletedOrdersResponse {
-  content: Order[];
-  totalPages: number;
-  totalElements: number;
-  number: number; // page index (0-based)
-  size: number;
-}
-export async function fetchNotCompletedOrders(page = 1, size = 5, token?: string): Promise<FetchNotCompletedOrdersResponse> {
-  const authToken = token || localStorage.getItem("token") || "";
-  const res = await fetch(`http://localhost:8080/api/orders/not-completed?page=${page}&size=${size}`, {
-    headers: authToken ? { "Authorization": `Bearer ${authToken}` } : undefined,
-  });
-  if (!res.ok) throw new Error("Failed to fetch not-completed orders");
-  const data = await res.json();
-  // Đảm bảo trả về đúng kiểu content: Order[]
-  return {
-    ...data,
-    content: Array.isArray(data.content)
-      ? data.content.map((order: any) => ({
-          ...order,
-          createdAt: order.createdAt || order.created_at || ""
-        }))
-      : [],
-  };
-}
-
 // Tìm đơn hàng theo ID
 export async function fetchOrderById(orderId: string | number, token?: string): Promise<Order | null> {
   const authToken = token || localStorage.getItem("token") || "";
@@ -42,6 +13,7 @@ export async function fetchOrderById(orderId: string | number, token?: string): 
   };
 }
 
+import type { Order } from '../types/Order';
 // Chuẩn hóa hàm fetchOrders cho OrderList.tsx
 export interface FetchOrdersResponse {
   data: Order[];
@@ -49,22 +21,8 @@ export interface FetchOrdersResponse {
   totalRecords: number;
 }
 
-export async function fetchOrders(
-  page: number,
-  size: number,
-  token: string,
-  params?: Record<string, any>
-): Promise<FetchOrdersResponse> {
-  // Build query string
-  let query = `page=${page}&size=${size}`;
-  if (params) {
-    for (const key in params) {
-      if (params[key] !== undefined && params[key] !== null && params[key] !== "") {
-        query += `&${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`;
-      }
-    }
-  }
-  const res = await fetch(`http://localhost:8080/api/orders?${query}`, {
+export async function fetchOrders(page: number, size: number, token: string): Promise<FetchOrdersResponse> {
+  const res = await fetch(`http://localhost:8080/api/orders?page=${page}&size=${size}`, {
     headers: token ? { "Authorization": `Bearer ${token}` } : undefined,
   });
   if (!res.ok) throw new Error("Failed to fetch orders");
