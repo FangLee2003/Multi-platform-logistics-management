@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useTranslation } from 'react-i18next';
 import {
   Edit,
   MoreVertical,
@@ -18,33 +19,33 @@ interface VehicleTableProps {
 
 // Enhanced Status Badge Component
 
-const StatusBadge = React.memo<{ status: string }>(({ status }) => {
+const StatusBadge = React.memo<{ status: string; t: any }>(({ status, t }) => {
   const statusConfig = useMemo(() => {
     switch (status) {
       case "MAINTENANCE_PENDING":
         return {
           icon: <AlertCircle size={14} />,
           className: "bg-red-50 text-red-700 border-red-200",
-          text: "Cần bảo trì",
+          text: t('dashboard.fleet.status.needMaintenance', 'Need Maintenance'),
         };
       case "MAINTENANCE":
         return {
           icon: <Clock size={14} />,
           className: "bg-yellow-50 text-yellow-700 border-yellow-200",
-          text: "Đang bảo trì",
+          text: t('dashboard.fleet.status.underMaintenance', 'Under Maintenance'),
         };
       case "IN_USE":
         return {
           icon: <CheckCircle size={14} />,
           className: "bg-blue-50 text-blue-700 border-blue-200",
-          text: "Đang sử dụng",
+          text: t('dashboard.fleet.status.inUse', 'In Use'),
         };
       case "AVAILABLE":
       default:
         return {
           icon: <CheckCircle size={14} />,
           className: "bg-green-50 text-green-700 border-green-200",
-          text: "Sẵn sàng sử dụng",
+          text: t('dashboard.fleet.status.available', 'Available'),
         };
     }
   }, [status]);
@@ -67,6 +68,7 @@ const ActionDropdown = React.memo<{
   onEdit?: (vehicle: Vehicle) => void;
   onDelete?: (vehicleId: string | number) => void;
 }>(({ vehicle, onEdit, onDelete }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -74,7 +76,7 @@ const ActionDropdown = React.memo<{
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        aria-label="Tùy chọn"
+        aria-label={t('common.options', 'Options')}
       >
         <MoreVertical size={18} />
       </button>
@@ -94,7 +96,7 @@ const ActionDropdown = React.memo<{
                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
               >
                 <Edit size={16} />
-                Chỉnh sửa
+                {t('common.edit')}
               </button>
             )}
             {onDelete && (
@@ -115,7 +117,7 @@ const ActionDropdown = React.memo<{
                 >
                   <path d="M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
                 </svg>
-                Xóa
+                {t('common.delete')}
               </button>
             )}
           </div>
@@ -127,12 +129,21 @@ const ActionDropdown = React.memo<{
 
 ActionDropdown.displayName = "ActionDropdown";
 
+// Helper function to convert status to string
+const getStatusString = (status: any): string => {
+  if (typeof status === 'string') return status;
+  if (typeof status === 'number') return status.toString();
+  if (typeof status === 'object' && status?.name) return status.name;
+  return 'AVAILABLE';
+};
+
 // Main Vehicle Table Component
 const VehicleTable: React.FC<VehicleTableProps> = ({
   vehicles,
   onEdit,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   // Calculate days until next maintenance
   const getDaysUntilMaintenance = (nextMaintenance?: string): number | null => {
     if (!nextMaintenance) return null;
@@ -168,7 +179,7 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
 
         // Nếu có trạng thái từ database, sử dụng nó
         if (vehicle.status) {
-          computedStatus = vehicle.status;
+          computedStatus = getStatusString(vehicle.status);
           console.log("Using status from database:", vehicle.status); // Debug log
         } else {
           console.log("No status from database, using fallback logic"); // Debug log
@@ -209,18 +220,18 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                   <h3 className="text-xl font-bold text-gray-900">
                     {vehicle.licensePlate}
                   </h3>
-                  <StatusBadge status={computedStatus} />
+                  <StatusBadge status={computedStatus} t={t} />
                 </div>
 
                 {/* Vehicle Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                   <div className="space-y-1">
-                    <span className="text-gray-500 font-medium">Loại xe:</span>
+                    <span className="text-gray-500 font-medium">{t('dashboard.fleet.vehicleType', 'Vehicle Type')}:</span>
                     <div className="text-gray-900">{vehicle.type}</div>
                   </div>
                   <div className="space-y-1">
                     <span className="text-gray-500 font-medium">
-                      Trọng tải (kg):
+                      {t('dashboard.fleet.capacity', 'Capacity')} (kg):
                     </span>
                     <div className="text-gray-900 font-semibold">
                       {vehicle.capacityWeightKg?.toLocaleString() ?? "-"} kg
@@ -228,18 +239,18 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                   </div>
                   <div className="space-y-1">
                     <span className="text-gray-500 font-medium">
-                      Thể tích (m³):
+                      {t('dashboard.fleet.volume', 'Volume')} (m³):
                     </span>
                     <div className="text-gray-900 font-semibold">
                       {vehicle.capacityVolumeM3?.toLocaleString() ?? "-"} m³
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-gray-500 font-medium">Tài xế:</span>
+                    <span className="text-gray-500 font-medium">{t('dashboard.fleet.driver', 'Driver')}:</span>
                     <div className="text-gray-900">
                       {vehicle.driver?.name ||
                         vehicle.currentDriver?.fullName || (
-                          <span className="text-gray-400 italic">Chưa gán</span>
+                          <span className="text-gray-400 italic">{t('fleet.notAssigned', 'Not Assigned')}</span>
                         )}
                     </div>
                   </div>
@@ -276,12 +287,10 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
                           {daysUntilMaintenance !== null && (
                             <span className="text-xs px-2 py-1 rounded-full bg-gray-100">
                               {daysUntilMaintenance < 0
-                                ? `Quá hạn ${Math.abs(
-                                    daysUntilMaintenance
-                                  )} ngày`
+                                ? t('fleet.maintenance.overdue', 'Overdue {{days}} days', { days: Math.abs(daysUntilMaintenance) })
                                 : daysUntilMaintenance === 0
-                                ? "Hôm nay"
-                                : `Còn ${daysUntilMaintenance} ngày`}
+                                ? t('common.today', 'Today')
+                                : t('fleet.maintenance.remaining', '{{days}} days remaining', { days: daysUntilMaintenance })}
                             </span>
                           )}
                         </div>

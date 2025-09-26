@@ -18,7 +18,7 @@ export interface FleetVehicle {
 export interface Vehicle {
   id: string;
   name: string;
-  type: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
+  type: 'TRUCK' | 'VAN' | 'MOTORCYCLE' | 'CAR';
   status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING';
   statusDisplay?: string; // Vietnamese display name for status
   statusCode?: string; // status.name
@@ -118,7 +118,7 @@ export interface Role {
 export interface Vehicle {
   id: string;
   name: string;
-  type: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
+  type: 'TRUCK' | 'VAN' | 'MOTORCYCLE' | 'CAR';
   status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING';
   driver?: {
     id: string;

@@ -53,7 +53,7 @@ export async function testDeliveryTrackingFlow() {
     
     // Test 4: Create initial tracking point
     console.log('📌 Step 4: Creating initial tracking point...');
-    if (coordinates) {
+    if (coordinates && delivery.vehicleId) {
       const trackingData = {
         deliveryId: delivery.id,
         vehicleId: delivery.vehicleId,

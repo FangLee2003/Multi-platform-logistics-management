@@ -7,6 +7,7 @@ import {
   Wrench,
   FileText,
 } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 import type { Vehicle } from "../../types/Operations";
 import { useEffect, useState } from "react";
 import { fetchVehicleMaintenanceByVehicleId } from "../../services/VehicleMaintenanceAPI";
@@ -24,6 +25,7 @@ export default function VehicleDetailModal({
   onClose,
   onScheduleMaintenance,
 }: VehicleDetailModalProps) {
+  const { t } = useTranslation();
   const [maintenances, setMaintenances] = useState<any[]>([]);
   const [emergencyRequests, setEmergencyRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,37 +66,37 @@ export default function VehicleDetailModal({
   if (!isOpen) return null;
 
   const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return "Chưa có";
+    if (!dateString) return t('common.notAvailable', 'Not available');
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
   const getStatusText = (status: any) => {
     if (typeof status === "string") {
       return status === "MAINTENANCE_PENDING"
-        ? "Cần bảo trì"
+        ? t('fleet.status.needMaintenance', 'Need Maintenance')
         : status === "MAINTENANCE"
-        ? "Đang bảo trì"
+        ? t('fleet.status.underMaintenance', 'Under Maintenance')
         : status === "IN_USE"
-        ? "Đang sử dụng"
-        : "Sẵn sàng";
+        ? t('fleet.status.inUse', 'In Use')
+        : t('fleet.status.available', 'Available');
     }
     if (typeof status === "object" && status?.name) {
       return status.name === "MAINTENANCE_PENDING"
-        ? "Cần bảo trì"
+        ? t('fleet.status.needMaintenance', 'Need Maintenance')
         : status.name === "MAINTENANCE"
-        ? "Đang bảo trì"
+        ? t('fleet.status.underMaintenance', 'Under Maintenance')
         : status.name === "IN_USE"
-        ? "Đang sử dụng"
-        : "Sẵn sàng";
+        ? t('fleet.status.inUse', 'In Use')
+        : t('fleet.status.available', 'Available');
     }
-    return "Không xác định";
+    return t('common.unknown', 'Unknown');
   };
 
   const getStatusColor = (status: any) => {
-    const statusText = getStatusText(status);
-    if (statusText === "Cần bảo trì") return "text-red-600 bg-red-100";
-    if (statusText === "Đang bảo trì") return "text-orange-600 bg-orange-100";
-    if (statusText === "Đang sử dụng") return "text-blue-600 bg-blue-100";
+    const statusKey = (typeof status === "string" ? status : status?.name) || "";
+    if (statusKey === "MAINTENANCE_PENDING") return "text-red-600 bg-red-100";
+    if (statusKey === "MAINTENANCE") return "text-orange-600 bg-orange-100";
+    if (statusKey === "IN_USE") return "text-blue-600 bg-blue-100";
     return "text-green-600 bg-green-100";
   };
 

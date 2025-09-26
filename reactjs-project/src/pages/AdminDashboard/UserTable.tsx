@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import UserForm from "./UserForm";
 import {
   fetchUsers,
@@ -8,27 +9,53 @@ import {
 } from "../../services/adminAPI";
 import { FiEdit, FiEye, FiTrash2 } from "react-icons/fi";
 
-// Helper to map API role to display name and icon
-function getRoleDisplay(roleName: string) {
-  switch (roleName) {
-    case "DISPATCHER":
-      return { label: "Dispatcher", icon: null };
-    case "FLEET_MANAGER":
-    case "FLEET":
-      return { label: "Fleet Manager", icon: null };
-    case "DRIVER":
-      return { label: "Driver", icon: null };
-    case "ADMIN":
-      return { label: "Admin", icon: null };
-    case "OPERATIONS_MANAGER":
-    case "OPERATIONS":
-      return { label: "Operations Manager", icon: null };
-    case "CUSTOMER":
-      return { label: "Customer", icon: null };
+// Helper function to translate role names
+const translateRole = (rawRole: string, t: any): string => {
+  const normalizedRole = rawRole.replace(/[\s_]+/g, "").toLowerCase();
+  
+  switch (normalizedRole) {
+    case "admin":
+      return t('operations.staff.roles.admin', 'Admin');
+    case "dispatcher":
+      return t('operations.staff.roles.dispatcher', 'Dispatcher');
+    case "fleetmanager":
+    case "fleet":
+      return t('operations.staff.roles.fleetManager', 'Fleet Manager');
+    case "driver":
+      return t('operations.staff.roles.driver', 'Driver');
+    case "customer":
+      return t('operations.staff.roles.customer', 'Customer');
+    case "operationsmanager":
+    case "operations":
+      return t('operations.staff.roles.operationsManager', 'Operations Manager');
     default:
-      return { label: roleName, icon: null };
+      return rawRole;
   }
-}
+};
+
+// Helper function to get role color class
+const getRoleColorClass = (rawRole: string): string => {
+  const normalizedRole = rawRole.replace(/[\s_]+/g, "").toLowerCase();
+  
+  switch (normalizedRole) {
+    case "admin":
+      return "text-yellow-700";
+    case "dispatcher":
+      return "text-purple-700";
+    case "fleetmanager":
+    case "fleet":
+      return "text-blue-700";
+    case "driver":
+      return "text-amber-700";
+    case "customer":
+      return "text-emerald-700";
+    case "operationsmanager":
+    case "operations":
+      return "text-pink-700";
+    default:
+      return "text-gray-800";
+  }
+};
 
 interface UserTableProps {
   onUserCountUpdate?: () => void;
@@ -51,6 +78,29 @@ interface DashboardUser {
 }
 
 export default function UserTable({ onUserCountUpdate }: UserTableProps) {
+  const { t } = useTranslation();
+  
+  // Helper to map API role to display name and icon
+  function getRoleDisplay(roleName: string) {
+    switch (roleName) {
+      case "DISPATCHER":
+        return { label: t('admin.roles.dispatcher', 'Dispatcher'), icon: null };
+      case "FLEET_MANAGER":
+      case "FLEET":
+        return { label: t('admin.roles.fleetManager', 'Fleet Manager'), icon: null };
+      case "DRIVER":
+        return { label: t('admin.roles.driver', 'Driver'), icon: null };
+      case "ADMIN":
+        return { label: t('admin.roles.admin', 'Admin'), icon: null };
+      case "OPERATIONS_MANAGER":
+      case "OPERATIONS":
+        return { label: t('admin.roles.operationsManager', 'Operations Manager'), icon: null };
+      case "CUSTOMER":
+        return { label: t('admin.roles.customer', 'Customer'), icon: null };
+      default:
+        return { label: roleName, icon: null };
+    }
+  }
   const [users, setUsers] = useState<DashboardUser[]>([]);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -81,7 +131,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
         setFetchError("");
         if (!Array.isArray(data)) {
           setFetchError(
-            "API không trả về mảng user. Kiểm tra lại format dữ liệu!"
+            t('errors.invalidApiResponse', 'API did not return valid user data')
           );
           setUsers([]);
           return;
@@ -97,23 +147,8 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
             const lastLogin = u.updatedAt
               ? new Date(u.updatedAt).toLocaleString()
               : "-";
-            // Map roleName từ backend về đúng value của select (loại bỏ dấu gạch dưới, khoảng trắng, so sánh chữ thường)
-            let roleValue = "";
-            const rawRole = (u.role?.roleName || "")
-              .replace(/[\s_]+/g, "")
-              .toLowerCase();
-            if (rawRole === "admin") roleValue = "Admin";
-            else if (rawRole === "dispatcher") roleValue = "Dispatcher";
-            else if (rawRole === "fleetmanager" || rawRole === "fleet")
-              roleValue = "Fleet Manager";
-            else if (rawRole === "driver") roleValue = "Driver";
-            else if (rawRole === "customer") roleValue = "Customer";
-            else if (
-              rawRole === "operationsmanager" ||
-              rawRole === "operations"
-            )
-              roleValue = "Operations Manager";
-            else roleValue = u.role?.roleName || "";
+            // Map roleName từ backend về translated display name
+            const roleValue = translateRole(u.role?.roleName || "", t);
             return {
               id: u.id,
               name: u.fullName || u.username || "",
@@ -132,7 +167,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       .catch((err) => {
         console.error("[UserTable] Fetch users error:", err);
         setFetchError(
-          "Không thể lấy dữ liệu user từ API. Vui lòng thử lại hoặc kiểm tra backend!"
+          t('errors.fetchUsersFailed', 'Failed to fetch user data. Please try again or check backend.')
         );
         setUsers([]);
       });
@@ -211,18 +246,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
           const rawRole = (u.role?.roleName || "")
             .replace(/[\s_]+/g, "")
             .toLowerCase();
-          if (rawRole === "admin") roleValue = "Admin";
-          else if (rawRole === "dispatcher") roleValue = "Dispatcher";
-          else if (rawRole === "fleetmanager" || rawRole === "fleet")
-            roleValue = "Fleet Manager";
-          else if (rawRole === "driver") roleValue = "Driver";
-          else if (rawRole === "customer") roleValue = "Customer";
-          else if (
-            rawRole === "operationsmanager" ||
-            rawRole === "operations"
-          )
-            roleValue = "Operations Manager";
-          else roleValue = u.role?.roleName || "";
+          roleValue = translateRole(u.role?.roleName || "", t);
           return {
             id: u.id,
             name: u.fullName || u.username || "",
@@ -243,7 +267,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      alert("Lỗi khi thêm user mới. Vui lòng thử lại!");
+      alert(t('admin.userTable.errors.addUser', 'Lỗi khi thêm user mới. Vui lòng thử lại!'));
     }
   };
 
@@ -301,7 +325,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
           "[UserTable] User not found with email:",
           updatedUser.email
         );
-        throw new Error("User not found");
+        throw new Error(t('errors.userNotFound', 'User not found'));
       }
       console.log("[UserTable] userOrigin:", userOrigin);
 
@@ -345,18 +369,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
           const rawRole = (u.role?.roleName || "")
             .replace(/[\s_]+/g, "")
             .toLowerCase();
-          if (rawRole === "admin") roleValue = "Admin";
-          else if (rawRole === "dispatcher") roleValue = "Dispatcher";
-          else if (rawRole === "fleetmanager" || rawRole === "fleet")
-            roleValue = "Fleet Manager";
-          else if (rawRole === "driver") roleValue = "Driver";
-          else if (rawRole === "customer") roleValue = "Customer";
-          else if (
-            rawRole === "operationsmanager" ||
-            rawRole === "operations"
-          )
-            roleValue = "Operations Manager";
-          else roleValue = u.role?.roleName || "";
+          roleValue = translateRole(u.role?.roleName || "", t);
           return {
             id: u.id,
             name: u.fullName || u.username || "",
@@ -376,9 +389,9 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
     } catch (err) {
       console.error("[UserTable] Update error:", err);
       alert(
-        `Lỗi khi cập nhật user: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }. Vui lòng thử lại!`
+        t('admin.userTable.errors.updateUser', 'Lỗi khi cập nhật user: {{error}}. Vui lòng thử lại!', {
+          error: err instanceof Error ? err.message : t('errors.unknownError', 'Unknown error')
+        })
       );
     }
   };
@@ -407,18 +420,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
             const rawRole = (u.role?.roleName || "")
               .replace(/[\s_]+/g, "")
               .toLowerCase();
-            if (rawRole === "admin") roleValue = "Admin";
-            else if (rawRole === "dispatcher") roleValue = "Dispatcher";
-            else if (rawRole === "fleetmanager" || rawRole === "fleet")
-              roleValue = "Fleet Manager";
-            else if (rawRole === "driver") roleValue = "Driver";
-            else if (rawRole === "customer") roleValue = "Customer";
-            else if (
-              rawRole === "operationsmanager" ||
-              rawRole === "operations"
-            )
-              roleValue = "Operations Manager";
-            else roleValue = u.role?.roleName || "";
+            roleValue = translateRole(u.role?.roleName || "", t);
             return {
               id: u.id,
               name: u.fullName || u.username || "",
@@ -439,7 +441,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
-        alert("Lỗi khi xóa user. Vui lòng thử lại!");
+        alert(t('admin.userTable.errors.deleteUser', 'Lỗi khi xóa user. Vui lòng thử lại!'));
       }
     }
   };
@@ -449,7 +451,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-start sm:items-center mb-4">
         <input
           className="border rounded px-4 py-2 w-full sm:w-72"
-          placeholder="Search user..."
+          placeholder={t('admin.userTable.searchPlaceholder', 'Search user...')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -460,7 +462,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
             setEditUser(null);
           }}
         >
-          <span className="text-xl">+</span> <span className="hidden sm:inline">Add User</span><span className="sm:hidden">Add</span>
+          <span className="text-xl">+</span> <span className="hidden sm:inline">{t('admin.userTable.addUser', 'Add User')}</span><span className="sm:hidden">{t('admin.userTable.add', 'Add')}</span>
         </button>
       </div>
       {showForm && (
@@ -474,7 +476,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
         />
       )}
       <div>
-        <h2 className="text-2xl font-bold mb-5">User List</h2>
+        <h2 className="text-2xl font-bold mb-5">{t('admin.userTable.title', 'User List')}</h2>
         {fetchError && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
             {fetchError}
@@ -484,12 +486,12 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
           <table className="min-w-full">
             <thead>
               <tr className="text-left text-gray-600 border-b">
-                <th className="py-2 pr-4">Full Name</th>
-                <th className="py-2 pr-4">Email</th>
-                <th className="py-2 pr-4">Role</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4 hidden sm:table-cell">Last Login</th>
-                <th className="py-2 pr-4">Actions</th>
+                <th className="py-2 pr-4">{t('admin.userTable.headers.fullName', 'Full Name')}</th>
+                <th className="py-2 pr-4">{t('admin.userTable.headers.email', 'Email')}</th>
+                <th className="py-2 pr-4">{t('admin.userTable.headers.role', 'Role')}</th>
+                <th className="py-2 pr-4">{t('admin.userTable.headers.status', 'Status')}</th>
+                <th className="py-2 pr-4 hidden sm:table-cell">{t('admin.userTable.headers.lastLogin', 'Last Login')}</th>
+                <th className="py-2 pr-4">{t('admin.userTable.headers.actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -503,21 +505,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
                   </td>
                   <td className="py-3 pr-4">
                     <span
-                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
-                        u.role === "Dispatcher"
-                          ? "text-purple-700" // Tím đậm
-                          : u.role === "Fleet Manager"
-                          ? "text-blue-700" // Xanh dương đậm
-                          : u.role === "Driver"
-                          ? "text-amber-700" // Vàng đậm
-                          : u.role === "Operations Manager"
-                          ? "text-pink-700" // Cam đậm
-                          : u.role === "Admin"
-                          ? "text-yellow-700" // Đỏ đậm
-                          : u.role === "Customer"
-                          ? "text-emerald-700" // Xanh lá đậm
-                          : "text-gray-800"
-                      }`}
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${getRoleColorClass(u.roleValue)}`}
                     >
                       {u.roleIcon && <span>{u.roleIcon}</span>}
                       <span className="hidden sm:inline">{u.role}</span>
@@ -547,21 +535,21 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
                   <td className="py-3 pr-4 flex gap-1 sm:gap-2">
                     <button
                       className="p-2 rounded hover:bg-gray-200"
-                      title="Edit"
+                      title={t('common.edit', 'Edit')}
                       onClick={() => handleEditUser(u)}
                     >
                       <FiEdit size={16} className="sm:w-[18px] sm:h-[18px]" />
                     </button>
                     <button
                       className="p-2 rounded hover:bg-gray-200"
-                      title="View"
+                      title={t('common.view', 'View')}
                       onClick={() => setViewUser(u)}
                     >
                       <FiEye size={16} className="sm:w-[18px] sm:h-[18px]" />
                     </button>
                     <button
                       className="p-2 rounded hover:bg-red-100"
-                      title="Delete"
+                      title={t('common.delete', 'Delete')}
                       onClick={() => handleDeleteUser(u.email)}
                     >
                       <FiTrash2 size={16} className="sm:w-[18px] sm:h-[18px]" color="#ef4444" />{" "}
@@ -620,7 +608,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
             </div>
             <div>
               <b>Status:</b>{" "}
-              {viewUser.status === "active" ? "Active" : "Inactive"}
+              {viewUser.status === "active" ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
             </div>
             <div>
               <b>Last Login:</b> {viewUser.lastLogin}
