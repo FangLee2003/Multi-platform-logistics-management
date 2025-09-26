@@ -16,9 +16,11 @@ const queryClient = new QueryClient({
   },
 });
 
+
 function App() {
   const [user, setUser] = useState<User | null>(() => {
-    return null;
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
   });
 
   const handleLogin = (user: User) => {
