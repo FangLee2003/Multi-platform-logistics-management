@@ -137,9 +137,9 @@ export default function OrderList() {
           {error || (fetchError as Error)?.message || "Đã xảy ra lỗi"}
         </div>
       ) : (
-        <div className="relative">
+        <div className="relative min-h-[1000px]">
           {/* Order list */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 h-full">
             {orders.map((order) => (
               <div
                 key={order.id}

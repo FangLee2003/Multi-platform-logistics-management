@@ -18,7 +18,8 @@ const queryClient = new QueryClient({
 
 function App() {
   const [user, setUser] = useState<User | null>(() => {
-    return null;
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
   });
 
   const handleLogin = (user: User) => {

@@ -810,13 +810,11 @@ export default function MapboxTrackingMap() {
       )}
       <div
         ref={mapContainer}
-        className="flex-1 min-h-[250px] h-[350px] w-full rounded-lg border-2 border-blue-500 relative overflow-hidden"
+        className="flex-1 h-[350px] w-full rounded-lg border-2 border-blue-500 relative overflow-hidden"
         style={{
-          minHeight: "250px",
           height: "350px",
           width: "100%",
           position: "relative",
-          border: "2px solid blue",
         }}
       >
         {!isLoaded && (
