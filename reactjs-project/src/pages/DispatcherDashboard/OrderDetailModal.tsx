@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from "react";
-import type { TimelineStepDto } from "../../types/Order";
-import { fetchOrderTimeline } from "../../services/ChecklistAPI";
+import React from "react";
 import OrderChecklistTimeline from "../../components/OrderChecklistTimeline";
 
 interface ProductItem {
@@ -44,39 +42,14 @@ interface OrderDetailModalProps {
   productsTotalPages?: number;
   onProductsPageChange?: (page: number) => void;
 }
-export default function OrderDetailModal({ open, onClose, orderItem, products, deliveryFee, productsPage = 0, productsTotalPages = 1, onProductsPageChange, timelineSteps: timelineStepsProp = [] }: OrderDetailModalProps & { timelineSteps?: TimelineStepDto[] }) {
-  const [timelineSteps, setTimelineSteps] = useState<TimelineStepDto[]>(timelineStepsProp);
-  const [loadingTimeline, setLoadingTimeline] = useState(false);
-
-  useEffect(() => {
-    if (timelineStepsProp && Array.isArray(timelineStepsProp)) {
-      setTimelineSteps(timelineStepsProp);
-    } else {
-      async function fetchTimeline() {
-        if (open && orderItem && orderItem.code) {
-          setLoadingTimeline(true);
-          try {
-            const steps = await fetchOrderTimeline(orderItem.code);
-            setTimelineSteps(steps);
-          } catch {
-            setTimelineSteps([]);
-          } finally {
-            setLoadingTimeline(false);
-          }
-        } else {
-          setTimelineSteps([]);
-        }
-      }
-      fetchTimeline();
-    }
-  }, [open, orderItem?.code, timelineStepsProp]);
+export default function OrderDetailModal({ open, onClose, orderItem, products, deliveryFee, productsPage = 0, productsTotalPages = 1, onProductsPageChange }: OrderDetailModalProps) {
 
   if (!open || !orderItem) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">Chi tiết đơn hàng</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Order Details</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -88,50 +61,50 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Mã đơn</label>
+              <label className="block text-sm font-medium text-gray-700">Order Code</label>
               <p className="text-gray-900">{orderItem?.code}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Khách hàng</label>
+              <label className="block text-sm font-medium text-gray-700">Customer</label>
               <p className="text-gray-900">{orderItem?.customer}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
+              <label className="block text-sm font-medium text-gray-700">Status</label>
               <p className="text-gray-900">{orderItem?.status}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Ngày tạo</label>
+              <label className="block text-sm font-medium text-gray-700">Created Date</label>
               <p className="text-gray-900">{orderItem?.date}</p>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Địa chỉ giao hàng</label>
+            <label className="block text-sm font-medium text-gray-700">Delivery Address</label>
             <p className="text-gray-900">{orderItem?.address}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Lộ trình</label>
+            <label className="block text-sm font-medium text-gray-700">Route</label>
             <div className="text-gray-900">
-              <p><strong>Từ:</strong> {orderItem?.from}</p>
-              <p><strong>Đến:</strong> {orderItem?.to}</p>
+              <p><strong>From:</strong> {orderItem?.from}</p>
+              <p><strong>To:</strong> {orderItem?.to}</p>
             </div>
           </div>
 
           {/* Hiển thị danh sách sản phẩm */}
           {products && products.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Sản phẩm</label>
+              <label className="block text-sm font-medium text-gray-700">Products</label>
               <table className="min-w-full text-sm mt-2">
                 <thead>
                   <tr>
-                    <th className="text-left">Tên sản phẩm</th>
-                    <th className="text-left">Số lượng</th>
-                    <th className="text-left">Khối lượng</th>
-                    <th className="text-left">Thể tích</th>
-                    <th className="text-left">Hàng dễ vỡ</th>
-                    <th className="text-left">Phí giao hàng</th>
-                    <th className="text-left">Ghi chú</th>
+                    <th className="text-left">Product Name</th>
+                    <th className="text-left">Quantity</th>
+                    <th className="text-left">Weight</th>
+                    <th className="text-left">Volume</th>
+                    <th className="text-left">Fragile</th>
+                    <th className="text-left">Shipping Fee</th>
+                    <th className="text-left">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -141,7 +114,7 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
                       <td>{item.quantity}</td>
                       <td>{item.product?.weight !== undefined ? item.product.weight : ""}</td>
                       <td>{item.product?.volume !== undefined ? item.product.volume : ""}</td>
-                      <td>{item.product?.fragile !== undefined ? (item.product.fragile ? "Có" : "Không") : ""}</td>
+                      <td>{item.product?.fragile !== undefined ? (item.product.fragile ? "Yes" : "No") : ""}</td>
                       <td>{
                         item.shippingFee
                           ? Number(String(item.shippingFee).replace(/,/g, "")).toLocaleString() + " đ"
@@ -161,17 +134,17 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
                     disabled={productsPage === 0}
                     className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 text-blue-700 font-semibold text-sm"
                   >
-                    &lt; Trước
+                    &lt; Previous
                   </button>
                   <span className="text-sm text-gray-600">
-                    Trang {productsPage + 1} / {productsTotalPages}
+                    Page {productsPage + 1} / {productsTotalPages}
                   </span>
                   <button
                     onClick={() => onProductsPageChange(productsPage + 1)}
                     disabled={productsPage >= productsTotalPages - 1}
                     className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 text-blue-700 font-semibold text-sm"
                   >
-                    Tiếp &gt;
+                    Next &gt;
                   </button>
                 </div>
               )}
@@ -181,28 +154,28 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
           {/* Hiển thị phí giao hàng */}
           {typeof deliveryFee === "number" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phí giao hàng</label>
+              <label className="block text-sm font-medium text-gray-700">Shipping Fee</label>
               <p className="text-gray-900">{deliveryFee.toLocaleString()} đ</p>
             </div>
           )}
 
           {orderItem?.note && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Ghi chú</label>
+              <label className="block text-sm font-medium text-gray-700">Notes</label>
               <p className="text-gray-900">{orderItem?.note}</p>
             </div>
           )}
 
           {orderItem?.description && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Mô tả</label>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
               <p className="text-gray-900">{orderItem?.description}</p>
             </div>
           )}
 
           {orderItem?.assignedVehicle && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Xe được gán</label>
+              <label className="block text-sm font-medium text-gray-700">Assigned Vehicle</label>
               <p className="text-gray-900">
                 {orderItem?.assignedVehicle.licensePlate} - {orderItem?.assignedVehicle.vehicleType}
               </p>
@@ -211,7 +184,7 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
 
           {orderItem?.currentDriver && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Tài xế</label>
+              <label className="block text-sm font-medium text-gray-700">Driver</label>
               <p className="text-gray-900">
                 {orderItem?.currentDriver.fullName || orderItem?.currentDriver.username}
               </p>
@@ -223,22 +196,7 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
           {/* Checklist timeline dọc */}
           <div>
             
-            {loadingTimeline ? (
-              <div className="text-blue-600">Đang tải checklist...</div>
-            ) : (
-              <OrderChecklistTimeline
-                steps={(() => {
-                  // Luôn giữ 'Pending' ở đầu, các bước tiếp theo không được thay thế 'Pending'
-                  // Nếu API trả về 'Pending' ở vị trí khác, lọc bỏ các bước 'Pending' trùng, chỉ giữ duy nhất ở đầu
-                  const filteredSteps = timelineSteps.filter((s, idx) => s.stepCode !== "Pending" || idx === 0);
-                  if (!filteredSteps.length || filteredSteps[0].stepCode !== "Pending") {
-                    filteredSteps.unshift({ stepOrder: 1, stepCode: "Pending", stepName: "Pending", status: "Pending", completed: false });
-                  }
-                  // Nếu có nhiều bước 'Pending', chỉ giữ duy nhất ở đầu
-                  return [filteredSteps[0], ...filteredSteps.slice(1).filter(s => s.stepCode !== "Pending")];
-                })()}
-              />
-            )}
+            <OrderChecklistTimeline orderId={orderItem?.code || ''} />
           </div>
 
         <div className="flex justify-end mt-6">
@@ -246,7 +204,7 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
             onClick={onClose}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>

@@ -725,30 +725,19 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
     
     /**
      * Driver hoàn thành chuyến đi
+     * (Tạm thời KHÔNG cập nhật trạng thái delivered/checklist cho customer)
      */
     public void driverCompleteTrip(Long driverId, Long deliveryId) {
         try {
-            // ✅ Get delivery first to access order
             Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new ktc.spring_project.exceptions.EntityNotFoundException("Delivery not found"));
-                
             checklistService.markStepCompleted(
-                driverId, 
+                driverId,
                 delivery.getOrder().getId(),
-                "DRIVER_COMPLETE_TRIP", 
+                "DRIVER_COMPLETE_TRIP",
                 "Completed trip for delivery: " + deliveryId
             );
-            
-            // ✅ Nếu delivery thành công, cũng log customer nhận hàng
-            if (delivery.getOrder() != null && delivery.getOrder().getCreatedBy() != null) {
-                checklistService.markStepCompleted(
-                    delivery.getOrder().getCreatedBy().getId(), 
-                    delivery.getOrder().getId(),
-                    "CUSTOMER_RECEIVE_ORDER", 
-                    "Order received successfully - Delivery: " + deliveryId
-                );
-            }
-            
+            // KHÔNG cập nhật trạng thái delivered cho customer nữa
             log.info("Driver {} completed trip for delivery {}", driverId, deliveryId);
         } catch (Exception e) {
             log.error("Failed to process driver complete trip: {}", e.getMessage());

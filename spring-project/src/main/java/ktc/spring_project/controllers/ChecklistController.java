@@ -102,6 +102,17 @@ public class ChecklistController {
     }
 
     /**
+     * Lấy tất cả các bước checklist chuẩn (không phân biệt role)
+     * Dành cho FE hiển thị timeline với đầy đủ các bước
+     * @return Danh sách tất cả các bước trong checklist step
+     */
+    @GetMapping("/steps")
+    public ResponseEntity<List<ChecklistStepResponse>> getAllChecklistSteps() {
+        List<ChecklistStepResponse> steps = checklistService.getAllChecklistSteps();
+        return ResponseEntity.ok(steps);
+    }
+
+    /**
      * Lấy tất cả các bước checklist cho một vai trò
      * @param role Vai trò (customer, dispatcher, driver)
      * @return Danh sách tất cả các bước trong checklist

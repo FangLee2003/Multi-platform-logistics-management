@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchOrderTimeline } from "../../services/ChecklistAPI";
 import OrderChecklistTimeline from "../../components/OrderChecklistTimeline";
-import type { TimelineStepDto } from "../../types/Order";
 import { fetchOrders, fetchOrderById } from "../../services/OrderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
@@ -10,8 +8,6 @@ import { useQuery } from "@tanstack/react-query";
 export default function OrderList() {
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
-  const [timelineSteps, setTimelineSteps] = useState<TimelineStepDto[]>([]);
-  const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [searchId, setSearchId] = useState("");
   const [searching, setSearching] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -21,7 +17,7 @@ export default function OrderList() {
   const [searchResults, setSearchResults] = useState<Order[]>([]);
   const [error, setError] = useState("");
 
-  // Sử dụng React Query để fetch orders với pagination
+  // Use React Query to fetch orders with pagination
   const {
     data: ordersResponse,
     isLoading: loading,
@@ -32,36 +28,26 @@ export default function OrderList() {
       const token = localStorage.getItem("token") || "";
       return await fetchOrders(page, PAGE_SIZE, token);
     },
-    enabled: !isSearchMode, // Chỉ fetch khi không ở chế độ tìm kiếm
-    staleTime: 30 * 1000, // Cache 30 giây
+    enabled: !isSearchMode, // Only fetch when not in search mode
+    staleTime: 30 * 1000, // Cache for 30 seconds
     refetchOnWindowFocus: true,
   });
 
   const orders = isSearchMode ? searchResults : (ordersResponse?.data || []);
   const totalPages = isSearchMode ? 1 : (ordersResponse?.totalPages || 1);
 
-  // Hàm chọn đơn hàng để hiển thị route
+  // Function to select order for route display
   const handleOrderClick = async (order: Order) => {
     setSelectedOrder(order);
     if (expandedOrderId === order.id) {
-      // Đang mở, click lại thì đóng
+      // Currently open, click again to close
       setExpandedOrderId(null);
-      setTimelineSteps([]);
       return;
     }
     setExpandedOrderId(order.id);
-    setLoadingTimeline(true);
-    try {
-      const steps = await fetchOrderTimeline(order.id);
-      setTimelineSteps(steps);
-    } catch {
-      setTimelineSteps([]);
-    } finally {
-      setLoadingTimeline(false);
-    }
   };
 
-  // Hàm tìm kiếm đơn hàng theo ID
+  // Function to search order by ID
   const handleSearch = async () => {
     if (!searchId.trim()) return;
     setSearching(true);
@@ -77,16 +63,16 @@ export default function OrderList() {
         setSearchResults([]);
         setIsSearchMode(true);
         setPage(1);
-        setError("Không tìm thấy đơn hàng với ID đã nhập");
+        setError("No order found with the entered ID");
       }
-    } catch (err) {
-      setError("Lỗi khi tìm kiếm đơn hàng");
+    } catch {
+      setError("Error when searching order");
     } finally {
       setSearching(false);
     }
   };
 
-  // Khi xóa nội dung ô tìm kiếm, tự động trả lại danh sách đơn hàng mặc định
+  // When search input is cleared, automatically return to default order list
   useEffect(() => {
     if (searchId.trim() === "") {
       setIsSearchMode(false);
@@ -103,15 +89,15 @@ export default function OrderList() {
     <div className="bg-gradient-to-br from-blue-50/80 via-white/90 to-blue-100/80 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl max-w-full overflow-x-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
-          <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">Danh sách đơn hàng</div>
-          <div className="text-gray-500 text-base">Theo dõi trạng thái các đơn hàng trong hệ thống</div>
-          <div className="text-sm text-blue-600 mt-1">💡 Nhấn vào đơn hàng để xem đường đi trên bản đồ</div>
+          <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">Order List</div>
+          <div className="text-gray-500 text-base">Track order status in the system</div>
+          <div className="text-sm text-blue-600 mt-1">💡 Click on an order to view the route on the map</div>
         </div>
-        {/* Tìm kiếm đơn hàng theo ID */}
+        {/* Search order by ID */}
         <div className="flex items-center gap-2 bg-white/80 border border-blue-100 rounded-xl px-3 py-2 shadow">
           <input
             type="text"
-            placeholder="Nhập ID đơn hàng..."
+            placeholder="Enter order ID..."
             className="px-2 py-1 rounded border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
             value={searchId}
             onChange={e => setSearchId(e.target.value)}
@@ -123,7 +109,7 @@ export default function OrderList() {
             disabled={!searchId.trim() || loading || searching}
             className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded transition-colors duration-200 font-semibold"
           >
-            {searching ? "Đang tìm..." : "Tìm kiếm"}
+            {searching ? "Searching..." : "Search"}
           </button>
         </div>
         {/* <button
@@ -149,7 +135,7 @@ export default function OrderList() {
       
       {error || fetchError ? (
         <div className="text-center py-8 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
-          {error || (fetchError as Error)?.message || "Đã xảy ra lỗi"}
+          {error || (fetchError as Error)?.message || "An error occurred"}
         </div>
       ) : (
         <div className="relative">
@@ -176,7 +162,7 @@ export default function OrderList() {
                           ? 'bg-green-100 text-green-800 border-green-300'
                           : 'bg-blue-100 text-blue-700 border-blue-300'}
                       `}>
-                        {order.status?.name}
+                        {order.status?.name === 'Delivered' ? 'Shipping' : order.status?.name}
                       </span>
                       <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
                         ${order.status?.statusType === 'High'
@@ -190,15 +176,15 @@ export default function OrderList() {
                     </div>
                     <div className="text-sm text-gray-700">
                       <div>
-                        <span className="font-semibold text-blue-700">Khách hàng:</span>
+                        <span className="font-semibold text-blue-700">Customer:</span>
                         <span className="text-blue-800"> {order.store?.storeName}</span>
                       </div>
                       <div>
-                        <span className="font-semibold text-blue-700">Từ:</span>
+                        <span className="font-semibold text-blue-700">From:</span>
                         <span className="text-gray-700"> {order.store?.address}</span>
                       </div>
                       <div>
-                        <span className="font-semibold text-blue-700">Đến:</span>
+                        <span className="font-semibold text-blue-700">To:</span>
                         <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
                       </div>
                     </div>
@@ -207,25 +193,21 @@ export default function OrderList() {
                   <div className="flex flex-col items-end min-w-[180px] gap-1">
                     <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
                     <div className="text-sm text-gray-700">
-                      <span className="font-semibold text-gray-500">Tài xế:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Chưa phân công"}</span>
+                      <span className="font-semibold text-gray-500">Driver:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Not assigned"}</span>
                       {order.vehicle?.licensePlate && (
                         <>
                           <span className="mx-1 text-gray-400">|</span>
-                          <span className="font-semibold text-blue-800">Xe: {order.vehicle.licensePlate}</span>
+                          <span className="font-semibold text-blue-800">Vehicle: {order.vehicle.licensePlate}</span>
                         </>
                       )}
                     </div>
                   </div>
                 </div>
-                {/* Checklist timeline dọc, chỉ hiển thị cho đơn hàng đang mở */}
+                {/* Checklist timeline vertical, only display for expanded order */}
                 {expandedOrderId === order.id && (
                   <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                    {/* <label className="block text-sm font-medium text-blue-700 mb-2">Checklist trạng thái đơn hàng</label> */}
-                    {loadingTimeline ? (
-                      <div className="text-blue-600">Đang tải checklist...</div>
-                    ) : (
-                      <OrderChecklistTimeline steps={timelineSteps} />
-                    )}
+                    {/* <label className="block text-sm font-medium text-blue-700 mb-2">Order status checklist</label> */}
+                    <OrderChecklistTimeline orderId={order.id} />
                   </div>
                 )}
               </div>
@@ -239,16 +221,16 @@ export default function OrderList() {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
             >
-              &lt; Trước
+              &lt; Previous
             </button>
-            <span className="mx-2 text-blue-900 font-semibold text-base">Trang {page} / {totalPages}</span>
-            {/* <span className="mx-2 text-gray-500 text-sm">Tổng số: {totalRecords}</span> */}
+            <span className="mx-2 text-blue-900 font-semibold text-base">Page {page} / {totalPages}</span>
+            {/* <span className="mx-2 text-gray-500 text-sm">Total: {totalRecords}</span> */}
             <button
               className="px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow disabled:opacity-50 transition-all duration-150 hover:bg-blue-200"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || loading}
             >
-              Tiếp &gt;
+              Next &gt;
             </button>
           </div>
         </div>

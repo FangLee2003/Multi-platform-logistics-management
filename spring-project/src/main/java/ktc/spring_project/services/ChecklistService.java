@@ -1,13 +1,10 @@
 package ktc.spring_project.services;
 
 import ktc.spring_project.enums.ChecklistActionType;
-
 import ktc.spring_project.dtos.ChecklistProgressResponse;
-import java.util.Comparator;
 import ktc.spring_project.dtos.ChecklistStepResponse;
 import ktc.spring_project.dtos.timeline.*;
 import ktc.spring_project.entities.*;
-import ktc.spring_project.enums.ChecklistActionType;
 import ktc.spring_project.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,11 +12,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Comparator;
 import java.util.stream.Collectors;
-import ktc.spring_project.entities.Status;
-
 @Service
 public class ChecklistService {
+    /**
+     * Lấy tất cả các bước checklist chuẩn (không phân biệt role)
+     * Dành cho FE hiển thị timeline với đầy đủ các bước
+     */
+    public List<ChecklistStepResponse> getAllChecklistSteps() {
+        List<ChecklistStep> steps = checklistStepRepository.findAll();
+        List<ChecklistStepResponse> result = new ArrayList<>();
+        for (ChecklistStep step : steps) {
+            ChecklistStepResponse resp = new ChecklistStepResponse();
+            resp.setStepCode(step.getStepCode());
+            resp.setStepName(step.getStepName());
+            resp.setDescription(step.getDescription());
+            resp.setStepOrder(step.getStepOrder());
+            result.add(resp);
+        }
+        result.sort(Comparator.comparing(ChecklistStepResponse::getStepOrder));
+        return result;
+    }
+// ...existing code...
     // Trả về tiến trình checklist cho user và order cụ thể
     public ChecklistProgressResponse getChecklistProgress(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId).orElse(null);
@@ -772,7 +787,6 @@ public class ChecklistService {
         response.setMessage("Lấy tiến trình checklist thành công!");
         return response;
     }
-}
 
-
+}       
 

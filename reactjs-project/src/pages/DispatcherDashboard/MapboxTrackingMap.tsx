@@ -528,31 +528,31 @@ export default function MapboxTrackingMap() {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 h-full min-h-[300px] w-full flex flex-col">
-  {selectedOrder && selectedOrder.vehicle && selectedOrder.vehicle.currentDriver && (
+      {selectedOrder && selectedOrder.vehicle && selectedOrder.vehicle.currentDriver && (
         <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <div className="text-sm font-semibold text-blue-900 mb-1">
-            Đơn hàng #{selectedOrder.id}
+            Order #{selectedOrder.id}
           </div>
           <div className="text-xs text-gray-600">
             <div className="flex items-center gap-2 mb-1">
               <span className="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
               <span>
-                <strong>Từ:</strong> {selectedOrder.store?.storeName} -{" "}
+                <strong>From:</strong> {selectedOrder.store?.storeName} -{" "}
                 {selectedOrder.store?.address}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 bg-red-500 rounded-full inline-block"></span>
               <span>
-                <strong>Đến:</strong> {selectedOrder.address?.address}
+                <strong>To:</strong> {selectedOrder.address?.address}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="w-3 h-3 bg-blue-500 rounded-full inline-block"></span>
               <span>
-                <strong>Xe:</strong> {selectedOrder.vehicle?.licensePlate || "(Không rõ biển số)"}
+                <strong>Vehicle:</strong> {selectedOrder.vehicle?.licensePlate || "(License unknown)"}
                 {" | "}
-                <strong>Tài xế:</strong> {selectedOrder.vehicle.currentDriver.fullName}
+                <strong>Driver:</strong> {selectedOrder.vehicle.currentDriver.fullName}
               </span>
             </div>
           </div>
@@ -560,31 +560,31 @@ export default function MapboxTrackingMap() {
             typeof route.distance === "number" &&
             typeof route.duration === "number" && (
               <div className="mt-2 text-xs text-blue-600">
-                <strong>Khoảng cách:</strong>{" "}
+                <strong>Distance:</strong>{" "}
                 {(route.distance / 1000).toFixed(1)} km |
-                <strong> Thời gian:</strong> {(() => {
+                <strong> Time:</strong> {(() => {
                   const totalMinutes = Math.round(route.duration / 60);
                   const hours = Math.floor(totalMinutes / 60);
                   const minutes = totalMinutes % 60;
                   if (hours > 0) {
-                    return `${hours}h ${minutes}p`;
+                    return `${hours}h ${minutes}m`;
                   } else {
-                    return `${minutes} phút`;
+                    return `${minutes} min`;
                   }
                 })()}
               </div>
             )}
         </div>
       )}
-  {selectedOrder && !selectedOrder.vehicle && (
+      {selectedOrder && !selectedOrder.vehicle && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <div className="text-sm font-semibold text-gray-700 mb-1">
-            Đơn hàng #{selectedOrder.id}
+            Order #{selectedOrder.id}
           </div>
           <div className="text-xs text-gray-500">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 bg-orange-500 rounded-full inline-block"></span>
-              <span>Đơn hàng này chưa được gán xe</span>
+              <span>This order has not been assigned a vehicle</span>
             </div>
           </div>
         </div>
@@ -592,7 +592,7 @@ export default function MapboxTrackingMap() {
       {!selectedOrder && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <div className="text-sm text-gray-500 text-center">
-            Chọn một đơn hàng để xem lộ trình trên bản đồ
+            Select an order to view the route on the map
           </div>
         </div>
       )}
