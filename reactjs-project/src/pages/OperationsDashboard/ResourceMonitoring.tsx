@@ -119,7 +119,18 @@ export default function ResourceMonitoring() {
           name: String(vehicle.name || ''),
           type: vehicle.type as 'TRUCK' | 'VAN' | 'MOTORCYCLE',
           status: vehicle.status as 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING',
-          statusDisplay: String(vehicle.statusDisplay || vehicle.status || ''),
+          // FORCE CLEAN statusDisplay - don't use translation keys from backend
+          statusDisplay: (() => {
+            const backendStatus = vehicle.statusDisplay || vehicle.status || '';
+            console.log('🔧 DEBUG - Backend status for vehicle', vehicle.id, ':', backendStatus);
+            
+            // If backend returns translation key, ignore it and use clean status
+            if (String(backendStatus).includes('fleet.status.')) {
+              console.log('🔧 CLEANING translation key from backend:', backendStatus);
+              return vehicle.status || 'UNKNOWN';
+            }
+            return String(backendStatus);
+          })(),
           statusCode: vehicle.statusCode || '',
           statusDescription: vehicle.statusDescription || '',
           created_at: vehicle.created_at || '',
@@ -185,39 +196,58 @@ export default function ResourceMonitoring() {
       return t('common.unknown');
     }
     
-    // Handle cases where backend returns translation keys (shouldn't happen but let's handle it)
-    if (typeof status === 'string' && status.includes('fleet.status.')) {
-      console.log('🎯 ResourceMonitoring - Found fleet.status translation key:', status);
-      const result = t(status);
-      console.log('🎯 Translation result:', result);
-      return result;
+    // FORCE OVERRIDE for Vietnamese text from backend
+    if (status === 'Đang sử dụng') {
+      console.log('💥 FORCE OVERRIDE: Đang sử dụng → In Use');
+      return 'In Use';
+    }
+    if (status === 'Sẵn sàng') {
+      console.log('💥 FORCE OVERRIDE: Sẵn sàng → Available');
+      return 'Available';
+    }
+    if (status === 'Bảo trì') {
+      console.log('💥 FORCE OVERRIDE: Bảo trì → Under Maintenance');
+      return 'Under Maintenance';
     }
     
-    // Also handle fleet.status keys
+    // Handle cases where backend returns translation keys directly 
     if (typeof status === 'string' && status.includes('fleet.status.')) {
       console.log('🎯 ResourceMonitoring - Found fleet.status translation key:', status);
-      const result = t(status);
-      console.log('🎯 Translation result:', result);
-      return result;
+      
+      // Map translation keys to actual translations
+      switch (status) {
+        case 'fleet.status.available':
+          return t('fleet.status.available', 'Available');
+        case 'fleet.status.inUse':
+          return t('fleet.status.inUse', 'In Use');
+        case 'fleet.status.underMaintenance':
+          return t('fleet.status.underMaintenance', 'Under Maintenance');
+        case 'fleet.status.needMaintenance':
+          return t('fleet.status.needMaintenance', 'Need Maintenance');
+        default:
+          console.log('🎯 Unknown fleet.status key:', status);
+          return t('common.unknown', 'Unknown');
+      }
     }
     
     // Convert to uppercase for consistency
     const normalizedStatus = typeof status === 'string' ? status.toUpperCase() : status;
+    console.log('🔥 SWITCH DEBUG - Original:', status, '→ Normalized:', normalizedStatus);
     
     // Handle English status codes
     switch (normalizedStatus) {
       case 'AVAILABLE': 
-      case 'SẴN SÀNG': 
+      case 'SẴN SÀNG':  // Backend returns this exact format
         return t('fleet.status.available');
       case 'IN_USE': 
       case 'INUSE':
       case 'IN USE':
-      case 'ĐANG SỬ DỤNG': 
+      case 'ĐANG SỬ DỤNG':  // Backend returns this exact format
         return t('fleet.status.inUse');
       case 'MAINTENANCE': 
       case 'UNDER_MAINTENANCE':
       case 'UNDERMAINTENANCE':
-      case 'BẢO TRÌ':
+      case 'BẢO TRÌ':  // Backend returns this exact format
       case 'ĐANG BẢO TRÌ': 
         return t('fleet.status.underMaintenance');
       case 'MAINTENANCE_PENDING': 
@@ -264,10 +294,10 @@ export default function ResourceMonitoring() {
     }
     
     switch (type) {
-      case 'TRUCK': return t('fleet.vehicleTypes.truck', 'Xe tải');
-      case 'VAN': return t('fleet.vehicleTypes.van', 'Xe van');
-      case 'MOTORCYCLE': return t('fleet.vehicleTypes.motorcycle', 'Xe máy');
-      case 'CAR': return t('fleet.vehicleTypes.car', 'Xe con');
+      case 'TRUCK': return t('fleet.vehicleTypes.truck', 'Truck');
+      case 'VAN': return t('fleet.vehicleTypes.van', 'Van');
+      case 'MOTORCYCLE': return t('fleet.vehicleTypes.motorcycle', 'Motorcycle');
+      case 'CAR': return t('fleet.vehicleTypes.car', 'Car');
       default: 
         console.log('ResourceMonitoring - No match for type:', type, 'returning as-is');
         return type || 'Unknown Type';
@@ -378,14 +408,7 @@ title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Req
                   </div>
                 ) : (
                   <span className="text-gray-600">
-                    {(() => {
-                      // Handle case where backend might return translation keys for notAssigned
-                      const driverText = vehicle.driver || 'fleet.notAssigned';
-                      if (typeof driverText === 'string' && driverText.includes('fleet.notAssigned')) {
-                        return t('fleet.notAssigned');
-                      }
-                      return t('fleet.notAssigned');
-                    })()}
+                    {t('fleet.notAssigned', 'Not Assigned')}
                   </span>
                 )}
               </TableCell>
@@ -393,9 +416,10 @@ title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Req
                 <span className={`font-medium ${getStatusColor(vehicle.statusDisplay || vehicle.status)}`}>
                   {(() => {
                     const status = vehicle.statusDisplay || vehicle.status;
-                    console.log('Table rendering - raw status:', status);
+                    console.log('🚨 DEBUG - Table rendering raw status:', status, typeof status);
+                    console.log('🚨 DEBUG - Vehicle object:', vehicle);
                     const result = getStatusText(status);
-                    console.log('Table rendering - translated status:', result);
+                    console.log('🚨 DEBUG - Final translated status:', result);
                     return result;
                   })()}
                 </span>
