@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import mapboxgl from "mapbox-gl";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { logTrackingConsistency, getDisplayOrderId, getDisplayDeliveryId } from "../../utils/debugTracking";
 
 export default function MapboxTrackingMap() {
+  const { t } = useTranslation();
   const { selectedOrder } = useDispatcherContext();
   const [start, setStart] = useState<[number, number] | null>(null);
   const [end, setEnd] = useState<[number, number] | null>(null);
@@ -436,7 +438,7 @@ export default function MapboxTrackingMap() {
           <div className="font-bold text-yellow-900 text-lg flex items-center gap-2">
             <span role="img" aria-label="warning">⚠️</span> Chưa có giao hàng cho đơn này
           </div>
-          <div className="text-base text-yellow-800">Đơn hàng: <span className="text-blue-700">#{orderId}</span></div>
+          <div className="text-base text-yellow-800">{t('orders.orderNumber', 'Order')}: <span className="text-blue-700">#{orderId}</span></div>
           <div className="text-sm text-yellow-700">Hệ thống chưa tạo delivery cho đơn này. Vui lòng kiểm tra lại việc gán xe và backend.</div>
         </div>
       );
@@ -449,7 +451,7 @@ export default function MapboxTrackingMap() {
           <div className="font-bold text-orange-900 text-lg flex items-center gap-2">
             <span role="img" aria-label="warning">🛈</span> Chưa có tracking cho đơn này
           </div>
-          <div className="text-base text-orange-800">Đơn hàng: <span className="text-blue-700">#{orderId}</span></div>
+          <div className="text-base text-orange-800">{t('orders.orderNumber', 'Order')}: <span className="text-blue-700">#{orderId}</span></div>
           <div className="text-base text-orange-800">Delivery: <span className="text-blue-700">#{deliveryId}</span></div>
           <div className="text-sm text-orange-700">Hệ thống chưa ghi nhận tracking cho delivery này.</div>
         </div>
@@ -749,31 +751,34 @@ export default function MapboxTrackingMap() {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 h-full min-h-[300px] w-full flex flex-col">
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-gray-800 mb-2">{t('dashboard.dispatcher.orders.trackingTitle')}</h3>
+      </div>
   {selectedOrder && selectedOrder.vehicle && selectedOrder.vehicle.currentDriver && (
         <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <div className="text-sm font-semibold text-blue-900 mb-1">
-            Đơn hàng #{selectedOrder.id}
+            {t('orders.orderNumber', 'Order')} #{selectedOrder.id}
           </div>
           <div className="text-xs text-gray-600">
             <div className="flex items-center gap-2 mb-1">
               <span className="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
               <span>
-                <strong>Từ:</strong> {selectedOrder.store?.storeName} -{" "}
+                <strong>{t('common.from', 'From')}:</strong> {selectedOrder.store?.storeName} -{" "}
                 {selectedOrder.store?.address}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 bg-red-500 rounded-full inline-block"></span>
               <span>
-                <strong>Đến:</strong> {selectedOrder.address?.address}
+                <strong>{t('common.to', 'To')}:</strong> {selectedOrder.address?.address}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="w-3 h-3 bg-blue-500 rounded-full inline-block"></span>
               <span>
-                <strong>Xe:</strong> {selectedOrder.vehicle?.licensePlate || "(Không rõ biển số)"}
+                <strong>{t('dashboard.dispatcher.vehicles.licensePlate')}:</strong> {selectedOrder.vehicle?.licensePlate || t('common.unknown', 'Unknown')}
                 {" | "}
-                <strong>Tài xế:</strong> {selectedOrder.vehicle.currentDriver.fullName}
+                <strong>{t('dashboard.dispatcher.drivers.name')}:</strong> {selectedOrder.vehicle.currentDriver.fullName}
               </span>
             </div>
             {/* Đã xóa nút làm mới đường đi theo yêu cầu */}
@@ -782,9 +787,9 @@ export default function MapboxTrackingMap() {
             typeof route.distance === "number" &&
             typeof route.duration === "number" && (
               <div className="mt-2 text-xs text-blue-600">
-                <strong>Khoảng cách:</strong>{" "}
+                <strong>{t('common.distance', 'Distance')}:</strong>{" "}
                 {(route.distance / 1000).toFixed(1)} km |
-                <strong> Thời gian:</strong> {(() => {
+                <strong> {t('common.duration', 'Duration')}:</strong> {(() => {
                   const totalMinutes = Math.round(route.duration / 60);
                   const hours = Math.floor(totalMinutes / 60);
                   const minutes = totalMinutes % 60;
@@ -814,7 +819,7 @@ export default function MapboxTrackingMap() {
       {!selectedOrder && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <div className="text-sm text-gray-500 text-center">
-            Chọn một đơn hàng để xem lộ trình trên bản đồ
+            {t('dashboard.dispatcher.orders.selectOrderToViewMap', 'Select an order to view route on map')}
           </div>
         </div>
       )}
@@ -833,7 +838,7 @@ export default function MapboxTrackingMap() {
           <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10 pointer-events-none">
             <div className="text-gray-600">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              Loading map...
+              {t('common.loading', 'Loading')}...
             </div>
           </div>
         )}

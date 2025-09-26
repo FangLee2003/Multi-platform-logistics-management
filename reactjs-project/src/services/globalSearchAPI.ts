@@ -56,13 +56,21 @@ async function searchVehicles(query: string, limit: number = 10): Promise<Search
     function normalize(str: string) {
       return (str || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     }
+    
+    // Helper function to convert status to string
+    function getStatusString(status: any): string {
+      if (typeof status === 'string') return status;
+      if (typeof status === 'number') return status.toString();
+      if (typeof status === 'object' && status?.name) return status.name;
+      return '';
+    }
     const normalizedQuery = normalize(query);
     vehicles.forEach((vehicle: Vehicle) => {
       const normalizedPlate = normalize(vehicle.licensePlate);
       const normalizedBrand = normalize(vehicle.brand || '');
       const normalizedModel = normalize(vehicle.model || '');
       const normalizedDriver = normalize(vehicle.currentDriver?.fullName || '');
-      const normalizedStatus = normalize(vehicle.status || '');
+      const normalizedStatus = normalize(getStatusString(vehicle.status));
       // Nếu query khớp với bất kỳ trường nào đã normalize
       const match =
         normalizedPlate.includes(normalizedQuery) ||
@@ -76,8 +84,8 @@ async function searchVehicles(query: string, limit: number = 10): Promise<Search
           type: 'vehicle',
           title: `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() || vehicle.licensePlate,
           subtitle: vehicle.licensePlate,
-          description: `Tài xế: ${vehicle.currentDriver?.fullName || 'Chưa gán'} • Trạng thái: ${vehicle.status}`,
-          status: vehicle.status,
+          description: `Tài xế: ${vehicle.currentDriver?.fullName || 'Chưa gán'} • Trạng thái: ${getStatusString(vehicle.status)}`,
+          status: getStatusString(vehicle.status),
           url: `/fleet-dashboard`,
           relevance: 100, // Ưu tiên match tuyệt đối
           data: vehicle

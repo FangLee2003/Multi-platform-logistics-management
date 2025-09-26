@@ -134,10 +134,10 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Lộ trình</label>
+            <label className="block text-sm font-medium text-gray-700">{t('common.route', 'Route')}</label>
             <div className="text-gray-900">
-              <p><strong>Từ:</strong> {orderItem.from}</p>
-              <p><strong>Đến:</strong> {orderItem.to}
+              <p><strong>{t('common.from', 'From')}:</strong> {orderItem.from}</p>
+              <p><strong>{t('common.to', 'To')}:</strong> {orderItem.to}
                 {typeof orderItem.address === 'object' && (orderItem.address as any)?.city ? ", " + (orderItem.address as any).city : ""}
               </p>
             </div>
@@ -166,7 +166,7 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
                       <td>{item.quantity}</td>
                       <td>{item.product?.weight !== undefined ? item.product.weight : ""}</td>
                       <td>{item.product?.volume !== undefined ? item.product.volume : ""}</td>
-                      <td>{item.product?.fragile !== undefined ? (item.product.fragile ? "Có" : "Không") : ""}</td>
+                      <td>{item.product?.fragile !== undefined ? (item.product.fragile ? t('common.yes', 'Yes') : t('common.no', 'No')) : ""}</td>
                       <td>{
                         item.shippingFee
                           ? Number(String(item.shippingFee).replace(/,/g, "")).toLocaleString() + " đ"

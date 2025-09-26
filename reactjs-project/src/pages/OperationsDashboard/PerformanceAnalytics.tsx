@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import GlassCard from '../../components/GlassCard';
 import PerformanceStatCards from './PerformanceStatCards';
 import RecentOrdersTable from './RecentOrdersTable';
@@ -23,6 +24,8 @@ interface PerformanceMetrics {
 }
 
 export default function PerformanceAnalytics() {
+  const { t } = useTranslation();
+  
   // Function to refresh performance and orders data
   const handleRefresh = async () => {
     setLoading(true);
@@ -51,6 +54,18 @@ export default function PerformanceAnalytics() {
     'Completed',      // Completed (ID: 2)
     'Cancelled',      // Cancelled (ID: 3)
   ];
+
+  const getStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'All': t('common.all', 'All'),
+      'Pending': t('common.pending', 'Pending'),
+      'Processing': t('dashboard.operations.status.processing', 'Processing'),
+      'Shipped': t('dashboard.operations.status.shipped', 'Shipped'),
+      'Completed': t('common.completed', 'Completed'),
+      'Cancelled': t('common.cancelled', 'Cancelled')
+    };
+    return statusMap[status] || status;
+  };
 
   // Server-side pagination states
   const [currentPage, setCurrentPage] = useState(0); // 0-based for API
@@ -159,32 +174,36 @@ export default function PerformanceAnalytics() {
   if (loading) {
     return (
       <GlassCard className="flex items-center justify-center h-64">
-        <div className="text-gray-800 text-lg">Loading performance data...</div>
+        <div className="text-gray-800 text-lg">{t('dashboard.operations.performance.loadingData', 'Loading performance data...')}</div>
       </GlassCard>
     );
   }
 
   const performanceData = metrics ? [
     { 
-      metric: 'Delivery Success Rate', 
+      metric: t('dashboard.operations.performance.metrics.deliverySuccessRate', 'Delivery Success Rate'), 
+      type: 'percentage' as const,
       current: metrics.deliverySuccessRate, 
       target: metrics.target.deliverySuccessRate, 
       trend: Number((metrics.deliverySuccessRate - metrics.target.deliverySuccessRate).toFixed(1))
     },
     { 
-      metric: 'Average Delivery Time', 
+      metric: t('dashboard.operations.performance.metrics.avgDeliveryTime', 'Average Delivery Time'), 
+      type: 'time' as const,
       current: metrics.avgDeliveryTime, 
       target: metrics.target.avgDeliveryTime, 
       trend: Number((metrics.target.avgDeliveryTime - metrics.avgDeliveryTime).toFixed(1))
     },
     { 
-      metric: 'Transportation Cost/km', 
+      metric: t('dashboard.operations.performance.metrics.transportationCost', 'Transportation Cost/km'), 
+      type: 'cost' as const,
       current: metrics.costPerKm, 
       target: metrics.target.costPerKm, 
       trend: Number((((metrics.costPerKm - metrics.target.costPerKm) / metrics.target.costPerKm) * 100).toFixed(1))
     },
     { 
-      metric: 'Total km Transported', 
+      metric: t('dashboard.operations.performance.metrics.totalKmTransported', 'Total km Transported'), 
+      type: 'distance' as const,
       current: metrics.totalDistanceKm, 
       target: 0, // No target for total distance as it's cumulative
       trend: 0 // No trend for total distance as it's cumulative
@@ -201,7 +220,7 @@ export default function PerformanceAnalytics() {
 
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold text-gray-800">Performance Analytics</h2>
+        <h2 className="text-xl font-semibold text-gray-800">{t('dashboard.operations.tabs.performance')}</h2>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
           <div className="flex flex-wrap gap-2">
             {statusOptions.map((status) => (
@@ -211,14 +230,14 @@ export default function PerformanceAnalytics() {
                 variant={selectedStatus === status ? 'primary' : 'secondary'}
                 onClick={() => handleStatusChange(status)}
               >
-                {status}
+{getStatusLabel(status)}
               </GlassButton>
             ))}
           </div>
           <GlassButton onClick={handleRefresh} size="sm" variant="primary" className="whitespace-nowrap self-start sm:self-auto" disabled={loading || ordersLoading}>
             <span className="flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M4.93 19.07a10 10 0 1 0 0-14.14M4 4v5h5"/></svg>
-              Refresh
+{t('common.refresh')}
             </span>
           </GlassButton>
         </div>
@@ -235,7 +254,11 @@ export default function PerformanceAnalytics() {
   {totalPages > 1 && (
     <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200/30">
       <div className="text-sm text-gray-600 font-medium">
-        Showing {currentPage * ITEMS_PER_PAGE + 1}-{Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalElements)} of {totalElements} orders
+        {t('operations.pagination.showing', 'Showing {{start}}-{{end}} of {{total}} orders', {
+          start: currentPage * ITEMS_PER_PAGE + 1,
+          end: Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalElements),
+          total: totalElements
+        })}
       </div>
       <div className="flex items-center gap-1">
         <GlassButton
@@ -245,7 +268,7 @@ export default function PerformanceAnalytics() {
           disabled={currentPage === 0}
           className={`px-3 ${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/30'}`}
         >
-          ← Previous
+          ← {t('operations.pagination.previous', 'Previous')}
         </GlassButton>
         
         <div className="flex items-center gap-1 mx-2">
@@ -286,7 +309,7 @@ export default function PerformanceAnalytics() {
           disabled={currentPage === totalPages - 1}
           className={`px-3 ${currentPage === totalPages - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/30'}`}
         >
-          Next →
+          {t('operations.pagination.next', 'Next')} →
         </GlassButton>
       </div>
     </div>

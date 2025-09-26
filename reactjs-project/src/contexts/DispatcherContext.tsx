@@ -147,7 +147,7 @@ export const DispatcherProvider = ({ children }: DispatcherProviderProps) => {
       setDriversError('');
       const driverList = await fetchDrivers();
       const filteredDrivers = driverList.filter((u: User) => 
-        u.role && typeof u.role === 'object' && u.role.roleName === 'DRIVER'
+        u.role === 'DRIVER'
       );
       setDrivers(filteredDrivers);
       setDriversLastFetch(now);

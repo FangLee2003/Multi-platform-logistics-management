@@ -18,32 +18,44 @@ export default function StepOrderItems({ form }: Props) {
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
 
   const handleDownloadSample = () => {
-    const sampleData = [
-      [
-        "Tên sản phẩm",
-        "Số lượng",
-        "Cân nặng (kg)",
-        "Chiều cao (cm)",
-        "Chiều rộng (cm)",
-        "Chiều dài (cm)",
-      ],
-      ["Sản phẩm mẫu 1", 2, 1.5, 30, 20, 40],
-      ["Sản phẩm mẫu 2", 1, 0.8, 15, 15, 25],
-    ];
+    // Import XLSX dynamically to avoid SSR issues
+    import("xlsx").then((XLSX) => {
+      const sampleData = [
+        [
+          "Tên sản phẩm",
+          "Số lượng",
+          "Cân nặng (kg)",
+          "Chiều cao (cm)",
+          "Chiều rộng (cm)",
+          "Chiều dài (cm)",
+          "Hàng dễ vỡ",
+        ],
+        ["Sản phẩm mẫu 1", 2, 1.5, 30, 20, 40, "Không"],
+        ["Sản phẩm mẫu 2", 1, 0.8, 15, 15, 25, "Có"],
+      ];
 
-    const csvContent = sampleData.map((row) => row.join(",")).join("\n");
-    const blob = new Blob(["\ufeff" + csvContent], {
-      type: "text/csv;charset=utf-8;",
+      // Create a new workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(sampleData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 20 }, // Tên sản phẩm
+        { wch: 10 }, // Số lượng
+        { wch: 12 }, // Cân nặng
+        { wch: 12 }, // Chiều cao
+        { wch: 12 }, // Chiều rộng
+        { wch: 12 }, // Chiều dài
+        { wch: 10 }, // Hàng dễ vỡ
+      ];
+      ws["!cols"] = colWidths;
+
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Mẫu đơn hàng");
+
+      // Generate Excel file
+      XLSX.writeFile(wb, "mau_danh_sach_san_pham.xlsx");
     });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", "sample_order_items.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const handleExcelData = (data: OrderItem[]) => {

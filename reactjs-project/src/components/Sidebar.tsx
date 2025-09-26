@@ -3,7 +3,8 @@ import { RiShieldKeyholeLine } from "react-icons/ri";
 import { AiOutlineSetting, AiOutlineSafetyCertificate } from "react-icons/ai";
 import { FiActivity, FiBarChart2, FiHome, FiUsers } from "react-icons/fi";
 import { HiOutlineDocumentReport } from "react-icons/hi";
-import logo from "../assets/logo.png";
+import { useTranslation } from 'react-i18next';
+// Logo từ public folder
 
 
 
@@ -66,14 +67,15 @@ export default function Sidebar<T extends TabType>({
   onTabChange,
   role,
 }: SidebarProps<T>) {
-  const MENU = getMenu<T>(role);
+  const { t } = useTranslation();
+  const MENU = getMenu<T>(role, t);
 
   return (
     <aside className="group ml-3 flex-shrink-0 w-20 hover:w-64 transition-all duration-300 bg-white/20 backdrop-blur-lg border-r border-white/30 text-gray-800 flex flex-col py-6 px-4 overflow-hidden h-screen sticky top-0">
       <div className="mb-5 flex items-center -mt-3 -ml-4 gap-1">
         <div className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ">
           <img
-            src={logo}
+            src="/logo.png"
             alt="Logo"
             className="w-12 h-12 rounded-full object-cover"
           />

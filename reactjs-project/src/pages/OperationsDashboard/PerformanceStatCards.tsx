@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import StatCard from '../../components/StatCard';
 import { TfiPackage } from "react-icons/tfi";
 import { FiClock, FiDollarSign } from "react-icons/fi";
@@ -5,6 +6,7 @@ import { MdOutlineDirections } from "react-icons/md";
 
 interface StatCardData {
   metric: string;
+  type: 'percentage' | 'time' | 'cost' | 'distance';
   current: number;
   target: number;
   trend: number;
@@ -33,6 +35,7 @@ function formatMinutesToTime(minutes: number): string {
 }
 
 export default function PerformanceStatCards({ performanceData }: PerformanceStatCardsProps) {
+  const { t } = useTranslation();
   // Debug log to check metric names and values
   console.log('PerformanceStatCards data:', performanceData);
   
@@ -40,37 +43,28 @@ export default function PerformanceStatCards({ performanceData }: PerformanceSta
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {performanceData.map((data, index) => {
         // Debug individual metric
-        console.log(`Metric: ${data.metric}, Current: ${data.current}, Target: ${data.target}`);
-        console.log(`Contains 'thời gian': ${data.metric.includes('thời gian')}`);
+        console.log(`Metric: ${data.metric}, Type: ${data.type}, Current: ${data.current}, Target: ${data.target}`);
         
         return (
         <StatCard
           key={index}
-          title={
-            data.metric.includes('Transportation Cost')
-              ? 'Average Transportation Cost/km'
-              : data.metric
-          }
+          title={data.metric}
           value={
-            data.metric.includes('Transportation Cost')
+            data.type === 'cost'
               ? `${Math.round(data.current).toLocaleString()}đ`
-              : (data.metric.includes('Delivery Time') || data.metric.includes('Average Delivery Time'))
+              : data.type === 'time'
               ? formatMinutesToTime(data.current)
-              : data.metric.includes('km Transported')
+              : data.type === 'distance'
               ? `${Math.round(data.current).toLocaleString()} km`
               : `${data.current.toFixed(1)}%`
           }
           subtitle={
-            data.metric.includes('Transportation Cost')
+            data.type === 'cost' || data.type === 'time' || data.type === 'distance'
               ? ''
-              : (data.metric.includes('Delivery Time') || data.metric.includes('Average Delivery Time'))
-              ? ''
-              : data.metric.includes('km Transported')
-              ? ''
-              : `Target: ${data.target.toFixed(1)}%`
+              : `${t('dashboard.operations.performance.target', 'Target')}: ${data.target.toFixed(1)}%`
           }
           trend={
-            (data.metric.includes('Delivery Time') || data.metric.includes('Average Delivery Time') || data.metric.includes('Transportation Cost') || data.metric.includes('km Transported'))
+            (data.type === 'time' || data.type === 'cost' || data.type === 'distance')
               ? undefined // Hide trend for time, cost and total km
               : {
                   value: Math.abs(data.trend),

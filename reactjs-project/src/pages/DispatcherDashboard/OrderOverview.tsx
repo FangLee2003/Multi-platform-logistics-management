@@ -1,17 +1,12 @@
 
 
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { fetchOrderStats } from "../../services/orderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
+import type { Order } from "../../types/Order";
 import { PackageOpen, Truck, Hourglass, CheckCircle } from "lucide-react";
-
-// Khai báo lại type cho Order để tránh lỗi never
-type OrderStatus = string | { name: string };
-type Order = {
-  status: OrderStatus;
-  // ...các trường khác nếu cần
-};
 
 
 interface StatsCardsProps {
@@ -19,6 +14,7 @@ interface StatsCardsProps {
 }
 
 export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
+  const { t } = useTranslation();
   const [totalOrders, setTotalOrders] = useState(0);
   const [sampleOrders, setSampleOrders] = useState<Order[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -40,7 +36,7 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
         setVehicles(vehicleStats.sampleVehicles);
         setTotalVehicles(vehicleStats.totalRecords || 0);
       } catch (err: any) {
-        setError(err.message || "Đã xảy ra lỗi");
+        setError(err.message || t('common.error', 'An error occurred'));
       } finally {
         setLoading(false);
       }
@@ -56,11 +52,13 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
   const sampleSize = sampleOrders.length;
 
   const deliveredInSample = sampleOrders.filter(
-    o => (
-      typeof o.status === "object" && o.status && typeof (o.status as any).name === "string"
-        ? ((o.status as { name: string }).name.toLowerCase() === "completed")
-        : (typeof o.status === "string" && o.status.toLowerCase() === "completed")
-    )
+    o => {
+      if (!o.status) return false;
+      if (typeof o.status === "object" && "name" in o.status) {
+        return o.status.name.toLowerCase() === "completed";
+      }
+      return false;
+    }
   ).length;
   
   // Ước tính từ sample
@@ -74,7 +72,7 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
   ];
 
   if (loading) {
-    return <div className="mb-6">Đang tải dữ liệu...</div>;
+    return <div className="mb-6">{t('common.loading')}</div>;
   }
   if (error) {
     return <div className="mb-6 text-red-500">{error}</div>;
