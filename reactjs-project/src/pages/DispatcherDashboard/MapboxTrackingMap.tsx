@@ -340,8 +340,10 @@ export default function MapboxTrackingMap() {
         closeButton: false,
         closeOnClick: false,
         closeOnMove: true,
-        offset: [0, -40],
-        className: 'tracking-popup'
+        anchor: 'top',
+        offset: [0, 10],
+        className: 'tracking-popup',
+        maxWidth: 'none'
       }).setHTML(`
         <div style="
           padding: 12px; 
