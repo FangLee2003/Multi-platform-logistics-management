@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import GlassCard from '../../components/GlassCard';
 import StatCard from '../../components/StatCard';
 import DataTable, { TableRow, TableCell } from '../../components/DataTable';
@@ -8,6 +9,7 @@ import { FaChartLine, FaUmbrellaBeach, FaUsers } from 'react-icons/fa6';
 import { MdWorkHistory } from 'react-icons/md';
 
 export default function StaffManagement() {
+  const { t } = useTranslation();
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,10 +165,10 @@ export default function StaffManagement() {
   }, [selectedDepartment]);
 
   const departments = [
-    { key: 'all', label: 'All' },
-    { key: 'Vận chuyển', label: 'Transportation' },
-    { key: 'Điều phối', label: 'Dispatch' },
-    { key: 'Bảo trì', label: 'Maintenance' },
+    { key: 'all', label: t('common.all') },
+    { key: 'Vận chuyển', label: t('dashboard.operations.staff.departments.transportation', 'Transportation') },
+    { key: 'Điều phối', label: t('dashboard.operations.staff.departments.dispatch', 'Dispatch') },
+    { key: 'Bảo trì', label: t('dashboard.operations.staff.departments.maintenance', 'Maintenance') },
   ];
 
   const getStatusColor = (status: Staff['status']) => {
@@ -181,28 +183,28 @@ export default function StaffManagement() {
 
   const getStatusText = (status: Staff['status']) => {
     switch (status) {
-      case 'ACTIVE': return 'Working';
-      case 'ON_LEAVE': return 'On Leave';
-      case 'SICK_LEAVE': return 'Sick Leave';
-      case 'TERMINATED': return 'Terminated';
+      case 'ACTIVE': return t('dashboard.operations.staff.status.working', 'Working');
+      case 'ON_LEAVE': return t('dashboard.operations.staff.status.onLeave', 'On Leave');
+      case 'SICK_LEAVE': return t('dashboard.operations.staff.status.sickLeave', 'Sick Leave');
+      case 'TERMINATED': return t('dashboard.operations.staff.status.terminated', 'Terminated');
       default: return status;
     }
   };
 
   const getRoleText = (role: Staff['role']) => {
     switch (role) {
-      case 'DRIVER': return 'Driver';
-      case 'DISPATCHER': return 'Dispatcher';
-      case 'FLEET': return 'Fleet Manager';
+      case 'DRIVER': return t('dashboard.operations.staff.roles.driver', 'Driver');
+      case 'DISPATCHER': return t('dashboard.operations.staff.roles.dispatcher', 'Dispatcher');
+      case 'FLEET': return t('dashboard.operations.staff.roles.fleetManager', 'Fleet Manager');
       default: return role;
     }
   };
 
   const getDepartmentText = (department: string) => {
     switch (department) {
-      case 'Vận chuyển': return 'Transportation';
-      case 'Điều phối': return 'Dispatch';
-      case 'Bảo trì': return 'Maintenance';
+      case 'Vận chuyển': return t('dashboard.operations.staff.departments.transportation', 'Transportation');
+      case 'Điều phối': return t('dashboard.operations.staff.departments.dispatch', 'Dispatch');
+      case 'Bảo trì': return t('dashboard.operations.staff.departments.maintenance', 'Maintenance');
       default: return department;
     }
   };
@@ -226,7 +228,7 @@ export default function StaffManagement() {
   if (loading) {
     return (
       <GlassCard className="flex items-center justify-center h-64">
-        <div className="text-gray-800 text-lg">Loading staff data...</div>
+        <div className="text-gray-800 text-lg">{t('common.loading', 'Loading')}...</div>
       </GlassCard>
     );
   }
@@ -240,7 +242,7 @@ export default function StaffManagement() {
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800">Staff Management</h2>
+        <h2 className="text-xl font-semibold text-gray-800">{t('dashboard.operations.tabs.staff')}</h2>
         <div className="flex gap-2">
           {departments.map((dept) => (
             <GlassButton
@@ -253,29 +255,29 @@ export default function StaffManagement() {
             </GlassButton>
           ))}
           <GlassButton size="sm" variant="secondary" onClick={fetchStaff}>
-            🔄 Refresh
+🔄 {t('common.refresh')}
           </GlassButton>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Staff"
+title={t('dashboard.operations.staff.metrics.totalStaff', 'Total Staff')}
           value={totalStaff.toString()}
           icon={<FaUsers size={24} color="#4B5563" />}
         />
         <StatCard
-          title="Working"
+title={t('dashboard.operations.staff.metrics.working', 'Working')}
           value={activeStaff.toString()}
           icon={<MdWorkHistory size={24} color="#10b981" />}
         />
         <StatCard
-          title="On Leave"
+title={t('dashboard.operations.staff.metrics.onLeave', 'On Leave')}
           value={onLeaveStaff.toString()}
           icon={<FaUmbrellaBeach size={24} color="#f59e0b" />}
         />
         <StatCard
-          title="Avg Performance"
+title={t('dashboard.operations.staff.metrics.avgPerformance', 'Avg Performance')}
           value={`${avgPerformance}%`}
           icon={<FaChartLine size={24} color="#4f46e5" />}
           trend={{ value: 2.3, isPositive: true }}
@@ -285,7 +287,7 @@ export default function StaffManagement() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">
-            Staff List 
+{t('dashboard.operations.staff.staffList', 'Staff List')} 
             {selectedDepartment !== 'all' && (
               <span className="text-gray-600 text-base ml-2">
                 - {departments.find(d => d.key === selectedDepartment)?.label}
@@ -294,7 +296,13 @@ export default function StaffManagement() {
           </h3>
         </div>
         
-        <DataTable headers={['Name', 'Role', 'Department', 'Status', 'Contact']}>
+        <DataTable headers={[
+          t('dashboard.operations.staff.headers.name', 'Name'),
+          t('dashboard.operations.staff.headers.role', 'Role'),
+          t('dashboard.operations.staff.headers.department', 'Department'),
+          t('dashboard.operations.staff.headers.status', 'Status'),
+          t('dashboard.operations.staff.headers.contact', 'Contact')
+        ]}>
           {filteredStaff.map((person) => (
             <TableRow key={person.id}>
               <TableCell>

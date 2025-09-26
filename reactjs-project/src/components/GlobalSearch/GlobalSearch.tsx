@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from 'react-i18next';
 import { Search, X, Clock, ArrowRight, Filter } from "lucide-react";
 import { globalSearch, quickSearch, getSearchSuggestions } from "../../services/globalSearchAPI";
 import type { SearchResult, SearchSuggestion, SearchItemType } from "../../types/GlobalSearch";
@@ -11,12 +12,8 @@ interface GlobalSearchProps {
   showFilters?: boolean;
 }
 
-const searchTypeLabels: Record<SearchItemType, string> = {
-  vehicle: "Phương tiện",
-  order: "Đơn hàng", 
-  user: "Người dùng",
-  driver: "Tài xế"
-};
+// Move this inside component to use t()
+// const searchTypeLabels will be defined inside component
 
 const searchTypeColors: Record<SearchItemType, string> = {
   vehicle: "bg-blue-100 text-blue-800",
@@ -29,9 +26,18 @@ export default function GlobalSearch({
   onSelectResult, 
   onClose, 
   className = "",
-  placeholder = "Tìm kiếm tất cả...",
+  placeholder,
   showFilters = true 
 }: GlobalSearchProps) {
+  const { t } = useTranslation();
+  
+  const searchTypeLabels: Record<SearchItemType, string> = {
+    vehicle: t('search.types.vehicle', 'Phương tiện'),
+    order: t('search.types.order', 'Đơn hàng'), 
+    user: t('search.types.user', 'Người dùng'),
+    driver: t('search.types.driver', 'Tài xế')
+  };
+  
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -192,7 +198,7 @@ export default function GlobalSearch({
             setSelectedIndex(-1);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder={placeholder}
+          placeholder={placeholder || t('search.placeholder', 'Tìm kiếm tất cả...')}
           className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors bg-white shadow-sm"
         />
         <Search size={20} className="absolute left-3 top-3.5 text-gray-400" />
@@ -237,7 +243,7 @@ export default function GlobalSearch({
               onClick={handleAdvancedSearch}
               className="mt-2 w-full bg-violet-600 hover:bg-violet-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
             >
-              Tìm kiếm nâng cao
+{t('search.advancedSearch', 'Tìm kiếm nâng cao')}
             </button>
           )}
         </div>
@@ -255,10 +261,10 @@ export default function GlobalSearch({
           
           {!isLoading && results.length === 0 && query.trim() && (
             <div className="p-4 text-center text-gray-500">
-              <p className="text-sm">Không tìm thấy kết quả nào cho "{query}"</p>
+              <p className="text-sm">{t('search.noResults', 'Không tìm thấy kết quả nào cho "{{query}}"', { query })}</p>
               {suggestions.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-xs text-gray-400 mb-1">Gợi ý:</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('search.suggestions', 'Gợi ý:')}</p>
                   <div className="flex flex-wrap gap-1">
                     {suggestions.map((suggestion, index) => (
                       <button

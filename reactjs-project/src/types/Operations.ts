@@ -1,15 +1,24 @@
+// Define vehicle status types to handle API responses
+type VehicleStatusString = 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING';
+type VehicleStatusNumber = 17 | 18 | 19 | 51; // Backend status codes
+type VehicleStatusObject = {
+  id: number;
+  name: string;
+  description?: string;
+};
+
 export interface Vehicle {
   id: string | number;
   name?: string;
   licensePlate: string;
   vehicleType: string;
-  type?: 'TRUCK' | 'VAN' | 'MOTORCYCLE';
+  type?: 'TRUCK' | 'VAN' | 'MOTORCYCLE' | 'CAR';
   brand?: string;
   model?: string;
   capacityWeightKg?: number;
   capacityVolumeM3?: number;
   year?: number;
-  status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING';
+  status: VehicleStatusString | VehicleStatusNumber | string | VehicleStatusObject;
   lastMaintenance?: string;
   nextMaintenance?: string;
   currentDriver?: {

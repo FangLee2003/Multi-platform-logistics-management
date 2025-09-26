@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from 'react-i18next';
 
 export interface SearchBoxProps {
   placeholder: string;
@@ -8,6 +9,7 @@ export interface SearchBoxProps {
 const MAPBOX_TOKEN = "pk.eyJ1IjoieHVhbmh1eTEiLCJhIjoiY21lN3liN21tMDlzaTJtbXF3MjU0Z2JzaSJ9.vmH3qH_f7qf1ewBC_pJoSg";
 
 const SearchBox: React.FC<SearchBoxProps> = ({ placeholder, onSelect }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,7 +68,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ placeholder, onSelect }) => {
         onChange={e => handleSearch(e.target.value)}
         className="border p-2 rounded w-full"
       />
-      {loading && <div className="absolute left-0 top-full bg-white p-2 text-xs">Đang tìm kiếm...</div>}
+      {loading && <div className="absolute left-0 top-full bg-white p-2 text-xs">{t('common.searching', 'Searching...')}</div>}
       {!!suggestions.length && (
         <ul className="absolute left-0 top-full bg-white border rounded shadow w-full z-10">
           {suggestions.map((s, idx) => (
