@@ -717,13 +717,23 @@ export default function MapboxTrackingMap() {
         center: [106.660172, 10.762622],
         zoom: 12,
       });
-      map.current.on("load", () => setIsLoaded(true));
+      map.current.on("load", () => {
+        setIsLoaded(true);
+        // Force resize after load to fix white space issue
+        setTimeout(() => {
+          map.current && map.current.resize();
+        }, 200);
+      });
       map.current.on("error", (error) => {
         console.error("MapboxTrackingMap: Map error:", error);
       });
     } catch (error) {
       console.error("MapboxTrackingMap: Initialization error:", error);
     }
+    // Force resize after mount (in case of login/tab switch)
+    setTimeout(() => {
+      map.current && map.current.resize();
+    }, 400);
     return () => {
       markers.current.forEach((marker) => marker.remove());
       markers.current = [];

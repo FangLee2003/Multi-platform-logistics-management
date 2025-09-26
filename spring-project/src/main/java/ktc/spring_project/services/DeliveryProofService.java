@@ -12,12 +12,19 @@ import java.util.Optional;
 
 @Service
 public class DeliveryProofService {
+
+    public List<DeliveryProof> findByOrderId(Long orderId) {
+        return deliveryProofRepository.findByOrderId(orderId);
+    }
+
     @Autowired
     private DeliveryProofRepository deliveryProofRepository;
     @Autowired
     private ktc.spring_project.repositories.OrderRepository orderRepository;
     @Autowired
     private ktc.spring_project.repositories.UserRepository userRepository;
+    @Autowired
+    private ktc.spring_project.repositories.StatusRepository statusRepository;
 
 
     public List<DeliveryProof> findAll() {
@@ -99,8 +106,19 @@ public class DeliveryProofService {
         proof.setCapturedAt(new java.sql.Timestamp(System.currentTimeMillis()));
         proof.setUploadedBy(user);
 
-        // 7. Lưu DB
-        return deliveryProofRepository.save(proof);
+        // 7. Lưu DB minh chứng
+        DeliveryProof savedProof = deliveryProofRepository.save(proof);
+
+
+        // 8. Tự động cập nhật trạng thái đơn hàng sang 'Completed'
+        // Tìm status 'Completed' cho ORDER
+        var completedStatusOpt = statusRepository.findByStatusTypeAndName(ktc.spring_project.enums.StatusType.ORDER, "Completed");
+        if (completedStatusOpt.isPresent()) {
+            order.setStatus(completedStatusOpt.get());
+            orderRepository.save(order);
+        }
+
+        return savedProof;
     }
 
 public DeliveryProof updateProof(

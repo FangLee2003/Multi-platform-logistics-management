@@ -7,7 +7,7 @@ import logo from "../assets/logo.png";
 
 
 
-export type DispatcherTab = "orders" | "resources" | "assignment";
+export type DispatcherTab = "orders" | "resources" | "assignment" | "completedOrders";
 export type OperationsTab = "overview" | "performance" | "monitoring" | "staff";
 export type AdminTab = "users" | "roles" | "settings" | "logs";
 export type FleetTab = "vehicles" | "maintenance" | "schedule";
@@ -33,6 +33,7 @@ interface MenuItem<T extends TabType> {
 const ALL_MENUS: Record<UserRole, MenuItem<any>[]> = {
   dispatcher: [
     { key: "orders", label: "Orders", icon: <MdManageAccounts /> },
+    { key: "completedOrders", label: "Completed Orders", icon: <AiOutlineSafetyCertificate /> },
     { key: "resources", label: "Resources", icon: <RiShieldKeyholeLine /> },
     { key: "assignment", label: "Assignment", icon: <AiOutlineSetting /> },
   ],
