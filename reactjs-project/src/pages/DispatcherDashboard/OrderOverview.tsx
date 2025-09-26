@@ -1,7 +1,7 @@
 
 
 import { useEffect, useState } from "react";
-import { fetchOrderStats } from "../../services/OrderAPI";
+import { fetchOrderStats } from "../../services/orderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
 import { PackageOpen, Truck, Hourglass, CheckCircle } from "lucide-react";

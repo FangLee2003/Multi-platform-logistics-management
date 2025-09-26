@@ -3,7 +3,7 @@ import OrderDetailModal from "./OrderDetailModal";
 import { fetchOrderItemsByOrderIdPaged, fetchOrdersTotalQuantityBatch } from "../../services/OrderItemAPI";
 import type { ProductItem } from "../../services/OrderItemAPI";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchOrdersRaw, updateOrderVehicle, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/OrderAPI";
+import { fetchOrdersRaw, updateOrderVehicle, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
 import { FaUserCog, FaCheck, FaTimes, FaCar } from "react-icons/fa";
@@ -307,6 +307,29 @@ export default function OrdersAssignment(_props: any) {
           console.log('✅ OrderAssignment: Tracking created/updated successfully for order:', updatedOrder.id);
         } catch (err) {
           console.error('❌ OrderAssignment: Error creating tracking:', err);
+        }
+      }
+
+      // Nếu trạng thái đơn hàng là Pending (id 1), chuyển sang Processing (id 4)
+      const statusAny = updatedOrder?.status as any;
+      if (
+        updatedOrder && (
+          updatedOrder.status?.name === 'Pending' ||
+          updatedOrder.status?.statusType === '1' ||
+          (typeof statusAny?.id === 'number' && statusAny.id === 1)
+        )
+      ) {
+        try {
+          await fetch(`http://localhost:8080/api/orders/${orderId}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ statusId: 4 })
+          });
+        } catch (err) {
+          console.error('Failed to update order status to Processing:', err);
         }
       }
 

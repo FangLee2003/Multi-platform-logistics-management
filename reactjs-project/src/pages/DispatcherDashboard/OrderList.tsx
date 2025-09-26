@@ -1,7 +1,7 @@
 // ...existing code...
 
 import { useState, useEffect } from "react";
-import { fetchOrders, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/OrderAPI";
+import { fetchOrders, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
 import { useQuery } from "@tanstack/react-query";
