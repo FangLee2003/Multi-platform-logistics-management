@@ -4,7 +4,7 @@ import { AiOutlineSetting, AiOutlineSafetyCertificate } from "react-icons/ai";
 import { FiActivity, FiBarChart2, FiHome, FiUsers } from "react-icons/fi";
 import { HiOutlineDocumentReport } from "react-icons/hi";
 import { useTranslation } from 'react-i18next';
-import logo from "../assets/logo.png";
+// Logo từ public folder
 
 
 
@@ -30,55 +30,30 @@ interface MenuItem<T extends TabType> {
 }
 
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ALL_MENUS: Record<UserRole, MenuItem<any>[]> = {
-  dispatcher: [
-    { key: "orders", label: "Orders", icon: <MdManageAccounts /> },
-    { key: "resources", label: "Resources", icon: <RiShieldKeyholeLine /> },
-    { key: "assignment", label: "Assignment", icon: <AiOutlineSetting /> },
-  ],
- operations : [
-    { key: "overview", label: "Overview", icon: <FiHome /> },
-    { key: "performance", label: "Performance", icon: <FiBarChart2 /> },
-    { key: "monitoring", label: "Monitoring", icon: <FiActivity /> },
-    { key: "staff", label: "Staff", icon: <FiUsers /> },
-  ],
-  fleet: [
-    { key: "vehicles", label: "Vehicle Management", icon: <MdManageAccounts /> },
-    { key: "maintenance", label: "Vehicle Maintenance", icon: <AiOutlineSetting /> },
-    { key: "schedule", label: "Maintenance Schedule", icon: <FiActivity /> },
-  ],
-  admin: [
-    { key: "users", label: "User Management", icon: <MdManageAccounts /> },
-    { key: "roles", label: "Role Permissions", icon: <RiShieldKeyholeLine /> },
-    { key: "settings", label: "System Settings", icon: <AiOutlineSetting /> },
-    { key: "logs", label: "Audit Logs", icon: <FiActivity /> },
-  ],
-};
 
 function getMenu<T extends TabType>(role: UserRole, t: any): MenuItem<T>[] {
   const MENUS: Record<UserRole, MenuItem<any>[]> = {
     dispatcher: [
-      { key: "orders", label: t('dashboard.dispatcher.tabs.orders'), icon: <MdManageAccounts /> },
-      { key: "resources", label: t('dashboard.dispatcher.tabs.resources'), icon: <RiShieldKeyholeLine /> },
-      { key: "assignment", label: t('dashboard.dispatcher.tabs.assignment'), icon: <AiOutlineSetting /> },
+      { key: "orders", label: t('dispatcher.tabs.orders', 'Orders'), icon: <MdManageAccounts /> },
+      { key: "resources", label: t('dispatcher.tabs.resources', 'Resources'), icon: <RiShieldKeyholeLine /> },
+      { key: "assignment", label: t('dispatcher.tabs.assignment', 'Assignment'), icon: <AiOutlineSetting /> },
     ],
     operations: [
-      { key: "overview", label: t('dashboard.operations.tabs.overview', 'Overview'), icon: <FiHome /> },
-      { key: "performance", label: t('dashboard.operations.tabs.performance', 'Performance'), icon: <FiBarChart2 /> },
-      { key: "monitoring", label: t('dashboard.operations.tabs.monitoring', 'Monitoring'), icon: <FiActivity /> },
-      { key: "staff", label: t('dashboard.operations.tabs.staff', 'Staff'), icon: <FiUsers /> },
+      { key: "overview", label: t('operations.tabs.overview', 'Overview'), icon: <FiHome /> },
+      { key: "performance", label: t('operations.tabs.performance', 'Performance'), icon: <FiBarChart2 /> },
+      { key: "monitoring", label: t('operations.tabs.monitoring', 'Monitoring'), icon: <FiActivity /> },
+      { key: "staff", label: t('operations.tabs.staff', 'Staff Management'), icon: <FiUsers /> },
     ],
     fleet: [
-      { key: "vehicles", label: t('dashboard.fleet.tabs.vehicles', 'Vehicle Management'), icon: <MdManageAccounts /> },
-      { key: "maintenance", label: t('dashboard.fleet.tabs.maintenance', 'Vehicle Maintenance'), icon: <AiOutlineSetting /> },
-      { key: "schedule", label: t('dashboard.fleet.tabs.schedule', 'Maintenance Schedule'), icon: <FiActivity /> },
+      { key: "vehicles", label: t('fleet.tabs.vehicles', 'Vehicle Management'), icon: <MdManageAccounts /> },
+      { key: "maintenance", label: t('fleet.tabs.maintenance', 'Vehicle Maintenance'), icon: <AiOutlineSetting /> },
+      { key: "schedule", label: t('fleet.tabs.schedule', 'Maintenance Schedule'), icon: <FiActivity /> },
     ],
     admin: [
-      { key: "users", label: t('dashboard.admin.tabs.users', 'User Management'), icon: <MdManageAccounts /> },
-      { key: "roles", label: t('dashboard.admin.tabs.roles', 'Role Permissions'), icon: <RiShieldKeyholeLine /> },
-      { key: "settings", label: t('dashboard.admin.tabs.settings', 'System Settings'), icon: <AiOutlineSetting /> },
-      { key: "logs", label: t('dashboard.admin.tabs.logs', 'Audit Logs'), icon: <FiActivity /> },
+      { key: "users", label: t('admin.tabs.users', 'Users'), icon: <MdManageAccounts /> },
+      { key: "roles", label: t('admin.tabs.roles', 'Roles'), icon: <RiShieldKeyholeLine /> },
+      { key: "settings", label: t('admin.tabs.settings', 'Settings'), icon: <AiOutlineSetting /> },
+      { key: "logs", label: t('admin.tabs.logs', 'Logs'), icon: <FiActivity /> },
     ],
   };
   return MENUS[role] as MenuItem<T>[];
@@ -98,7 +73,7 @@ export default function Sidebar<T extends TabType>({
       <div className="mb-5 flex items-center -mt-3 -ml-4 gap-1">
         <div className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ">
           <img
-            src={logo}
+            src="/logo.png"
             alt="Logo"
             className="w-12 h-12 rounded-full object-cover"
           />

@@ -103,7 +103,12 @@
     "orderProcessing": "Xử lý đơn hàng",
     "deliveryTracking": "Theo dõi giao hàng",
     "customerService": "Dịch vụ khách hàng",
-    "qualityControl": "Kiểm soát chất lượng"
+    "qualityControl": "Kiểm soát chất lượng",
+    "pagination": {
+      "showing": "Hiển thị {{start}}-{{end}} trong {{total}} đơn hàng",
+      "previous": "Trước",
+      "next": "Tiếp theo"
+    }
   },
   "admin": {
     "title": "Bảng quản trị",

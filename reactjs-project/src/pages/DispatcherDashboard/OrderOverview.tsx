@@ -5,14 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { fetchOrderStats } from "../../services/OrderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
+import type { Order } from "../../types/Order";
 import { PackageOpen, Truck, Hourglass, CheckCircle } from "lucide-react";
-
-// Khai báo lại type cho Order để tránh lỗi never
-type OrderStatus = string | { name: string };
-type Order = {
-  status: OrderStatus;
-  // ...các trường khác nếu cần
-};
 
 
 interface StatsCardsProps {
@@ -42,7 +36,7 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
         setVehicles(vehicleStats.sampleVehicles);
         setTotalVehicles(vehicleStats.totalRecords || 0);
       } catch (err: any) {
-        setError(err.message || "Đã xảy ra lỗi");
+        setError(err.message || t('common.error', 'An error occurred'));
       } finally {
         setLoading(false);
       }
@@ -57,19 +51,23 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
   // Tính tỷ lệ từ sample để ước tính
   const sampleSize = sampleOrders.length;
   const pendingInSample = sampleOrders.filter(
-    o => (
-      typeof o.status === "object" && o.status && typeof (o.status as any).name === "string"
-        ? ((o.status as { name: string }).name.toLowerCase() === "pending")
-        : (typeof o.status === "string" && o.status.toLowerCase() === "pending")
-    )
+    o => {
+      if (!o.status) return false;
+      if (typeof o.status === "object" && "name" in o.status) {
+        return o.status.name.toLowerCase() === "pending";
+      }
+      return false;
+    }
   ).length;
 
   const deliveredInSample = sampleOrders.filter(
-    o => (
-      typeof o.status === "object" && o.status && typeof (o.status as any).name === "string"
-        ? ((o.status as { name: string }).name.toLowerCase() === "completed")
-        : (typeof o.status === "string" && o.status.toLowerCase() === "completed")
-    )
+    o => {
+      if (!o.status) return false;
+      if (typeof o.status === "object" && "name" in o.status) {
+        return o.status.name.toLowerCase() === "completed";
+      }
+      return false;
+    }
   ).length;
   
   // Ước tính từ sample

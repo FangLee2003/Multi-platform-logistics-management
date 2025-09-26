@@ -438,7 +438,7 @@ export default function MapboxTrackingMap() {
           <div className="font-bold text-yellow-900 text-lg flex items-center gap-2">
             <span role="img" aria-label="warning">⚠️</span> Chưa có giao hàng cho đơn này
           </div>
-          <div className="text-base text-yellow-800">Đơn hàng: <span className="text-blue-700">#{orderId}</span></div>
+          <div className="text-base text-yellow-800">{t('orders.orderNumber', 'Order')}: <span className="text-blue-700">#{orderId}</span></div>
           <div className="text-sm text-yellow-700">Hệ thống chưa tạo delivery cho đơn này. Vui lòng kiểm tra lại việc gán xe và backend.</div>
         </div>
       );
@@ -451,7 +451,7 @@ export default function MapboxTrackingMap() {
           <div className="font-bold text-orange-900 text-lg flex items-center gap-2">
             <span role="img" aria-label="warning">🛈</span> Chưa có tracking cho đơn này
           </div>
-          <div className="text-base text-orange-800">Đơn hàng: <span className="text-blue-700">#{orderId}</span></div>
+          <div className="text-base text-orange-800">{t('orders.orderNumber', 'Order')}: <span className="text-blue-700">#{orderId}</span></div>
           <div className="text-base text-orange-800">Delivery: <span className="text-blue-700">#{deliveryId}</span></div>
           <div className="text-sm text-orange-700">Hệ thống chưa ghi nhận tracking cho delivery này.</div>
         </div>
@@ -747,7 +747,7 @@ export default function MapboxTrackingMap() {
   {selectedOrder && selectedOrder.vehicle && selectedOrder.vehicle.currentDriver && (
         <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <div className="text-sm font-semibold text-blue-900 mb-1">
-            Đơn hàng #{selectedOrder.id}
+            {t('orders.orderNumber', 'Order')} #{selectedOrder.id}
           </div>
           <div className="text-xs text-gray-600">
             <div className="flex items-center gap-2 mb-1">
@@ -828,7 +828,7 @@ export default function MapboxTrackingMap() {
           <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10 pointer-events-none">
             <div className="text-gray-600">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              Loading map...
+              {t('common.loading', 'Loading')}...
             </div>
           </div>
         )}

@@ -103,7 +103,12 @@
     "orderProcessing": "Order Processing",
     "deliveryTracking": "Delivery Tracking",
     "customerService": "Customer Service",
-    "qualityControl": "Quality Control"
+    "qualityControl": "Quality Control",
+    "pagination": {
+      "showing": "Showing {{start}}-{{end}} of {{total}} orders",
+      "previous": "Previous",
+      "next": "Next"
+    }
   },
   "admin": {
     "title": "Admin Panel",

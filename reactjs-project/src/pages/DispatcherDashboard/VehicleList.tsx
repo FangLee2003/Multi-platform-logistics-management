@@ -18,16 +18,27 @@ export default function VehicleList() {
   const queryClient = useQueryClient();
 
   // Compute status logic: MAINTENANCE > IN_USE (if has driver) > AVAILABLE
-  // Map numeric status to string
-  const statusMap: Record<string | number, 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING'> = {
-    17: 'AVAILABLE',
-    18: 'IN_USE',
-    19: 'MAINTENANCE',
-    51: 'MAINTENANCE_PENDING',
-    'AVAILABLE': 'AVAILABLE',
-    'IN_USE': 'IN_USE',
-    'MAINTENANCE': 'MAINTENANCE',
-    'MAINTENANCE_PENDING': 'MAINTENANCE_PENDING',
+  // Map various status formats to standardized string
+  const getStatusFromValue = (status: any): 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE' | 'MAINTENANCE_PENDING' | null => {
+    // Convert to string for consistent comparison
+    const statusStr = String(status).toLowerCase();
+    
+    switch (statusStr) {
+      case '17':
+      case 'available':
+        return 'AVAILABLE';
+      case '18':
+      case 'in_use':
+        return 'IN_USE';
+      case '19':
+      case 'maintenance':
+        return 'MAINTENANCE';
+      case '51':
+      case 'maintenance_pending':
+        return 'MAINTENANCE_PENDING';
+      default:
+        return null;
+    }
   };
 
   const getComputedStatus = (vehicle: Vehicle): 'MAINTENANCE' | 'IN_USE' | 'AVAILABLE' | 'MAINTENANCE_PENDING' => {
@@ -36,14 +47,22 @@ export default function VehicleList() {
       vehicle.status === 'MAINTENANCE_PENDING' ||
       vehicle.status === 51 ||
       vehicle.status === '51' ||
-      (typeof vehicle.status === 'object' && vehicle.status !== null && vehicle.status.id === 51) ||
-      (typeof vehicle.status === 'object' && vehicle.status !== null && vehicle.status.name === 'MAINTENANCE_PENDING')
+      (typeof vehicle.status === 'object' && vehicle.status !== null && 'id' in vehicle.status && vehicle.status.id === 51) ||
+      (typeof vehicle.status === 'object' && vehicle.status !== null && 'name' in vehicle.status && vehicle.status.name === 'MAINTENANCE_PENDING')
     ) {
       return 'MAINTENANCE_PENDING';
     }
     if (vehicle.status !== undefined && vehicle.status !== null) {
-      const mapped = statusMap[vehicle.status];
-      if (mapped) return mapped;
+      // Handle object status (e.g., {id: 17, name: 'AVAILABLE'})
+      if (typeof vehicle.status === 'object' && 'id' in vehicle.status) {
+        const mapped = getStatusFromValue(vehicle.status.id);
+        if (mapped) return mapped;
+      }
+      // Handle string/number status
+      if (typeof vehicle.status === 'string' || typeof vehicle.status === 'number') {
+        const mapped = getStatusFromValue(vehicle.status);
+        if (mapped) return mapped;
+      }
     }
     const today = new Date();
     if (vehicle.lastMaintenance && vehicle.nextMaintenance) {
@@ -74,7 +93,7 @@ export default function VehicleList() {
   const [updatingStatus, setUpdatingStatus] = useState<string | number | null>(null);
   // Pagination and vehicles
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(5);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
@@ -91,7 +110,7 @@ export default function VehicleList() {
     } catch (err: any) {
       setVehicles([]);
       setTotalVehicles(0);
-      setVehiclesError(err.message || "Đã xảy ra lỗi khi tải phương tiện");
+      setVehiclesError(err.message || t('errors.loadingData', 'Error loading data'));
     } finally {
       setVehiclesLoading(false);
     }
@@ -114,10 +133,10 @@ export default function VehicleList() {
         await assignDriverToVehicle(selectedVehicle.id, null);
         // Nếu bỏ gán tài xế, chuyển trạng thái về AVAILABLE
         await updateVehicleStatus(selectedVehicle.id, "AVAILABLE");
-        setAssignSuccess("Đã bỏ gán tài xế!");
+        setAssignSuccess(t('dispatcher.vehicles.unassignSuccess', 'Driver unassigned successfully!'));
       } else {
         const driverObj = drivers.find(d => String(d.id) === String(selectedDriverId));
-        if (!driverObj) throw new Error("Không tìm thấy tài xế");
+        if (!driverObj) throw new Error(t('dispatcher.drivers.driverNotFound', 'Driver not found'));
         await assignDriverToVehicle(selectedVehicle.id, driverObj.id ?? "");
         // Sau khi gán tài xế, chuyển trạng thái xe sang IN_USE
         await updateVehicleStatus(selectedVehicle.id, "IN_USE");
@@ -378,9 +397,9 @@ export default function VehicleList() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0M15 17a2 2 0 104 0" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy phương tiện</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('dispatcher.vehicles.noVehiclesFound', 'No vehicles found')}</h3>
               <p className="text-gray-500">
-                {searchTerm || statusFilter !== "all" ? "Không có phương tiện nào phù hợp với bộ lọc" : "Chưa có phương tiện nào trong hệ thống"}
+                {searchTerm || statusFilter !== "all" ? t('dispatcher.vehicles.noFilterResults', 'No vehicles match your filter criteria') : t('dispatcher.vehicles.noVehiclesInSystem', 'No vehicles in the system yet')}
               </p>
             </div>
           </div>
@@ -606,10 +625,10 @@ export default function VehicleList() {
                         {assigning ? (
                           <div className="flex items-center justify-center gap-2">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            Đang gán...
+                            {t('dispatcher.vehicles.assigning', 'Assigning...')}
                           </div>
                         ) : (
-                          "Xác nhận gán"
+                          t('dispatcher.vehicles.confirmAssign', 'Confirm Assignment')
                         )}
                       </button>
                     </div>

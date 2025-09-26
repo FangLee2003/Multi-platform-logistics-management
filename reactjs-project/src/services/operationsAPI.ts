@@ -1,5 +1,8 @@
 import type { Vehicle, Staff } from "../types/dashboard";
 
+// Re-export types for external use
+export type { Staff } from "../types/dashboard";
+
 // API endpoints và các interface để tương tác với backend
 export const API_BASE_URL = 'http://localhost:8080/api';
 

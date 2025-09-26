@@ -39,15 +39,10 @@ export default function ResourceMonitoring() {
   // Test translation keys on component mount
   useEffect(() => {
     console.log('🧪 Testing translation keys on ResourceMonitoring mount:');
-    console.log('dashboard.fleet.status.available:', t('dashboard.fleet.status.available'));
-    console.log('dashboard.fleet.status.inUse:', t('dashboard.fleet.status.inUse'));
-    console.log('dashboard.fleet.status.underMaintenance:', t('dashboard.fleet.status.underMaintenance'));
-    console.log('dashboard.fleet.notAssigned:', t('dashboard.fleet.notAssigned'));
-    console.log('Testing correct keys:');
-    console.log('dashboard.fleet.status.available:', t('dashboard.fleet.status.available'));
-    console.log('dashboard.fleet.status.inUse:', t('dashboard.fleet.status.inUse'));
-    console.log('dashboard.fleet.status.underMaintenance:', t('dashboard.fleet.status.underMaintenance'));
-    console.log('dashboard.fleet.notAssigned:', t('dashboard.fleet.notAssigned'));
+    console.log('fleet.status.available:', t('fleet.status.available'));
+    console.log('fleet.status.inUse:', t('fleet.status.inUse'));
+    console.log('fleet.status.underMaintenance:', t('fleet.status.underMaintenance'));
+    console.log('fleet.notAssigned:', t('fleet.notAssigned'));
   }, [t]);
 
   // Reset to first page when vehicles data changes
@@ -140,13 +135,13 @@ export default function ResourceMonitoring() {
         console.log('📋 Transformed vehicles:', transformedVehicles);
       } catch (error) {
         console.error('❌ Failed to fetch vehicles from API:', error);
-        setError('Unable to load vehicle data from server');
+        setError(t('errors.loadingData', 'Unable to load data'));
         setVehicles([]); // Clear vehicles instead of using mock data
       }
       
       setError('');
     } catch (globalError) {
-      setError('Unable to load vehicle data. Please try again later.');
+      setError(t('errors.loadingData', 'Unable to load data. Please try again later.'));
       console.error('Global error in fetchVehicles:', globalError);
       
       // Clear all data on global error
@@ -191,8 +186,8 @@ export default function ResourceMonitoring() {
     }
     
     // Handle cases where backend returns translation keys (shouldn't happen but let's handle it)
-    if (typeof status === 'string' && status.includes('dashboard.fleet.status.')) {
-      console.log('🎯 ResourceMonitoring - Found dashboard.fleet.status translation key:', status);
+    if (typeof status === 'string' && status.includes('fleet.status.')) {
+      console.log('🎯 ResourceMonitoring - Found fleet.status translation key:', status);
       const result = t(status);
       console.log('🎯 Translation result:', result);
       return result;
@@ -213,23 +208,23 @@ export default function ResourceMonitoring() {
     switch (normalizedStatus) {
       case 'AVAILABLE': 
       case 'SẴN SÀNG': 
-        return t('dashboard.fleet.status.available');
+        return t('fleet.status.available');
       case 'IN_USE': 
       case 'INUSE':
       case 'IN USE':
       case 'ĐANG SỬ DỤNG': 
-        return t('dashboard.fleet.status.inUse');
+        return t('fleet.status.inUse');
       case 'MAINTENANCE': 
       case 'UNDER_MAINTENANCE':
       case 'UNDERMAINTENANCE':
       case 'BẢO TRÌ':
       case 'ĐANG BẢO TRÌ': 
-        return t('dashboard.fleet.status.underMaintenance');
+        return t('fleet.status.underMaintenance');
       case 'MAINTENANCE_PENDING': 
       case 'MAINTENANCEPENDING':
       case 'NEED_MAINTENANCE':
       case 'CHỜ BẢO TRÌ': 
-        return t('dashboard.fleet.status.needMaintenance');
+        return t('fleet.status.needMaintenance');
       default: 
         console.log('ResourceMonitoring - No match for status:', status, 'normalized:', normalizedStatus);
         
@@ -257,17 +252,25 @@ export default function ResourceMonitoring() {
     // Handle cases where backend returns translation keys
     if (typeof type === 'string' && type.startsWith('fleet.vehicleTypes.')) {
       console.log('ResourceMonitoring - Found translation key in type, using t() directly');
-      return t(type);
+      const translatedText = t(type);
+      // If translation returns the key itself (translation not found), fall back to mapping
+      if (translatedText === type) {
+        console.log('ResourceMonitoring - Translation not found for key:', type, 'using fallback mapping');
+        // Extract the vehicle type from the key (e.g., 'fleet.vehicleTypes.truck' -> 'truck')
+        const vehicleType = type.split('.').pop()?.toUpperCase();
+        return getTypeText(vehicleType as Vehicle['type']);
+      }
+      return translatedText;
     }
     
     switch (type) {
-      case 'TRUCK': return t('fleet.vehicleTypes.truck');
-      case 'VAN': return t('fleet.vehicleTypes.van');
-      case 'MOTORCYCLE': return t('fleet.vehicleTypes.motorcycle');
-      case 'CAR': return t('fleet.vehicleTypes.car');
+      case 'TRUCK': return t('fleet.vehicleTypes.truck', 'Xe tải');
+      case 'VAN': return t('fleet.vehicleTypes.van', 'Xe van');
+      case 'MOTORCYCLE': return t('fleet.vehicleTypes.motorcycle', 'Xe máy');
+      case 'CAR': return t('fleet.vehicleTypes.car', 'Xe con');
       default: 
         console.log('ResourceMonitoring - No match for type:', type, 'returning as-is');
-        return type;
+        return type || 'Unknown Type';
     }
   };
 
@@ -305,16 +308,23 @@ export default function ResourceMonitoring() {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-800">{t('dashboard.operations.tabs.monitoring')}</h2>
         <div className="flex gap-2">
-          {['24h', '7d', '1m'].map((period) => (
-            <GlassButton
-              key={period}
-              size="sm"
-              variant={timeFilter === period ? 'primary' : 'secondary'}
-              onClick={() => setTimeFilter(period)}
-            >
-              {period === '1m' ? '1 month' : period}
-            </GlassButton>
-          ))}
+          {['24h', '7d', '1m'].map((period) => {
+            const periodLabels = {
+              '24h': t('common.timeFilters.24h', '24h'),
+              '7d': t('common.timeFilters.7d', '7d'), 
+              '1m': t('common.timeFilters.1month', '1 month')
+            };
+            return (
+              <GlassButton
+                key={period}
+                size="sm"
+                variant={timeFilter === period ? 'primary' : 'secondary'}
+                onClick={() => setTimeFilter(period)}
+              >
+                {periodLabels[period as keyof typeof periodLabels]}
+              </GlassButton>
+            );
+          })}
           <GlassButton size="sm" variant="secondary" onClick={() => {
             fetchVehicles(timeFilter);
             fetchMaintenanceRequestsCount();
@@ -332,16 +342,16 @@ title={t('dashboard.operations.monitoring.totalVehicles', 'Total Vehicles')}
           trend={{ value: 8.2, isPositive: true }}
         />
         <StatCard
-          title="Active"
+          title={t('common.active', 'Active')}
           value={activeVehicles.toString()}
           icon={<FaRegPlayCircle size={24} color="#10b981" />}
-          subtitle={`${vehicleMetrics.percentage}% of total`}
+          subtitle={`${vehicleMetrics.percentage}% ${t('common.ofTotal', 'of total')}`}
         />
         <StatCard
-          title="In Maintenance"
+          title={t('fleet.status.underMaintenance', 'Under Maintenance')}
           value={maintenanceVehicles.toString()}
           icon={<HiOutlineWrenchScrewdriver size={24} color="#6B7280" />}
-          subtitle={`${totalVehicles > 0 ? Math.round((maintenanceVehicles / totalVehicles) * 100) : 0}% of total`}
+          subtitle={`${totalVehicles > 0 ? Math.round((maintenanceVehicles / totalVehicles) * 100) : 0}% ${t('common.ofTotal', 'of total')}`}
         />
         <StatCard
 title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Requests')}
@@ -370,11 +380,11 @@ title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Req
                   <span className="text-gray-600">
                     {(() => {
                       // Handle case where backend might return translation keys for notAssigned
-                      const driverText = vehicle.driver || 'dashboard.fleet.notAssigned';
-                      if (typeof driverText === 'string' && driverText.includes('dashboard.fleet.notAssigned')) {
-                        return t('dashboard.fleet.notAssigned');
+                      const driverText = vehicle.driver || 'fleet.notAssigned';
+                      if (typeof driverText === 'string' && driverText.includes('fleet.notAssigned')) {
+                        return t('fleet.notAssigned');
                       }
-                      return t('dashboard.fleet.notAssigned');
+                      return t('fleet.notAssigned');
                     })()}
                   </span>
                 )}
@@ -401,7 +411,7 @@ title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Req
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200/30">
             <div className="text-sm text-gray-600 font-medium">
-{t('dashboard.operations.monitoring.pagination.showing', 'Showing {{start}}-{{end}} of {{total}} vehicles', {
+{t('operations.monitoring.pagination.showing', 'Showing {{start}}-{{end}} of {{total}} vehicles', {
                 start: startIndex + 1,
                 end: Math.min(endIndex, vehicles.length),
                 total: vehicles.length

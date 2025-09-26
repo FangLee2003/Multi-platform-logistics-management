@@ -359,11 +359,15 @@ export default function OrdersAssignment(_props: any) {
       }, 100);
 
       const isEditing = editingOrders[orderId];
-      setSuccessMessage(`Vehicle ${selectedVehicle.licensePlate} ${isEditing ? 'updated' : 'assigned'} successfully to order ${orderId}! Delivery tracking auto-updated.`);
+      const messageKey = isEditing ? 'dashboard.dispatcher.assignment.vehicleUpdated' : 'dashboard.dispatcher.assignment.vehicleAssigned';
+      setSuccessMessage(t(messageKey, `Vehicle ${selectedVehicle.licensePlate} ${isEditing ? 'updated' : 'assigned'} successfully to order ${orderId}! Delivery tracking auto-updated.`, { 
+        vehicle: selectedVehicle.licensePlate, 
+        orderId: orderId 
+      }));
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Failed to assign vehicle:", error);
-      alert("Failed to assign vehicle: " + (error as Error).message);
+      alert(t('dashboard.dispatcher.assignment.assignError', 'Failed to assign vehicle: ') + (error as Error).message);
     } finally {
       setAssigningOrders(prev => ({ ...prev, [orderId]: false }));
     }
@@ -404,11 +408,11 @@ export default function OrdersAssignment(_props: any) {
         queryClient.invalidateQueries({ queryKey: ['ordersTotalQuantity'] })
       ]);
       
-      setSuccessMessage(`Vehicle unassigned successfully from order ${orderId}!`);
+      setSuccessMessage(t('dashboard.dispatcher.assignment.vehicleUnassigned', `Vehicle unassigned successfully from order ${orderId}!`, { orderId: orderId }));
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Failed to unassign vehicle:", error);
-      alert("Failed to unassign vehicle: " + (error as Error).message);
+      alert(t('dashboard.dispatcher.assignment.unassignError', 'Failed to unassign vehicle: ') + (error as Error).message);
     } finally {
       setAssigningOrders(prev => ({ ...prev, [orderId]: false }));
     }
@@ -549,7 +553,7 @@ export default function OrdersAssignment(_props: any) {
           </span>
           <div>
             <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t('dashboard.dispatcher.assignment.title', 'Order Assignment Management')}</h3>
-            <p className="text-gray-600 mt-1">{t('common.total')} {totalOrders} {t('dashboard.dispatcher.orders.title', 'orders')}</p>
+            <p className="text-gray-600 mt-1">{t('common.total')} {totalOrders} {t('navigation.orders', 'orders')}</p>
           </div>
         </div>
       </div>
@@ -633,9 +637,9 @@ export default function OrdersAssignment(_props: any) {
                       </td>
                       <td className="p-5 align-top min-w-[180px]">
                         <div className="text-sm text-gray-700">
-                          <div><span className="font-semibold text-blue-700">Từ:</span> {order.from}</div>
+                          <div><span className="font-semibold text-blue-700">{t('common.from', 'From')}:</span> {order.from}</div>
                           <div>
-                            <span className="font-semibold text-blue-700">Đến:</span> {order.to}
+                            <span className="font-semibold text-blue-700">{t('common.to', 'To')}:</span> {order.to}
                             {typeof order.address === 'object' && (order.address as any)?.city ? `, ${(order.address as any).city}` : ""}
                           </div>
                         </div>
@@ -797,7 +801,7 @@ export default function OrdersAssignment(_props: any) {
                             <button
                               onClick={() => editingOrders[order.id] ? handleCancelEdit(order.id.toString()) : handleCancelVehicleAssignment(order.id.toString())}
                               className="flex items-center justify-center w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all duration-200 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-red-400"
-                              title="Hủy"
+                              title={t('common.cancel', 'Cancel')}
                             >
                               <FaTimes className="text-lg" />
                             </button>
@@ -915,7 +919,7 @@ export default function OrdersAssignment(_props: any) {
 
           {/* Thông tin trang hiện tại */}
           <div className="text-center mt-4 text-gray-600">
-{t('dashboard.dispatcher.pagination.showing', 'Showing {{start}}-{{end}} of {{total}} orders', {
+{t('dispatcher.pagination.showing', 'Showing {{start}}-{{end}} of {{total}} orders', {
               start: data.length > 0 ? ((currentPage - 1) * PAGE_SIZE + 1) : 0,
               end: data.length > 0 ? ((currentPage - 1) * PAGE_SIZE + data.length) : 0,
               total: totalOrders

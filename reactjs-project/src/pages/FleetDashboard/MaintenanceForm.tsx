@@ -38,9 +38,9 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
 
   const getTypeOptions = () => [
     { value: "", label: t('dashboard.fleet.selectType', 'Select type') },
-    { value: "Bảo dưỡng định kỳ", label: t('dashboard.fleet.maintenanceTypes.scheduled', 'Scheduled Maintenance') },
-    { value: "Sửa chữa", label: t('dashboard.fleet.maintenanceTypes.repair', 'Repair') },
-    { value: "Sửa chữa khẩn cấp", label: t('dashboard.fleet.maintenanceTypes.emergency', 'Emergency Repair') },
+    { value: "scheduled", label: t('fleet.maintenanceTypes.scheduled', 'Scheduled Maintenance') },
+    { value: "repair", label: t('fleet.maintenanceTypes.repair', 'Repair') },
+    { value: "emergency", label: t('fleet.maintenanceTypes.emergency', 'Emergency Repair') },
   ];
   const [form, setForm] = useState<ScheduleForm>({
     vehicle: initialVehicle?.id?.toString() || "",
@@ -93,7 +93,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
         setLoadingVehicles(false);
       })
       .catch(() => {
-        setVehicleError("Không thể tải danh sách xe");
+        setVehicleError(t('fleet.errors.loadVehicles', 'Cannot load vehicle list'));
         setLoadingVehicles(false);
       });
   }, []);
@@ -164,9 +164,9 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
         onMaintenanceCreated();
       }
 
-      alert("Đã lên lịch bảo trì thành công!");
+      alert(t('fleet.maintenance.scheduleSuccess', 'Maintenance scheduled successfully!'));
     } catch (err) {
-      alert("Lỗi khi lưu lịch bảo trì!");
+      alert(t('fleet.maintenance.scheduleError', 'Error saving maintenance schedule!'));
     }
   };
 

@@ -228,7 +228,7 @@ export default function StaffManagement() {
   if (loading) {
     return (
       <GlassCard className="flex items-center justify-center h-64">
-        <div className="text-gray-800 text-lg">Loading staff data...</div>
+        <div className="text-gray-800 text-lg">{t('common.loading', 'Loading')}...</div>
       </GlassCard>
     );
   }

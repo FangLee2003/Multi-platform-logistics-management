@@ -182,24 +182,28 @@ export default function PerformanceAnalytics() {
   const performanceData = metrics ? [
     { 
       metric: t('dashboard.operations.performance.metrics.deliverySuccessRate', 'Delivery Success Rate'), 
+      type: 'percentage' as const,
       current: metrics.deliverySuccessRate, 
       target: metrics.target.deliverySuccessRate, 
       trend: Number((metrics.deliverySuccessRate - metrics.target.deliverySuccessRate).toFixed(1))
     },
     { 
       metric: t('dashboard.operations.performance.metrics.avgDeliveryTime', 'Average Delivery Time'), 
+      type: 'time' as const,
       current: metrics.avgDeliveryTime, 
       target: metrics.target.avgDeliveryTime, 
       trend: Number((metrics.target.avgDeliveryTime - metrics.avgDeliveryTime).toFixed(1))
     },
     { 
       metric: t('dashboard.operations.performance.metrics.transportationCost', 'Transportation Cost/km'), 
+      type: 'cost' as const,
       current: metrics.costPerKm, 
       target: metrics.target.costPerKm, 
       trend: Number((((metrics.costPerKm - metrics.target.costPerKm) / metrics.target.costPerKm) * 100).toFixed(1))
     },
     { 
       metric: t('dashboard.operations.performance.metrics.totalKmTransported', 'Total km Transported'), 
+      type: 'distance' as const,
       current: metrics.totalDistanceKm, 
       target: 0, // No target for total distance as it's cumulative
       trend: 0 // No trend for total distance as it's cumulative
@@ -250,7 +254,11 @@ export default function PerformanceAnalytics() {
   {totalPages > 1 && (
     <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200/30">
       <div className="text-sm text-gray-600 font-medium">
-        Showing {currentPage * ITEMS_PER_PAGE + 1}-{Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalElements)} of {totalElements} orders
+        {t('operations.pagination.showing', 'Showing {{start}}-{{end}} of {{total}} orders', {
+          start: currentPage * ITEMS_PER_PAGE + 1,
+          end: Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalElements),
+          total: totalElements
+        })}
       </div>
       <div className="flex items-center gap-1">
         <GlassButton
@@ -260,7 +268,7 @@ export default function PerformanceAnalytics() {
           disabled={currentPage === 0}
           className={`px-3 ${currentPage === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/30'}`}
         >
-          ← Previous
+          ← {t('operations.pagination.previous', 'Previous')}
         </GlassButton>
         
         <div className="flex items-center gap-1 mx-2">
@@ -301,7 +309,7 @@ export default function PerformanceAnalytics() {
           disabled={currentPage === totalPages - 1}
           className={`px-3 ${currentPage === totalPages - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/30'}`}
         >
-          Next →
+          {t('operations.pagination.next', 'Next')} →
         </GlassButton>
       </div>
     </div>

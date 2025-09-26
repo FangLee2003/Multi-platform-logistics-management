@@ -40,7 +40,7 @@ export default function AuditLogTable({ onAuditCountUpdate }: AuditLogTableProps
         console.log(`Initial load: ${data.length} logs loaded`);
       } catch (err) {
         console.error("Failed to fetch activity logs:", err);
-        setError("Failed to load activity logs");
+        setError(t('errors.loadingData', 'Failed to load data'));
         setLogs([]);
       } finally {
         setLoading(false);
@@ -126,7 +126,7 @@ export default function AuditLogTable({ onAuditCountUpdate }: AuditLogTableProps
       console.log("Manual refresh completed - audit count updated");
     } catch (err) {
       console.error("Manual refresh failed:", err);
-      setError("Failed to refresh logs");
+      setError(t('errors.refreshFailed', 'Failed to refresh'));
     } finally {
       setLoading(false);
     }
@@ -283,7 +283,7 @@ export default function AuditLogTable({ onAuditCountUpdate }: AuditLogTableProps
                 <td colSpan={4} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                   <div className="flex items-center justify-center gap-2">
                     <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                    Loading logs...
+                    {t('common.loading', 'Loading')}...
                   </div>
                 </td>
               </tr>

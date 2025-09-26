@@ -310,16 +310,16 @@ export default function FleetDashboard({
                   <div className="flex items-center justify-between mb-4 md:mb-6">
                     <div>
                       <h3 className="text-lg md:text-xl font-bold text-gray-900">
-                        Thêm phương tiện mới
+                        {t('fleet.form.addVehicle', 'Thêm phương tiện mới')}
                       </h3>
                       <p className="text-gray-600 mt-1 text-sm md:text-base">
-                        Đăng ký phương tiện mới vào hệ thống quản lý
+                        {t('fleet.form.addVehicleSubtitle', 'Đăng ký phương tiện mới vào hệ thống quản lý')}
                       </p>
                     </div>
                     {isLoading && (
                       <div className="flex items-center gap-2 text-violet-600">
                         <div className="w-4 h-4 border-2 border-violet-600 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-sm">Đang thêm...</span>
+                        <span className="text-sm">{t('fleet.form.adding', 'Đang thêm...')}</span>
                       </div>
                     )}
                   </div>
@@ -338,7 +338,7 @@ export default function FleetDashboard({
                 <div className="flex items-center justify-between mb-4 md:mb-6">
                   <div>
                     <h1 className="text-lg md:text-xl font-bold text-gray-900">
-                      Danh sách phương tiện
+                      {t('fleet.tabs.vehicles', 'Vehicle Management')}
                     </h1>
                   </div>
                 </div>
@@ -347,13 +347,13 @@ export default function FleetDashboard({
                     <Truck size={48} className="mx-auto text-gray-400 mb-4" />
                     <h4 className="text-lg font-medium text-gray-900 mb-2">
                       {searchTerm || statusFilter !== "all"
-                        ? "Không tìm thấy phương tiện nào"
-                        : "Chưa có phương tiện nào"}
+                        ? t('fleet.emptyState.noResults', 'No vehicles found')
+                        : t('fleet.emptyState.noVehicles', 'No vehicles yet')}
                     </h4>
                     <p className="text-gray-600">
                       {searchTerm || statusFilter !== "all"
-                        ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm"
-                        : "Thêm phương tiện đầu tiên vào hệ thống"}
+                        ? t('fleet.emptyState.tryFilters', 'Try changing filters or search terms')
+                        : t('fleet.emptyState.addFirst', 'Add your first vehicle to the system')}
                     </p>
                   </div>
                 ) : (

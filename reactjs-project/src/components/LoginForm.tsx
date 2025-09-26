@@ -226,13 +226,13 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
           {/* Additional Links */}
           <div className="text-center space-y-2 pt-4">
             <p className="text-white/60 text-sm">
-              Need help accessing your account?
+              {t('auth.login.needHelp', 'Need help accessing your account?')}
             </p>
             <button
               type="button"
               className="text-blue-300 hover:text-blue-200 text-sm font-medium transition-colors duration-200 underline decoration-dotted"
             >
-              Contact Administrator
+              {t('auth.login.contactAdmin', 'Contact Administrator')}
             </button>
           </div>
         </form>

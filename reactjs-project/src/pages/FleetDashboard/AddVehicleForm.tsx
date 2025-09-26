@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import { Plus, X, AlertCircle, CheckCircle, Truck, Save } from "lucide-react";
 import { addVehicle } from "../../services/VehicleListAPI";
-import type { Vehicle } from "./VehicleTable";
+import type { Vehicle } from "../../types/Operations";
 
 interface VehicleFormData {
   licensePlate: string;
@@ -51,7 +51,7 @@ export default function AddVehicleForm({
 
   const [form, setForm] = useState<VehicleFormData>({
     licensePlate: initialValues?.licensePlate || (isEditMode ? editingVehicle.licensePlate : ""),
-    type: initialValues?.type || (isEditMode ? editingVehicle.type : ""),
+    type: initialValues?.type || (isEditMode ? (editingVehicle.type || "") : ""),
     capacityWeightKg: initialValues?.capacityWeightKg || (isEditMode ? editingVehicle.capacityWeightKg?.toString() || "" : ""),
     capacityVolumeM3: initialValues?.capacityVolumeM3 || (isEditMode ? editingVehicle.capacityVolumeM3?.toString() || "" : ""),
     notes: initialValues?.notes || "",
@@ -191,11 +191,11 @@ export default function AddVehicleForm({
         // Edit mode
         const updatedData: Partial<Vehicle> = {
           licensePlate: form.licensePlate.trim().toUpperCase().replace(/\s+/g, ""),
-          type: form.type,
+          type: form.type as 'TRUCK' | 'VAN' | 'MOTORCYCLE' | 'CAR' | undefined,
           capacityWeightKg: form.capacityWeightKg ? parseFloat(form.capacityWeightKg) : undefined,
           capacityVolumeM3: form.capacityVolumeM3 ? parseFloat(form.capacityVolumeM3) : undefined,
         };
-        await onUpdate(editingVehicle.id, updatedData);
+        await onUpdate(Number(editingVehicle.id), updatedData);
         setSubmitStatus("success");
       } else {
         // Add mode
@@ -214,7 +214,7 @@ export default function AddVehicleForm({
         // Call onSuccess with proper data format
         const successData = {
           licensePlate: form.licensePlate.trim().toUpperCase().replace(/\s+/g, ""),
-          type: form.type,
+          type: form.type as 'TRUCK' | 'VAN' | 'MOTORCYCLE' | 'CAR' | undefined,
           capacityWeightKg: form.capacityWeightKg ? parseFloat(form.capacityWeightKg) : undefined,
           capacityVolumeM3: form.capacityVolumeM3 ? parseFloat(form.capacityVolumeM3) : undefined,
         };
@@ -225,7 +225,9 @@ export default function AddVehicleForm({
       setSubmitStatus("error");
       setErrors((prev) => ({
         ...prev,
-        licensePlate: `Có lỗi xảy ra khi ${isEditMode ? 'cập nhật' : 'thêm'} xe. Vui lòng thử lại.`,
+        licensePlate: t('fleet.errors.submitError', 'Error occurred while {{action}} vehicle. Please try again.', {
+          action: isEditMode ? t('common.update', 'updating') : t('common.add', 'adding')
+        }),
       }));
     } finally {
       setIsLoading(false);
@@ -319,7 +321,7 @@ export default function AddVehicleForm({
           {/* Vehicle Type */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
-              {t('dashboard.fleet.vehicleType')} <span className="text-red-500">*</span>
+              {t('fleet.vehicleType', 'Loại xe')} <span className="text-red-500">*</span>
             </label>
             <select
               value={form.type}
@@ -332,7 +334,7 @@ export default function AddVehicleForm({
                   : "border-gray-300"
               }`}
             >
-              <option value="">-- Chọn loại xe --</option>
+              <option value="">{t('fleet.selectType', '-- Chọn loại xe --')}</option>
               {VEHICLE_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
@@ -349,7 +351,7 @@ export default function AddVehicleForm({
 
           {/* Capacity Weight */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Tải trọng (kg)</label>
+            <label className="block text-sm font-medium text-gray-700">{t('fleet.capacity', 'Trọng tải')} (kg)</label>
             <input
               type="number"
               step="0.01"
@@ -375,7 +377,7 @@ export default function AddVehicleForm({
 
           {/* Capacity Volume */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">{t('dashboard.fleet.volume')} (m³)</label>
+            <label className="block text-sm font-medium text-gray-700">{t('fleet.volume', 'Thể tích')} (m³)</label>
             <input
               type="number"
               step="0.01"
@@ -402,7 +404,7 @@ export default function AddVehicleForm({
 
         {/* Notes */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">{t('dashboard.fleet.notes')}</label>
+          <label className="block text-sm font-medium text-gray-700">{t('fleet.notes', 'Ghi chú')}</label>
           <textarea
             rows={3}
 placeholder={t('fleet.form.notesPlaceholder', 'Enter additional vehicle information...')}
@@ -418,7 +420,7 @@ placeholder={t('fleet.form.notesPlaceholder', 'Enter additional vehicle informat
             }`}
           />
           <div className="text-right text-xs text-gray-500 mt-1">
-            {form.notes.length}/500 ký tự
+{form.notes.length}/500 {t('common.characters', 'ký tự')}
           </div>
           {touched.notes && errors.notes && (
             <div className="flex items-center gap-1 text-sm text-red-600">
@@ -459,7 +461,7 @@ placeholder={t('fleet.form.notesPlaceholder', 'Enter additional vehicle informat
             className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             <X size={18} />
-            <span>Đặt lại</span>
+            <span>{t('common.reset', 'Đặt lại')}</span>
           </button>
 
           {onCancel && (
@@ -477,7 +479,9 @@ placeholder={t('fleet.form.notesPlaceholder', 'Enter additional vehicle informat
         {isFormValid && submitStatus === "idle" && (
           <div className="flex items-center gap-2 text-green-600 text-sm">
             <CheckCircle size={16} />
-            <span>Form hợp lệ - sẵn sàng {isEditMode ? "cập nhật" : "thêm"} phương tiện</span>
+            <span>{t('fleet.form.validForm', 'Form is valid - ready to {{action}} vehicle', { 
+              action: isEditMode ? t('common.edit', 'update') : t('common.add', 'add')
+            })}</span>
           </div>
         )}
       </form>
