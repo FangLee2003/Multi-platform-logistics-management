@@ -1535,25 +1535,41 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen>
         final store = _deliveryDetail!.orders.first.store!;
 
         if (store.latitude != null && store.longitude != null) {
-          // Ưu tiên sử dụng tọa độ của store nếu có
+          // Convert to double if needed (similar to order detail screen)
+          double latitude = store.latitude!.toDouble();
+          double longitude = store.longitude!.toDouble();
+          
+          // Use store coordinates for navigation (pickup location)
           storeLocation = {
-            'latitude': store.latitude!,
-            'longitude': store.longitude!,
+            'latitude': latitude,
+            'longitude': longitude,
             'address': store.address ?? 'Store Address'
           };
-          // Debug address information
-          print(
-              "Using store coordinates: ${store.latitude}, ${store.longitude}");
+          
+          // Debug coordinates information
+          debugPrint('=== DELIVERY NAVIGATION DEBUG ===');
+          debugPrint('Using store coordinates:');
+          debugPrint('Latitude: $latitude');
+          debugPrint('Longitude: $longitude');
+          debugPrint('Address: ${store.address}');
+          debugPrint('=================================');
         } else if (store.address != null && store.address!.isNotEmpty) {
-          // Nếu không có tọa độ, sử dụng địa chỉ cho Google Maps tìm kiếm
+          // If no coordinates available, use address for Google Maps search
           storeLocation = {
-            'latitude': 0.0, // Google Maps sẽ tìm kiếm dựa trên địa chỉ
+            'latitude': 0.0, // Google Maps will search based on address
             'longitude': 0.0,
             'address': store.address!
           };
-          // Debug address information
-          print("Using store address for search: ${store.address}");
+          
+          debugPrint('=== DELIVERY NAVIGATION DEBUG ===');
+          debugPrint('No store coordinates found, using address search');
+          debugPrint('Address: ${store.address}');
+          debugPrint('=================================');
         }
+      } else {
+        debugPrint('=== DELIVERY NAVIGATION DEBUG ===');
+        debugPrint('No store information found, using default coordinates');
+        debugPrint('=================================');
       }
 
       // Start tracking service

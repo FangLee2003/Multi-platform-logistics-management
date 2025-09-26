@@ -57,6 +57,10 @@ class OrderDetailsResponse {
     int? idValue;
     String? descriptionValue;
     String? notesValue;
+    Address? addressValue;
+    Store? storeValue;
+    Map<String, dynamic>? deliveryValue;
+    List<dynamic>? orderItemsValue;
     
     // Ưu tiên lấy từ orderDetail nếu có
     if (json["orderDetail"] != null) {
@@ -65,12 +69,20 @@ class OrderDetailsResponse {
       idValue = orderDetail["id"];
       descriptionValue = orderDetail["description"];
       notesValue = orderDetail["notes"];
+      addressValue = orderDetail["address"] != null ? Address.fromJson(orderDetail["address"]) : null;
+      storeValue = orderDetail["store"] != null ? Store.fromJson(orderDetail["store"]) : null;
+      deliveryValue = orderDetail["delivery"];
+      orderItemsValue = orderDetail["orderItems"];
     } else {
       // Fallback lấy từ root level
       statusValue = json["status"];
       idValue = json["id"];
       descriptionValue = json["description"];
       notesValue = json["notes"];
+      addressValue = json["address"] != null ? Address.fromJson(json["address"]) : null;
+      storeValue = json["store"] != null ? Store.fromJson(json["store"]) : null;
+      deliveryValue = json["delivery"];
+      orderItemsValue = json["orderItems"];
     }
     
     return OrderDetailsResponse(
@@ -81,12 +93,12 @@ class OrderDetailsResponse {
       status: statusValue,
       description: descriptionValue,
       notes: notesValue,
-      address: json["address"] != null ? Address.fromJson(json["address"]) : null,
-      store: json["store"] != null ? Store.fromJson(json["store"]) : null,
-      deliveryResponse: json["delivery"] != null ? DeliveryResponse.fromJson({"success": true, "message": "OK", "data": json["delivery"]}) : null,
+      address: addressValue,
+      store: storeValue,
+      deliveryResponse: deliveryValue != null ? DeliveryResponse.fromJson({"success": true, "message": "OK", "data": deliveryValue}) : null,
       driver: json["driver"] != null ? DriverStatus.fromJson(json["driver"]) : null,
-      orderItems: json["orderItems"] != null 
-        ? List<OrderItem>.from(json["orderItems"].map((x) => OrderItem.fromJson(x))) 
+      orderItems: orderItemsValue != null 
+        ? List<OrderItem>.from(orderItemsValue.map((x) => OrderItem.fromJson(x))) 
         : [],
       deliveryProofs: json["deliveryProofs"] != null 
         ? List<DeliveryProof>.from(json["deliveryProofs"].map((x) => DeliveryProof.fromJson(x))) 

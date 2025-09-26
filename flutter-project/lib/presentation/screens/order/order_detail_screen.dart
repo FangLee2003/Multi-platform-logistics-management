@@ -130,9 +130,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       if (orderDetails != null) {
         // Debug print the address information
         if (orderDetails.address != null) {
+          debugPrint('=== ADDRESS PARSING DEBUG ===');
           debugPrint('Address from API: ${orderDetails.address!.address}');
           debugPrint('Address ID: ${orderDetails.address!.id}');
           debugPrint('Address Type: ${orderDetails.address!.addressType}');
+          debugPrint('Parsed Latitude: ${orderDetails.address!.latitude}');
+          debugPrint('Parsed Longitude: ${orderDetails.address!.longitude}');
+          debugPrint('Contact Name: ${orderDetails.address!.contactName}');
+          debugPrint('Contact Phone: ${orderDetails.address!.contactPhone}');
+          debugPrint('=============================');
+        } else {
+          debugPrint('=== ADDRESS PARSING DEBUG ===');
+          debugPrint('No address found in orderDetails');
+          debugPrint('=============================');
         }
 
         // Process delivery data if available
@@ -1409,21 +1419,60 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         'address': 'Destination Address'
       };
 
-      // Get real coordinates from order details if available
-      if (_orderDetails != null) {
-        // Get delivery location directly from address
-        if (_orderDetails!.address != null &&
-            _orderDetails!.address!.latitude != null &&
+      // Get real coordinates from orderDetail.address if available
+      if (_orderDetails != null && _orderDetails!.address != null) {
+        // Debug the actual address object first
+        debugPrint('=== ADDRESS DEBUG ===');
+        debugPrint('Address object: ${_orderDetails!.address}');
+        debugPrint('Address ID: ${_orderDetails!.address!.id}');
+        debugPrint('Address string: ${_orderDetails!.address!.address}');
+        debugPrint('Raw latitude: ${_orderDetails!.address!.latitude}');
+        debugPrint('Raw longitude: ${_orderDetails!.address!.longitude}');
+        debugPrint('Latitude type: ${_orderDetails!.address!.latitude.runtimeType}');
+        debugPrint('Longitude type: ${_orderDetails!.address!.longitude.runtimeType}');
+        debugPrint('=====================');
+        
+        // Check if we have latitude and longitude from orderDetail.address
+        if (_orderDetails!.address!.latitude != null &&
             _orderDetails!.address!.longitude != null) {
+          // Use coordinates directly (already converted to double in Address model)
+          double latitude = _orderDetails!.address!.latitude!;
+          double longitude = _orderDetails!.address!.longitude!;
+          
           deliveryLocation = {
-            'latitude': _orderDetails!.address!.latitude!,
-            'longitude': _orderDetails!.address!.longitude!,
+            'latitude': latitude,
+            'longitude': longitude,
             'address': _orderDetails!.address!.address
           };
-          // Debug address information
-          print(
-              "Using destination address: ${_orderDetails!.address!.address}");
+          
+          // Debug coordinates information
+          debugPrint('=== NAVIGATION DEBUG ===');
+          debugPrint('Using orderDetail.address coordinates:');
+          debugPrint('Latitude: $latitude');
+          debugPrint('Longitude: $longitude');
+          debugPrint('Address: ${_orderDetails!.address!.address}');
+          debugPrint('========================');
+        } else {
+          // Fallback: use address string if no coordinates
+          deliveryLocation = {
+            'latitude': 10.7756, // Default coordinates
+            'longitude': 106.7019,
+            'address': _orderDetails!.address!.address
+          };
+          
+          debugPrint('=== NAVIGATION DEBUG ===');
+          debugPrint('No coordinates found in orderDetail.address');
+          debugPrint('Latitude value: ${_orderDetails!.address!.latitude}');
+          debugPrint('Longitude value: ${_orderDetails!.address!.longitude}');
+          debugPrint('Using default coordinates and address: ${_orderDetails!.address!.address}');
+          debugPrint('========================');
         }
+      } else {
+        debugPrint('=== NAVIGATION DEBUG ===');
+        debugPrint('_orderDetails: $_orderDetails');
+        debugPrint('_orderDetails?.address: ${_orderDetails?.address}');
+        debugPrint('No orderDetail.address found, using default coordinates');
+        debugPrint('========================');
       }
 
       // Check if widget is still mounted before accessing context
@@ -1449,7 +1498,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       }
     } catch (e) {
       if (mounted) {
-        print("Error opening navigation: $e");
+        debugPrint("Error opening navigation: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error opening navigation: $e'),

@@ -61,14 +61,14 @@ public class DriverController {
 		// TODO: Validate that order belongs to driver
 		OrderDetailResponseDTO orderDetail = deliveryService.getOrderDetailById(orderId);
 		
-		// Get delivery proofs for this order and include them in response
+		// Get simplified delivery proofs for this order and include them in response
 		try {
 			// Verify order exists
 			orderService.getOrderById(orderId);
 			
 			Map<String, Object> response = new HashMap<>();
 			response.put("orderDetail", orderDetail);
-			response.put("deliveryProofs", deliveryProofService.findByOrderId(orderId));
+			response.put("deliveryProofs", deliveryProofService.findSimplifiedByOrderId(orderId));
 			return ResponseEntity.ok(response);
 		} catch (Exception e) {
 			return ResponseEntity.ok(orderDetail); // Fallback to just order details if error
