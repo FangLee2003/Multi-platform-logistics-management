@@ -26,6 +26,7 @@ export async function fetchNotCompletedOrders(page = 1, size = 5, token?: string
       : [],
   };
 }
+
 // Tìm đơn hàng theo ID
 export async function fetchOrderById(orderId: string | number, token?: string): Promise<Order | null> {
   const authToken = token || localStorage.getItem("token") || "";
