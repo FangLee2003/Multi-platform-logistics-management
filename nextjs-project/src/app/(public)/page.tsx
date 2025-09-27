@@ -31,11 +31,14 @@ export default function PublicHome() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // Chỉ chạy 1 lần khi mount
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
 
-    const urlToken = searchParams.get("token");
-    const urlUser = searchParams.get("user");
+    // Lấy params từ URL chỉ khi mount
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get("token");
+    const urlUser = params.get("user");
     if (urlToken && urlUser) {
       localStorage.setItem("token", urlToken);
       localStorage.setItem("user", decodeURIComponent(urlUser));
@@ -44,14 +47,14 @@ export default function PublicHome() {
       router.push("/account");
     }
 
-    const urlTrackingCode = searchParams.get("trackingCode");
+    const urlTrackingCode = params.get("trackingCode");
     if (urlTrackingCode) setTrackingCode(urlTrackingCode);
-  }, [searchParams, router]);
+  }, [router]);
 
   const handleTrackingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackingCode.trim()) {
-      setTrackingResult(null); // clear luôn nếu không nhập gì
+      setTrackingResult(null);
       return;
     }
     setIsLoading(true);
@@ -59,21 +62,21 @@ export default function PublicHome() {
       const res = await getOrderTrackingApi(trackingCode);
       if (!res.ok) {
         setTrackingResult(null);
-        alert("Order not found!");
+        alert("Không tìm thấy đơn hàng!");
       } else {
         const order = await res.json();
         setTrackingResult({
           code: order.orderId,
-          status: order.status || "Unknown",
+          status: order.status || "Không xác định",
           from: order.storeAddress || "",
           to: order.address || "",
           estimatedDelivery: order.estimatedDelivery || "",
         });
       }
     } catch (error) {
-      console.error("Error tracking order:", error);
-      setTrackingResult(null); // clear nếu lỗi
-      alert("An error occurred while tracking the order!");
+      console.error("Lỗi tra cứu đơn hàng:", error);
+      setTrackingResult(null);
+      alert("Đã xảy ra lỗi khi tra cứu đơn hàng!");
     } finally {
       setIsLoading(false);
     }
@@ -103,19 +106,19 @@ export default function PublicHome() {
                   onClick={handleDashboard}
                   className="text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-800 text-sm sm:text-base"
                 >
-                  Account
+                  Tài khoản
                 </button>
                 <button
                   onClick={handleCreateOrder}
                   className="bg-white text-green-700 px-3 sm:px-4 py-2 rounded-lg hover:bg-green-100 text-sm sm:text-base"
                 >
-                  Create Order
+                  Tạo đơn hàng
                 </button>
                 <button
                   onClick={handleLogout}
                   className="border border-gray-300 text-green-700 px-3 sm:px-4 py-2 rounded-lg hover:bg-green-50 text-sm sm:text-base"
                 >
-                  Logout
+                  Đăng xuất
                 </button>
               </>
             ) : (
@@ -124,13 +127,13 @@ export default function PublicHome() {
                   onClick={handleCreateOrder}
                   className="bg-white text-green-700 px-3 sm:px-4 py-2 rounded-lg hover:bg-green-100 text-sm sm:text-base"
                 >
-                  Create Order
+                  Tạo đơn hàng
                 </button>
                 <button
                   onClick={handleLogin}
                   className="border border-white text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-800 text-sm sm:text-base"
                 >
-                  Login
+                  Đăng nhập
                 </button>
               </>
             )}
@@ -143,17 +146,17 @@ export default function PublicHome() {
         {/* Hero */}
         <div className="text-center mb-8 sm:mb-12 max-w-2xl">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-700 mb-4">
-            Fast and reliable delivery service
+            Dịch vụ giao hàng nhanh và đáng tin cậy
           </h1>
           <p className="text-base sm:text-lg lg:text-xl text-gray-700">
-            Track your order or create a new one today
+            Tra cứu đơn hàng hoặc tạo đơn hàng mới ngay hôm nay
           </p>
         </div>
 
         {/* Tracking */}
         <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mb-12 border border-gray-200 w-full max-w-full sm:max-w-xl lg:max-w-3xl">
           <h2 className="text-lg sm:text-2xl font-bold text-green-700 mb-6 text-center">
-            Track your order
+            Tra cứu đơn hàng
           </h2>
           <form onSubmit={handleTrackingSubmit} className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -163,9 +166,9 @@ export default function PublicHome() {
                 onChange={(e) => {
                   const val = e.target.value;
                   setTrackingCode(val);
-                  if (!val.trim()) setTrackingResult(null); // clear khi xoá hết
+                  if (!val.trim()) setTrackingResult(null);
                 }}
-                placeholder="Enter tracking code (e.g. FR001, FR002...)"
+                placeholder="Nhập mã vận đơn (ví dụ: FR001, FR002...)"
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700 text-sm sm:text-base"
               />
               <button
@@ -173,7 +176,7 @@ export default function PublicHome() {
                 disabled={isLoading}
                 className="bg-green-700 text-white px-6 sm:px-8 py-3 rounded-lg hover:bg-green-800 disabled:opacity-50 text-sm sm:text-base"
               >
-                {isLoading ? "Searching..." : "Track"}
+                {isLoading ? "Đang tìm..." : "Tra cứu"}
               </button>
             </div>
           </form>
@@ -181,16 +184,16 @@ export default function PublicHome() {
           {trackingResult && (
             <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg text-sm sm:text-base">
               <h3 className="text-lg font-semibold text-green-800 mb-4">
-                Order information: {trackingResult.code}
+                Thông tin đơn hàng: {trackingResult.code}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Info label="Status" value={trackingResult.status} />
+                <Info label="Trạng thái" value={trackingResult.status} />
                 <Info
-                  label="Estimated delivery"
+                  label="Dự kiến giao hàng"
                   value={formatDate(trackingResult.estimatedDelivery)}
                 />
-                <Info label="From" value={trackingResult.from} />
-                <Info label="To" value={trackingResult.to} />
+                <Info label="Nơi gửi" value={trackingResult.from} />
+                <Info label="Nơi nhận" value={trackingResult.to} />
               </div>
             </div>
           )}
@@ -200,41 +203,41 @@ export default function PublicHome() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 w-full">
           <Feature
             icon="🚚"
-            title="Express delivery"
-            text="Guaranteed delivery within 24 hours"
+            title="Giao hàng nhanh"
+            text="Đảm bảo giao trong vòng 24 giờ"
           />
           <Feature
             icon="📍"
-            title="Real-time tracking"
-            text="Track your order live on the map"
+            title="Theo dõi thời gian thực"
+            text="Xem lộ trình đơn hàng trực tiếp trên bản đồ"
           />
           <Feature
             icon="🔒"
-            title="Secure & safe"
-            text="Ensuring your package is delivered to the right recipient"
+            title="An toàn & bảo mật"
+            text="Đảm bảo hàng hóa đến đúng người nhận"
           />
         </div>
 
         {/* Call to Action */}
         <div className="bg-gradient-to-r from-green-700 to-green-900 rounded-2xl p-6 sm:p-8 text-center text-white w-full">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-            Start shipping today
+            Bắt đầu giao hàng ngay hôm nay
           </h2>
           <p className="text-lg sm:text-xl mb-6">
-            Sign up to experience the best service
+            Đăng ký để trải nghiệm dịch vụ tốt nhất
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handleCreateOrder}
               className="bg-white text-green-700 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-green-100 text-sm sm:text-base"
             >
-              Create order now
+              Tạo đơn ngay
             </button>
             <button
               onClick={handleLogin}
               className="border-2 border-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-green-800 text-sm sm:text-base"
             >
-              Login / Register
+              Đăng nhập / Đăng ký
             </button>
           </div>
         </div>
@@ -245,32 +248,32 @@ export default function PublicHome() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <FooterCol
             title="Fast Route"
-            items={["Fast and reliable delivery service"]}
+            items={["Dịch vụ giao hàng nhanh và đáng tin cậy"]}
             highlight
           />
           <FooterCol
-            title="Services"
+            title="Dịch vụ"
             items={[
-              "Local delivery",
-              "Interprovincial delivery",
-              "International delivery",
+              "Giao hàng nội thành",
+              "Giao hàng liên tỉnh",
+              "Giao hàng quốc tế",
             ]}
           />
           <FooterCol
-            title="Support"
+            title="Hỗ trợ"
             items={[
               "Hotline: 1900-xxxx",
               "Email: support@fastroute.com",
-              "FAQ",
+              "Câu hỏi thường gặp",
             ]}
           />
           <FooterCol
-            title="Follow us"
+            title="Theo dõi chúng tôi"
             items={["Facebook", "Instagram", "LinkedIn"]}
           />
         </div>
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400 text-xs sm:text-sm">
-          &copy; 2025 Fast Route. All rights reserved.
+          &copy; 2025 Fast Route. Bảo lưu mọi quyền.
         </div>
       </footer>
     </div>

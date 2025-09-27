@@ -41,6 +41,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
     { value: "scheduled", label: t('fleet.maintenanceTypes.scheduled', 'Scheduled Maintenance') },
     { value: "repair", label: t('fleet.maintenanceTypes.repair', 'Repair') },
     { value: "emergency", label: t('fleet.maintenanceTypes.emergency', 'Emergency Repair') },
+    { value: "Sửa chữa khẩn cấp", label: t('fleet.maintenanceTypes.urgent', 'Sửa chữa khẩn cấp') },
   ];
   const [form, setForm] = useState<ScheduleForm>({
     vehicle: initialVehicle?.id?.toString() || "",

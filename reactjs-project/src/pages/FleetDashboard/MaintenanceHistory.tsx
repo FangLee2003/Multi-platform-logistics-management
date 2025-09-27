@@ -7,11 +7,14 @@ import type { VehicleMaintenance } from "../../services/VehicleMaintenanceAPI";
 
 // TODO: Map vehicleId sang biển số xe nếu cần (cần API hoặc dữ liệu xe)
 
+
 export default function MaintenanceHistory() {
   const { t } = useTranslation();
   const [data, setData] = useState<VehicleMaintenance[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   // Status mapping with translation
   const getStatusMap = (status: string) => {
@@ -35,13 +38,17 @@ export default function MaintenanceHistory() {
       .finally(() => setLoading(false));
   }, [t]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(data.length / PAGE_SIZE);
+  const paginatedData = data.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   return (
     <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-xl">
       <div className="text-xl font-bold mb-2">{t('dashboard.fleet.maintenanceHistory', 'Maintenance History')}</div>
       {loading && <div>{t('common.loading')}</div>}
       {error && <div className="text-red-500">{error}</div>}
       <div className="flex flex-col gap-4">
-        {data.map((item) => (
+        {paginatedData.map((item) => (
           <div
             key={item.id}
             className="bg-white border rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
@@ -81,6 +88,28 @@ export default function MaintenanceHistory() {
           </div>
         ))}
       </div>
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            className="px-3 py-1 rounded border bg-gray-100 disabled:opacity-50"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            {t('common.previous', 'Previous')}
+          </button>
+          <span className="mx-2">
+            {t('dashboard.fleet.page', 'Page')} {currentPage} / {totalPages}
+          </span>
+          <button
+            className="px-3 py-1 rounded border bg-gray-100 disabled:opacity-50"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            {t('common.next', 'Next')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

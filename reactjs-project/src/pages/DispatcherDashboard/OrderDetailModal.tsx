@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface ProductItem {
   id: number;
   product: {
@@ -45,6 +47,7 @@ interface OrderDetailModalProps {
 }
 
 export default function OrderDetailModal({ open, onClose, orderItem, products, deliveryFee, productsPage = 0, productsTotalPages = 1, onProductsPageChange }: OrderDetailModalProps) {
+  const { t } = useTranslation();
   if (!open || !orderItem) return null;
 
   // Debug log để kiểm tra dữ liệu truyền vào modal

@@ -68,7 +68,7 @@ export default function Sidebar<T extends TabType>({
   role,
 }: SidebarProps<T>) {
   const { t } = useTranslation();
-  const MENU = getMenu<T>(role, t);
+    const MENU = getMenu<T>(role);
 
   return (
     <aside className="group ml-3 flex-shrink-0 w-20 hover:w-64 transition-all duration-300 bg-white/20 backdrop-blur-lg border-r border-white/30 text-gray-800 flex flex-col py-6 px-4 overflow-hidden h-screen sticky top-0">
