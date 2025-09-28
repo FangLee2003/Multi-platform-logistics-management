@@ -57,7 +57,7 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
       removeTokenCookie();
       removeRefreshTokenCookie();
     }
-    router.push("/login");
+    router.push("/");
   };
 
   // --- Loading state ---
