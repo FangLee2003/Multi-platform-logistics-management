@@ -1,0 +1,40 @@
+{
+  "common": {
+    "hello": "Hello",
+    "login": "Login",
+    "logout": "Logout",
+    "welcome": "Welcome to our website!"
+  },
+  "home": {
+    "brand": "Fast Route",
+    "heroTitle": "Fast and Reliable Delivery Service",
+    "heroSubtitle": "Track your order or create a new one today",
+    "trackingTitle": "Order Tracking",
+    "featureFast": "Fast Delivery",
+    "featureFastDesc": "Guaranteed delivery within 24 hours",
+    "featureTracking": "Real-time Tracking",
+    "featureTrackingDesc": "See your order's route live on the map",
+    "featureSecure": "Safe & Secure",
+    "featureSecureDesc": "Ensuring your goods reach the right recipient",
+    "ctaTitle": "Start shipping today",
+    "ctaSubtitle": "Register to experience the best service",
+    "ctaOrderNow": "Order Now",
+    "ctaLogin": "Login / Register"
+  },
+  "footer": {
+    "footerBrandDesc": "Fast and reliable delivery service",
+    "footerService": "Services",
+    "footerService1": "Intra-city delivery",
+    "footerService2": "Inter-provincial delivery",
+    "footerService3": "International delivery",
+    "footerSupport": "Support",
+    "footerHotline": "Hotline: 1900-xxxx",
+    "footerEmail": "Email: support@fastroute.com",
+    "footerFAQ": "Frequently Asked Questions",
+    "footerFollow": "Follow us",
+    "footerFacebook": "Facebook",
+    "footerInstagram": "Instagram",
+    "footerLinkedIn": "LinkedIn",
+    "footerCopyright": "All rights reserved."
+  }
+}

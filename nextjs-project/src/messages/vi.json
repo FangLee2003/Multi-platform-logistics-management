@@ -1,0 +1,52 @@
+  
+{
+  "common": {
+    "hello": "Xin chào",
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "welcome": "Chào mừng bạn đến với website của chúng tôi!",
+    "trackingPlaceholder": "Nhập mã vận đơn (ví dụ: FR001, FR002...)",
+    "trackingButton": "Tra cứu",
+    "trackingLoading": "Đang tìm...",
+    "trackingInfo": "Thông tin đơn hàng",
+    "notFound": "Không tìm thấy đơn hàng!",
+    "unknown": "Không xác định",
+    "error": "Đã xảy ra lỗi khi tra cứu đơn hàng!",
+  "status": "Trạng thái",
+  "estimatedDelivery": "Dự kiến giao hàng",
+  "from": "Nơi gửi",
+  "to": "Nơi nhận"
+  },
+  "home": {
+    "brand": "Fast Route",
+    "heroTitle": "Dịch vụ giao hàng nhanh và đáng tin cậy",
+    "heroSubtitle": "Tra cứu đơn hàng hoặc tạo đơn hàng mới ngay hôm nay",
+    "trackingTitle": "Tra cứu đơn hàng",
+    "featureFast": "Giao hàng nhanh",
+    "featureFastDesc": "Đảm bảo giao trong vòng 24 giờ",
+    "featureTracking": "Theo dõi thời gian thực",
+    "featureTrackingDesc": "Xem lộ trình đơn hàng trực tiếp trên bản đồ",
+    "featureSecure": "An toàn & bảo mật",
+    "featureSecureDesc": "Đảm bảo hàng hóa đến đúng người nhận",
+    "ctaTitle": "Bắt đầu giao hàng ngay hôm nay",
+    "ctaSubtitle": "Đăng ký để trải nghiệm dịch vụ tốt nhất",
+    "ctaOrderNow": "Tạo đơn ngay",
+    "ctaLogin": "Đăng nhập / Đăng ký"
+  },
+  "footer": {
+    "footerBrandDesc": "Dịch vụ giao hàng nhanh và đáng tin cậy",
+    "footerService": "Dịch vụ",
+    "footerService1": "Giao hàng nội thành",
+    "footerService2": "Giao hàng liên tỉnh",
+    "footerService3": "Giao hàng quốc tế",
+    "footerSupport": "Hỗ trợ",
+    "footerHotline": "Hotline: 1900-xxxx",
+    "footerEmail": "Email: support@fastroute.com",
+    "footerFAQ": "Câu hỏi thường gặp",
+    "footerFollow": "Theo dõi chúng tôi",
+    "footerFacebook": "Facebook",
+    "footerInstagram": "Instagram",
+    "footerLinkedIn": "LinkedIn",
+    "footerCopyright": "Bảo lưu mọi quyền."
+  }
+}
