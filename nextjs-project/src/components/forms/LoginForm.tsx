@@ -161,7 +161,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           Welcome to FastRoute
         </h2>
         <p className="text-white/70 text-sm mt-2">
-          Sign in to continue using our services
+          Log in to continue using our services
         </p>
       </div>
 
@@ -265,10 +265,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
             {loading ? (
               <>
                 <div className="w-5 h-5 border-2 border-white/70 border-t-black-600 rounded-full animate-spin"></div>
-                Signing in...
+                Logging in...
               </>
             ) : (
-              <>Sign In</>
+              <>Log In</>
             )}
           </span>
         </button>
@@ -307,7 +307,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           href="/register" 
           className="text-blue-300 hover:text-blue-200 text-sm font-medium underline decoration-dotted hover:decoration-solid transition-all duration-200"
         >
-          Sign up
+          Register
         </Link>
       </div>
     </div>
