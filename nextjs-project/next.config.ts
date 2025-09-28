@@ -1,8 +1,6 @@
+import type { NextConfig } from "next";
 
-
-import withNextIntl from 'next-intl/plugin';
-
-const nextConfig = {
+const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
@@ -13,5 +11,4 @@ const nextConfig = {
   },
 };
 
-export default withNextIntl()(nextConfig);
-
+export default nextConfig;

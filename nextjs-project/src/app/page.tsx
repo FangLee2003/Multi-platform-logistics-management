@@ -1,5 +1,7 @@
-import { redirect } from 'next/navigation';
+"use client";
 
-export default function RootPage() {
-  redirect('/vi'); // Hoặc '/en' nếu bạn muốn mặc định là tiếng Anh
+import PublicHome from "./(public)/page";
+
+export default function Home() {
+  return <PublicHome />;
 }
