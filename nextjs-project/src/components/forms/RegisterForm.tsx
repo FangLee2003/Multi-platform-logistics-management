@@ -239,10 +239,10 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Signing up...
+                    Registering...
                   </>
                 ) : (
-                  <>Sign Up</>
+                  <>Register</>
                 )}
               </span>
             </button>
@@ -252,7 +252,7 @@ export default function RegisterForm({ onRegister }: RegisterFormProps) {
                 href="/login" 
                 className="text-blue-300 underline hover:text-blue-500 transition-colors text-sm"
               >
-                Sign in
+                Log In
               </Link>
             </div>
           </form>
