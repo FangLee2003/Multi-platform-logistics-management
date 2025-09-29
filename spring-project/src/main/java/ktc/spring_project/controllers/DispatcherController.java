@@ -46,7 +46,7 @@ public class DispatcherController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            Page<OrderTimelineResponse> orderPage = orderService.getOrdersByStatusPaginated(status, page, size);
+            Page<OrderTimelineResponse> orderPage = orderService.getOrderTimelineByStatusPaginated(status, page, size);
             return ResponseEntity.ok(orderPage);
         } catch (Exception e) {
             System.err.println("Error in getOrdersByStatus: " + e.getMessage());

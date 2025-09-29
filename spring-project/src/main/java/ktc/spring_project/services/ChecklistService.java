@@ -296,6 +296,13 @@ public class ChecklistService {
     public void markStepCompleted(Long userId, Long orderId, String stepCode, String details) {
         checklistLogger.info("[CHECKLIST] markStepCompleted called | userId={} | orderId={} | stepCode={} | details={}", userId, orderId, stepCode, details);
         checklistLogger.info("[CHECKLIST] DEBUG | userId={} | orderId={} | stepCode={} | details={} | Thread={}", userId, orderId, stepCode, details, Thread.currentThread().getName());
+        
+        // CRITICAL DEBUG: Log stack trace để xem ai gọi method này
+        checklistLogger.info("[CHECKLIST] STACK TRACE for stepCode={} orderId={}:", stepCode, orderId);
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (int i = 0; i < Math.min(10, stackTrace.length); i++) {
+            checklistLogger.info("[CHECKLIST] STACK[{}]: {}", i, stackTrace[i]);
+        }
         try {
             // Log input types
             checklistLogger.info("[CHECKLIST] Input types | userId:{}({}), orderId:{}({}), stepCode:{}({}), details:{}({})",

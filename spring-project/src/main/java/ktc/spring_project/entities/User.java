@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 
 @Entity
 @Table(name = "users")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "totpSecret", "stores", "vehicles", "deliveryProofs"})
 public class User {
 
     @Id

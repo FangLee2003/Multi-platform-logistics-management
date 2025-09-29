@@ -331,7 +331,7 @@ export default function OrdersAssignment(_props: any) {
       }
 
       // --- Giữ lại code cũ: Tạo/cập nhật tracking ---
-      const updatedOrder = data.find(o => o.id.toString() === orderId);
+      // const updatedOrder = data.find(o => o.id.toString() === orderId);
 
       // Sau khi gán xe thành công, tự động tạo/cập nhật tracking
       const updatedOrder = paginatedData.find((o: OrderType) => o.id.toString() === orderId);
@@ -514,14 +514,17 @@ export default function OrdersAssignment(_props: any) {
       console.log('🔍 OrderAssignment: contactName from API:', contactName);
       console.log('🔍 OrderAssignment: contactPhone from API:', contactPhone);
       
-      // Cập nhật order với contact info
+      // Cập nhật order với contact info, đảm bảo giữ nguyên id
       const orderWithContact = {
         ...order,
+        id: order.id, // Đảm bảo id được giữ lại
         addressDetail: {
           contactName,
           contactPhone
         }
       };
+      
+      console.log('🔍 OrderAssignment: orderWithContact.id:', orderWithContact.id);
       
       setDetailOrder(orderWithContact);
       setOrderProductsPage(0);
@@ -531,7 +534,8 @@ export default function OrdersAssignment(_props: any) {
       fetchOrderProductsPaged(order.id, 0);
     } catch (error) {
       console.error('Error fetching order detail:', error);
-      setDetailOrder(order);
+      // Đảm bảo order có id khi có lỗi
+      setDetailOrder({...order, id: order.id});
       setOrderProductsPage(0);
       setDetailOpen(true);
       fetchOrderProductsPaged(order.id, 0);
@@ -587,6 +591,7 @@ export default function OrdersAssignment(_props: any) {
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         orderItem={detailOrder ? {
+          id: detailOrder.id,
           code: detailOrder.code,
           customer: detailOrder.customer,
           status: detailOrder.status.name, // Pass only the status name as string
@@ -633,8 +638,6 @@ export default function OrdersAssignment(_props: any) {
             <FaUserCog className="text-3xl text-blue-600" />
           </span>
           <div>
-            <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight">Order Assignment Management</h3>
-            <p className="text-gray-600 mt-1">Total {totalOrders} orders</p>
             <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t('dashboard.dispatcher.assignment.title', 'Order Assignment Management')}</h3>
             <p className="text-gray-600 mt-1">{t('common.total')} {totalOrders} {t('navigation.orders', 'orders')}</p>
           </div>
@@ -642,12 +645,10 @@ export default function OrdersAssignment(_props: any) {
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-gray-500 text-lg animate-pulse">Loading data...</div>
         <div className="text-center py-16 text-gray-500 text-lg animate-pulse">{t('common.loading')}...</div>
       ) : error ? (
         <div className="text-center py-12 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
           <FaTimes className="text-xl text-red-500" />
-          {(error as Error)?.message || "An error occurred while loading data"}
           {(error as Error)?.message || t('common.error')}
         </div>
       ) : (
@@ -664,14 +665,6 @@ export default function OrdersAssignment(_props: any) {
               <table className="w-full min-w-[900px]">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gradient-to-r from-blue-100/80 via-white/80 to-blue-50/80 border-b border-blue-200/60 shadow-sm">
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">Order Code</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">Products</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">Customer</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">Route</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">Order Details</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">Created Date</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">Vehicle & Driver</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">Actions</th>
                     <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.orderId', 'Mã đơn')}</th>
                     <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.products', 'Sản phẩm')}</th>
                     <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.customer', 'Khách hàng')}</th>
@@ -720,8 +713,6 @@ export default function OrdersAssignment(_props: any) {
                         {/* Chỉ hiển thị tổng số lượng sản phẩm */}
                         <div className="max-w-xs font-bold text-blue-900 text-lg">
                           {typeof productCounts[order.id] === "number"
-                            ? `${productCounts[order.id]} products`
-                            : "Loading..."}
                             ? `${productCounts[order.id]} ${t('dashboard.dispatcher.assignment.products', 'products')}`
                             : t('common.loading')}
                         </div>
@@ -732,8 +723,6 @@ export default function OrdersAssignment(_props: any) {
                       </td>
                       <td className="p-5 align-top min-w-[180px]">
                         <div className="text-sm text-gray-700">
-                          <div><span className="font-semibold text-blue-700">From:</span> {order.from}</div>
-                          <div><span className="font-semibold text-blue-700">To:</span> {order.to}</div>
                           <div><span className="font-semibold text-blue-700">{t('common.from', 'From')}:</span> {order.from}</div>
                           <div>
                             <span className="font-semibold text-blue-700">{t('common.to', 'To')}:</span> {order.to}
@@ -746,7 +735,7 @@ export default function OrdersAssignment(_props: any) {
                           className="px-3 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold text-sm border border-blue-200 shadow transition-all duration-150"
                           onClick={() => handleOpenDetail(order)}
                         >
-                          View details
+                          {t('dashboard.dispatcher.assignment.viewDetails', 'View details')}
                         </button>
                       </td>
                       <td className="p-5 align-top">
@@ -780,8 +769,7 @@ export default function OrdersAssignment(_props: any) {
                                 className="mt-2 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200 transition-all duration-150"
                                 onClick={() => setEditingOrders(prev => ({ ...prev, [order.id]: true }))}
                               >
-                                Edit
-{t('dashboard.dispatcher.assignment.edit', 'Chỉnh sửa')}
+                                {t('dashboard.dispatcher.assignment.edit', 'Chỉnh sửa')}
                               </button>
                             </div>
                           ) : order.currentDriver && !editingOrders[order.id] ? (
@@ -858,7 +846,6 @@ export default function OrdersAssignment(_props: any) {
                                   value={selectedVehicles[order.id] || ""}
                                   onChange={(e) => handleVehicleSelect(order.id.toString(), e.target.value)}
                                 >
-                                  <option value="">Select vehicle...</option>
                                   <option value="">{t('dashboard.dispatcher.assignment.selectVehicle', 'Select vehicle...')}</option>
                                   {vehicles
                                     .filter(vehicle => {
@@ -871,7 +858,6 @@ export default function OrdersAssignment(_props: any) {
                                     })
                                     .map(vehicle => (
                                       <option key={vehicle.id} value={vehicle.id}>
-                                        {vehicle.licensePlate} - {vehicle.currentDriver?.fullName || 'Unknown driver'}
                                         {vehicle.licensePlate} - {vehicle.currentDriver?.fullName || t('dashboard.dispatcher.assignment.unknownDriver', 'Không rõ tài xế')}
                                       </option>
                                     ))}
@@ -912,14 +898,12 @@ export default function OrdersAssignment(_props: any) {
                           <div className="flex items-center gap-3">
                             <div className="flex items-center text-green-700 font-bold">
                               <FaCheck className="text-xl" />
-                              <span className="ml-2 text-base">Assigned</span>
                               <span className="ml-2 text-base">{t('dashboard.dispatcher.assignment.assigned', 'Đã gán')}</span>
                             </div>
                             <button
                               onClick={() => handleUnassignVehicle(order.id.toString())}
                               disabled={assigningOrders[order.id]}
                               className="flex items-center justify-center w-9 h-9 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-full shadow-lg transition-all duration-200 text-base font-bold focus:outline-none focus:ring-2 focus:ring-red-400"
-                              title="Unassign vehicle"
                               title={t('dashboard.dispatcher.assignment.unassignVehicle', 'Gỡ gán xe')}
                             >
                               {assigningOrders[order.id] ? (
@@ -946,8 +930,7 @@ export default function OrdersAssignment(_props: any) {
                 disabled={currentPage === 1}
                 className="px-4 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed text-blue-700 font-bold shadow transition-all duration-150"
               >
-                &lt; Prev
-&lt; {t('common.previous')}
+                &lt; {t('common.previous')}
               </button>
               
               {/* Desktop pagination - hiển thị nhiều trang hơn */}
@@ -1015,22 +998,18 @@ export default function OrdersAssignment(_props: any) {
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed text-blue-700 font-bold shadow transition-all duration-150"
               >
-                Next &gt;
-{t('common.next')} &gt;
+                {t('common.next')} &gt;
               </button>
             </div>
           )}
 
           {/* Thông tin trang hiện tại */}
           <div className="text-center mt-4 text-gray-600">
-            Showing {data.length > 0 ? ((currentPage - 1) * PAGE_SIZE + 1) : 0}
+            {t('dashboard.dispatcher.pagination.showing', 'Showing')} {paginatedData.length > 0 ? ((currentPage - 1) * PAGE_SIZE + 1) : 0}
             -
-            {data.length > 0 ? ((currentPage - 1) * PAGE_SIZE + data.length) : 0}
-            of {totalOrders} orders
-
-            Tổng số {totalOrders} đơn hàng
+            {paginatedData.length > 0 ? ((currentPage - 1) * PAGE_SIZE + paginatedData.length) : 0}
+            {t('dashboard.dispatcher.pagination.of')} {totalOrders} {t('navigation.orders', 'orders')}
             {totalPages > 1 && (
-              <span className="ml-2">| Page {currentPage} / {totalPages}</span>
               <span className="ml-2">| {t('dashboard.dispatcher.pagination.page', 'Page {{current}} / {{total}}', { current: currentPage, total: totalPages })}</span>
             )}
           </div>
@@ -1038,7 +1017,6 @@ export default function OrdersAssignment(_props: any) {
           {paginatedData.length === 0 && (
             <div className="text-center py-16 text-gray-500">
               <FaUserCog className="text-5xl mx-auto mb-4 opacity-40" />
-              <p className="text-xl font-semibold">No orders waiting for assignment</p>
               <p className="text-xl font-semibold">{t('dashboard.dispatcher.assignment.noOrders', 'No orders waiting for assignment')}</p>
             </div>
           )}

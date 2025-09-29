@@ -52,8 +52,7 @@ public class DriverController {
 		StatusService statusService,
 		RouteService routeService,
 		DeliveryTrackingService trackingService,
-		ChecklistService checklistService) {
-		DeliveryTrackingService trackingService,
+		ChecklistService checklistService,
 		DeliveryProofService deliveryProofService) {
 		this.deliveryService = deliveryService;
 		this.orderService = orderService;

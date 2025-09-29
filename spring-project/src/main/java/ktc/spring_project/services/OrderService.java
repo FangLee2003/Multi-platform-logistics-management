@@ -110,17 +110,17 @@ public class OrderService {
     /**
      * Lấy danh sách đơn hàng theo status với phân trang
      */
-    public Page<OrderTimelineResponse> getOrdersByStatusPaginated(String statusName, int page, int size) {
-    validateNotBlank(statusName, "Status name");
-    validatePaginationParams(page, size);
-    Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
-    Status status = statusRepository.findFirstByName(statusName)
-        .orElseThrow(() -> new EntityNotFoundException("Status not found: " + statusName));
-    Page<Order> orders = orderRepository.findByStatus(status, pageable);
-    List<OrderTimelineResponse> timelineResponses = orders.getContent().stream()
-        .map(this::convertToOrderTimelineResponse)
-        .toList();
-    return new PageImpl<>(timelineResponses, pageable, orders.getTotalElements());
+    public Page<OrderTimelineResponse> getOrderTimelineByStatusPaginated(String statusName, int page, int size) {
+        validateNotBlank(statusName, "Status name");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        Status status = statusRepository.findFirstByName(statusName)
+            .orElseThrow(() -> new EntityNotFoundException("Status not found: " + statusName));
+        Page<Order> orders = orderRepository.findByStatus(status, pageable);
+        List<OrderTimelineResponse> timelineResponses = orders.getContent().stream()
+            .map(this::convertToOrderTimelineResponse)
+            .toList();
+        return new PageImpl<>(timelineResponses, pageable, orders.getTotalElements());
     }
 
     /**
@@ -274,6 +274,11 @@ public class OrderService {
     // Lấy đơn hàng theo status_id có phân trang
     public Page<Order> getOrdersByStatusIdPaginated(short statusId, org.springframework.data.domain.Pageable pageable) {
         return orderRepository.findByStatus_Id(statusId, pageable);
+    }
+    
+    public Page<Order> getCompletedOrdersPaginated(org.springframework.data.domain.Pageable pageable) {
+        // Tìm đơn hàng có status name là 'Completed' hoặc 'COMPLETED'
+        return orderRepository.findCompletedOrdersPaginated(pageable);
     }
     
     public List<Order> getAllOrdersSorted() {
@@ -746,38 +751,11 @@ public class OrderService {
             );
             
             log.info("Dispatcher {} received delivery result {} for order {}", dispatcherId, result, orderId);
-     * Unified search method that supports multiple search criteria
-     * @param storeId - required, orders must belong to this store
-     * @param orderId - optional, exact match if provided
-     * @param fromDate - optional, start date if provided
-     * @param toDate - optional, end date if provided  
-     * @param statusList - optional, list of status names if provided
-     * @param page - page number (1-based)
-     * @param size - page size
-     * @return paginated search results
-     */
-    public Page<OrderSummaryDTO> searchOrdersByStoreIdWithFiltersPaginated(
-            Long storeId, Long orderId, LocalDateTime fromDate, LocalDateTime toDate, 
-            List<String> statusList, int page, int size) {
-        try {
-            validateId(storeId, "Store ID");
-            validatePaginationParams(page, size);
-            // Ensure statusList is not null to avoid SpEL null context error
-            if (statusList == null) {
-                statusList = new java.util.ArrayList<>();
-            }
-            log.debug("Unified search orders: storeId={}, orderId={}, fromDate={}, toDate={}, statusList={}, page={}, size={}", 
-                storeId, orderId, fromDate, toDate, statusList, page, size);
-            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
-            return orderRepository.findOrderSummariesByStoreIdWithFiltersPaginated(
-                storeId, orderId, fromDate, toDate, statusList, pageable);
-        } catch (HttpException e) {
-            throw e;
         } catch (Exception e) {
             log.error("Failed to process dispatcher receive delivery result: {}", e.getMessage());
             throw new HttpException("Failed to process dispatcher receive delivery result", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
     }
+        }
     
     /**
      * Dispatcher cập nhật status thành "Completed"

@@ -74,10 +74,6 @@ public ResponseEntity<DeliveryProof> uploadDeliveryProof(
         e.printStackTrace(); // Log lỗi chi tiết ra console
         return ResponseEntity.badRequest().body(null);
         // Nếu muốn trả về message rõ ràng:
-// return ResponseEntity.badRequest().body(e.getMessage());
-        e.printStackTrace(); // Log lỗi chi tiết ra console
-        return ResponseEntity.badRequest().body(null);
-        // Nếu muốn trả về message rõ ràng:
         // return ResponseEntity.badRequest().body(e.getMessage());
     }
 }
@@ -119,18 +115,11 @@ public ResponseEntity<Void> deleteDeliveryProof(
      * Get delivery proofs for an order
      * TO-DO: Implement findByOrder method in DeliveryProofRepository
      */
-    @GetMapping("/order/{orderId}")
-    public ResponseEntity<List<DeliveryProof>> getDeliveryProofsByOrder(@PathVariable Long orderId) {
-        // Truy vấn trực tiếp bằng repository, tối ưu hiệu năng
-        List<DeliveryProof> orderProofs = deliveryProofService.findByOrderId(orderId);
-        return ResponseEntity.ok(orderProofs);
-    }
-
-
-        // Truy vấn trực tiếp bằng repository, tối ưu hiệu năng
-        List<DeliveryProof> orderProofs = deliveryProofService.findByOrderId(orderId);
-        return ResponseEntity.ok(orderProofs);
-    }
+        @GetMapping("/order/{orderId}")
+        public ResponseEntity<List<DeliveryProof>> getDeliveryProofsByOrder(@PathVariable Long orderId) {
+            List<DeliveryProof> orderProofs = deliveryProofService.findByOrderId(orderId);
+            return ResponseEntity.ok(orderProofs);
+        }
 
     /**
      * Serve delivery proof image file with authentication

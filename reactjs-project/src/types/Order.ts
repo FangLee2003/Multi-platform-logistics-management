@@ -50,6 +50,7 @@ export interface Order {
   address?: Address;
   vehicle?: Vehicle;
   delivery?: Delivery;
+  totalAmount?: number | string;
   // Thêm các trường khác nếu cần
   status_id?: number;
 }

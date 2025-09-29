@@ -20,6 +20,7 @@ interface OrderDetailModalProps {
   open: boolean;
   onClose: () => void;
   orderItem: {
+    id?: number;
     code: string;
     customer: string;
     status: string;
@@ -55,6 +56,8 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
 
   // Debug log để kiểm tra dữ liệu truyền vào modal
   console.log('🔍 OrderDetailModal - orderItem received:', orderItem);
+  console.log('🔍 OrderDetailModal - orderItem.id:', orderItem?.id);
+  console.log('🔍 OrderDetailModal - orderItem.code:', orderItem?.code);
   console.log('🔍 OrderDetailModal - orderItem.addressDetail:', orderItem.addressDetail);
 
   // Lấy thông tin người nhận từ orderItem.address nếu có dạng object
@@ -131,22 +134,17 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Delivery Address</label>
-            <p className="text-gray-900">{orderItem?.address}</p>
             <label className="block text-sm font-medium text-gray-700">Địa chỉ giao hàng</label>
             <p className="text-gray-900">
               {typeof orderItem.address === 'object' && orderItem.address !== null
-                ? (orderItem.address as any).address
+                ? (orderItem.address as any).address || JSON.stringify(orderItem.address)
                 : orderItem.address}
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Route</label>
             <label className="block text-sm font-medium text-gray-700">{t('common.route', 'Route')}</label>
             <div className="text-gray-900">
-              <p><strong>From:</strong> {orderItem?.from}</p>
-              <p><strong>To:</strong> {orderItem?.to}</p>
               <p><strong>{t('common.from', 'From')}:</strong> {orderItem.from}</p>
               <p><strong>{t('common.to', 'To')}:</strong> {orderItem.to}
                 {typeof orderItem.address === 'object' && (orderItem.address as any)?.city ? ", " + (orderItem.address as any).city : ""}
@@ -177,7 +175,6 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
                       <td>{item.quantity}</td>
                       <td>{item.product?.weight !== undefined ? item.product.weight : ""}</td>
                       <td>{item.product?.volume !== undefined ? item.product.volume : ""}</td>
-                      <td>{item.product?.fragile !== undefined ? (item.product.fragile ? "Yes" : "No") : ""}</td>
                       <td>{item.product?.fragile !== undefined ? (item.product.fragile ? t('common.yes', 'Yes') : t('common.no', 'No')) : ""}</td>
                       <td>{
                         item.shippingFee
@@ -258,8 +255,14 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
 
           {/* Checklist timeline dọc */}
           <div>
-            
-            <OrderChecklistTimeline orderId={orderItem?.code || ''} />
+            <h3 className="text-lg font-semibold mb-4">Chi tiết tiến trình đơn hàng</h3>
+            {orderItem?.id ? (
+              <OrderChecklistTimeline orderId={orderItem.id} />
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                Không thể tải chi tiết tiến trình đơn hàng (thiếu ID đơn hàng)
+              </div>
+            )}
           </div>
 
         <div className="flex justify-end mt-6">

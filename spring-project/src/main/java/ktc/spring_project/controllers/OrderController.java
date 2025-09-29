@@ -99,8 +99,8 @@ public ResponseEntity<Order> getOrder(@PathVariable Long orderId) {
     public ResponseEntity<Page<Order>> getCompletedOrdersPaginated(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        // Lấy trực tiếp từ repository với status_id = 2
-    Page<Order> completedOrders = orderService.getOrdersByStatusIdPaginated((short)2, PageRequest.of(page - 1, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id")));
+        // Lấy đơn hàng có status name là 'Completed' hoặc 'COMPLETED'
+        Page<Order> completedOrders = orderService.getCompletedOrdersPaginated(PageRequest.of(page - 1, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id")));
         return ResponseEntity.ok(completedOrders);
     }
     /**
