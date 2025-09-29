@@ -558,13 +558,11 @@ public class ChecklistService {
                     setCustomerPaymentStatus(response, userId, validPaymentStatuses);
                     break;
                 case "DISPATCHER_RECEIVE_ORDER":
-                case "DISPATCHER_ASSIGN_DRIVER":
-                case "DISPATCHER_RECEIVE_RESULT":
+            
                     setDispatcherStatus(response, userId, stepCode);
                     break;
                 case "DRIVER_RECEIVE_ORDER":
-                case "DRIVER_START_DELIVERY":
-                case "DRIVER_COMPLETE_DELIVERY":
+        
                     setDriverStatus(response, userId, stepCode);
                     break;
                 default:
