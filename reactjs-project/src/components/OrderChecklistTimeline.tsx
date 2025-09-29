@@ -5,10 +5,11 @@ import { MdAccessTime, MdInventory, MdLocalShipping, MdLocationOn, MdCheckCircle
 
 interface Props {
   orderId: string | number;
+  orderStatus?: string; // Thêm prop để nhận trạng thái đơn hàng
   // currentStepCode có thể dùng để highlight bước hiện tại nếu cần
 }
 
-const OrderChecklistTimeline: React.FC<Props> = ({ orderId }) => {
+const OrderChecklistTimeline: React.FC<Props> = ({ orderId, orderStatus }) => {
   const [mergedSteps, setMergedSteps] = useState<TimelineStepDto[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +26,10 @@ const OrderChecklistTimeline: React.FC<Props> = ({ orderId }) => {
         // DEBUG: Log dữ liệu từ API
         console.log('🔍 [DEBUG] Standard steps:', standardSteps);
         console.log('🔍 [DEBUG] Progress steps:', progressSteps);
+        
+        // Kiểm tra xem có bước nào đã completed không
+        const completedSteps = progressSteps.filter(p => p.completedAt);
+        console.log('🔍 [DEBUG] Completed steps:', completedSteps);
 
         // Định nghĩa thứ tự mong muốn
         const stepOrderMap = [
@@ -36,9 +41,21 @@ const OrderChecklistTimeline: React.FC<Props> = ({ orderId }) => {
         ];
 
         // Merge dữ liệu: lấy cấu trúc từ standardSteps, cập nhật completedAt từ progressSteps
-        // Sửa logic: chỉ cho phép completed nếu các bước trước đã completed
         let merged = [];
-        let allPrevCompleted = true;
+        
+        // Kiểm tra đơn hàng đã completed: từ progress steps HOẶCL từ orderStatus prop
+        const hasCompletedDelivery = 
+          // Từ progress steps
+          progressSteps.some(p => 
+            (p.stepCode === 'DRIVER_COMPLETE_DELIVERY' && p.completedAt && p.completed === true) ||
+            (p.stepCode === 'COMPLETED' && p.completedAt && p.completed === true)
+          ) ||
+          // HOẶC từ trạng thái đơn hàng
+          (orderStatus && orderStatus.toLowerCase().includes('completed'));
+        
+        console.log('🔍 [DEBUG] orderStatus:', orderStatus);
+        console.log('🔍 [DEBUG] hasCompletedDelivery:', hasCompletedDelivery);
+        
         for (const standardStep of standardSteps) {
           const progressStep = progressSteps.find(p => p.stepCode === standardStep.stepCode);
           let stepName = standardStep.stepName;
@@ -59,13 +76,26 @@ const OrderChecklistTimeline: React.FC<Props> = ({ orderId }) => {
             default:
               break;
           }
-          // completed chỉ true nếu các bước trước đã completed
-          const completed = !!progressStep?.completedAt && allPrevCompleted;
-          if (!completed) allPrevCompleted = false;
+          
+          // Logic mới: nếu đơn hàng đã completed thì tất cả bước đều completed
+          let completed = false;
+          let completedAt = undefined;
+          
+          // CHỈ khi thực sự đã giao hàng thành công thì mới force tất cả bước completed
+          if (hasCompletedDelivery) {
+            // Đơn hàng đã hoàn thành -> tất cả bước completed
+            completed = true;
+            completedAt = progressStep?.completedAt || new Date().toISOString();
+          } else {
+            // Logic bình thường: chỉ completed khi thực sự có completedAt và completed = true
+            completed = !!(progressStep?.completedAt && progressStep?.completed === true);
+            completedAt = progressStep?.completedAt;
+          }
+          
           merged.push({
             ...standardStep,
             stepName,
-            completedAt: completed ? progressStep?.completedAt : undefined,
+            completedAt,
             completed,
             actor: progressStep?.actor || undefined,
             details: progressStep?.details || undefined,

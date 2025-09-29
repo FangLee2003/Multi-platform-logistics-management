@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { fetchOrders, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function OrderList() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [searchId, setSearchId] = useState("");
@@ -23,7 +24,8 @@ export default function OrderList() {
   const {
     data: ordersResponse,
     isLoading: loading,
-    error: fetchError
+    error: fetchError,
+    refetch
   } = useQuery<FetchNotCompletedOrdersResponse>({
     queryKey: ['ordersForList', 'not-completed', page],
     queryFn: async () => {
@@ -31,8 +33,9 @@ export default function OrderList() {
       return await fetchNotCompletedOrders(page, PAGE_SIZE, token);
     },
     enabled: !isSearchMode,
-    staleTime: 30 * 1000,
+    staleTime: 0, // Không cache - luôn fetch fresh data
     refetchOnWindowFocus: true,
+    refetchInterval: 5 * 1000, // Tự động refetch mỗi 5 giây
   });
 
   const paginatedOrders: Order[] = isSearchMode
@@ -59,9 +62,18 @@ export default function OrderList() {
       const token = localStorage.getItem("token") || "";
       const foundOrder = await fetchOrderById(searchId.trim(), token);
       if (foundOrder) {
-        setSearchResults([foundOrder]);
-        setIsSearchMode(true);
-        setPage(1);
+        // Kiểm tra nếu đơn hàng đã completed thì không hiển thị
+        const isCompleted = foundOrder.status?.name?.toLowerCase().includes('completed');
+        if (isCompleted) {
+          setSearchResults([]);
+          setIsSearchMode(true);
+          setPage(1);
+          setError("Đơn hàng này đã hoàn thành và không hiển thị trong danh sách chưa hoàn thành.");
+        } else {
+          setSearchResults([foundOrder]);
+          setIsSearchMode(true);
+          setPage(1);
+        }
       } else {
         setSearchResults([]);
         setIsSearchMode(true);
@@ -83,6 +95,18 @@ export default function OrderList() {
     }
   }, [searchId]);
 
+  // Thêm useEffect để force refresh khi component được focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !isSearchMode) {
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refetch, isSearchMode]);
+
   return (
     <div className="bg-gradient-to-br from-blue-50/80 via-white/90 to-blue-100/80 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl max-w-full overflow-x-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
@@ -92,7 +116,7 @@ export default function OrderList() {
           <div className="text-sm text-blue-600 mt-1">💡 {t('dashboard.dispatcher.orders.clickToViewMap', 'Click on order to view route on map')}</div>
         </div>
         
-        {/* Search order by ID */}
+        {/* Search order by ID and Refresh button */}
         <div className="flex items-center gap-2 bg-white/80 border border-blue-100 rounded-xl px-3 py-2 shadow">
           <input
             type="text"
@@ -221,7 +245,7 @@ export default function OrderList() {
                 {/* Checklist timeline - display when expanded */}
                 {expandedOrderId === order.id && (
                   <div className="px-2">
-                    <OrderChecklistTimeline orderId={order.id} />
+                    <OrderChecklistTimeline orderId={order.id} orderStatus={order.status?.name} />
                   </div>
                 )}
               </div>

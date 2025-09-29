@@ -26,9 +26,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
         List<Order> findByStatus_Id(Short statusId);
         Page<Order> findByStatus_Id(Short statusId, org.springframework.data.domain.Pageable pageable);
-        @Query("SELECT o FROM Order o WHERE o.status.id <> 2")
+        @Query("SELECT o FROM Order o WHERE o.status.name NOT IN ('Completed', 'COMPLETED', 'completed')")
         Page<Order> findNotCompletedOrders(Pageable pageable);
-        @Query("SELECT o FROM Order o WHERE o.status.id <> 2 ORDER BY o.id DESC")
+        @Query("SELECT o FROM Order o WHERE o.status.name NOT IN ('Completed', 'COMPLETED', 'completed') ORDER BY o.id DESC")
         List<Order> findAllNotCompletedOrdersSortedByIdDesc();
         List<Order> findByStore_Id(Long storeId);
         List<Order> findByCreatedBy_Id(Long createdBy);
