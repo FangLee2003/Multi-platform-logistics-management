@@ -21,15 +21,3 @@ export async function fetchOrderChecklistProgress(orderId: string | number, toke
   const data = await res.json();
   return Array.isArray(data.timeline) ? data.timeline : [];
 }
-
-// API cũ để lấy timeline (giữ lại để tương thích)
-export async function fetchOrderTimeline(orderId: string | number, token?: string): Promise<TimelineStepDto[]> {
-  const authToken = token || localStorage.getItem('token') || '';
-  const res = await fetch(`http://localhost:8080/api/checklist/orders/${orderId}/timeline`, {
-    headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : undefined,
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  // data.timeline là mảng các bước checklist
-  return Array.isArray(data.timeline) ? data.timeline : [];
-}

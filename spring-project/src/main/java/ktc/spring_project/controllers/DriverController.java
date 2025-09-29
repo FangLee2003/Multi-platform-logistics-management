@@ -121,12 +121,15 @@ public class DriverController {
 			String details = "Driver updated order status to " + statusUpdate.getStatusId();
 			checklistService.markStepCompleted(driverId, orderId, "DRIVER_UPDATE_ORDER_STATUS", details);
 
-			// Nếu trạng thái mới là 'Shipped' thì ghi thêm log DRIVER_RECEIVE_ORDER
+			// Nếu trạng thái mới là 'Shipping' hoặc 'Shipped' thì ghi thêm log DRIVER_RECEIVE_ORDER
 			String shippedStepName = "DRIVER_RECEIVE_ORDER";
-			String statusName = String.valueOf(statusUpdate.getStatusId()).toLowerCase();
-			if (statusName.contains("shipped")) {
-				String receiveDetails = "Driver received order (" + statusUpdate.getStatusId() + ")";
-				checklistService.markStepCompleted(driverId, orderId, shippedStepName, receiveDetails);
+			Optional<Status> statusOpt = statusService.getStatusById(statusUpdate.getStatusId());
+			if (statusOpt.isPresent()) {
+				String statusName = statusOpt.get().getName();
+				if ("Shipping".equalsIgnoreCase(statusName) || "Shipped".equalsIgnoreCase(statusName)) {
+					String receiveDetails = "Driver received order (" + statusName + ")";
+					checklistService.markStepCompleted(driverId, orderId, shippedStepName, receiveDetails);
+				}
 			}
 
 			result.put("message", "Cập nhật trạng thái thành công!");

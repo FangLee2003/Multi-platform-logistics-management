@@ -355,47 +355,12 @@ public ResponseEntity<Order> putOrder(
 }
 // ...existing code...
 
-    // DTO đơn giản để nhận statusId
-    static class UpdateOrderStatusDTO {
-        public Long statusId;
-    }
 
     // DTO đơn giản để nhận vehicleId
     static class UpdateOrderVehicleDTO {
         public Long vehicleId;
     }
 
-    // API cập nhật trạng thái đơn hàng
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<?> updateOrderStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateOrderStatusDTO dto,
-            @RequestParam(required = false) Long dispatcherId) {
-        Map<String, Object> result = new HashMap<>();
-        try {
-            Order order = orderService.getOrderById(id);
-            // Nếu stepName là DRIVER_RECEIVE_ORDER thì chuyển trạng thái sang Shipped
-            Optional<Status> shippedStatus = statusService.getStatusByTypeAndName("ORDER", "Shipped");
-            if (shippedStatus.isPresent()) {
-                order.setStatus(shippedStatus.get());
-            }
-            Order updatedOrder = orderService.createOrder(order);
-            checklistService.markStepCompleted(
-                dispatcherId != null ? dispatcherId : (order.getCreatedBy() != null ? order.getCreatedBy().getId() : null),
-                id,
-                "DRIVER_RECEIVE_ORDER",
-                "Driver nhận đơn, chuyển trạng thái sang Shipped"
-            );
-            ChecklistProgressResponse checklistLog = checklistService.getProgressByOrder(id);
-            result.put("order", updatedOrder);
-            result.put("checklistLog", checklistLog);
-            result.put("message", "Cập nhật trạng thái thành công và đã ghi log checklist!");
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            result.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
-        }
-    }
 
     // API cập nhật vehicle cho đơn hàng
     @PatchMapping("/{id}/vehicle")
