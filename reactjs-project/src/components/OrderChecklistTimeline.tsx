@@ -85,7 +85,7 @@ const OrderChecklistTimeline: React.FC<Props> = ({ orderId }) => {
         {/* Horizontal timeline container */}
         <div className="relative flex justify-center">
           {/* Continuous line behind all dots */}
-          <div className="absolute top-6 left-10 right-10 h-1 bg-gray-300 z-0"></div>
+          <div className="absolute top-6 left-12 right-12 h-1 bg-gray-300 z-0"></div>
           
           {/* Green progress line overlay */}
           {(() => {
@@ -94,8 +94,8 @@ const OrderChecklistTimeline: React.FC<Props> = ({ orderId }) => {
               const progressPercent = (lastCompletedIdx / (displaySteps.length - 1)) * 100;
               return (
                 <div 
-                  className="absolute top-6 left-10 h-1 bg-green-500 z-0"
-                  style={{ width: `calc((100% - 5rem) * ${progressPercent / 100})` }}
+                  className="absolute top-6 left-12 h-1 bg-green-500 z-0"
+                  style={{ width: `calc((100% - 6rem) * ${progressPercent / 100})` }}
                 ></div>
               );
             }
