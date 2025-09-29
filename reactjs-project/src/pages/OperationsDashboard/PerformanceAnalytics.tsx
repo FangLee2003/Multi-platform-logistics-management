@@ -50,7 +50,7 @@ export default function PerformanceAnalytics() {
     'All',
     'Pending',        // Pending (ID: 1)
     'Processing',     // Processing (ID: 4)
-    'Shipped',        // Shipped (ID: 5)
+    'Shipping',        // Shipped (ID: 5)
     'Completed',      // Completed (ID: 2)
     'Cancelled',      // Cancelled (ID: 3)
   ];
@@ -60,7 +60,7 @@ export default function PerformanceAnalytics() {
       'All': t('common.all', 'All'),
       'Pending': t('common.pending', 'Pending'),
       'Processing': t('dashboard.operations.status.processing', 'Processing'),
-      'Shipped': t('dashboard.operations.status.shipped', 'Shipped'),
+      'Shipping': t('dashboard.operations.status.shipping', 'Shipping'),
       'Completed': t('common.completed', 'Completed'),
       'Cancelled': t('common.cancelled', 'Cancelled')
     };
