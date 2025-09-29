@@ -27,10 +27,9 @@ export default function StepOrderItems({ form }: Props) {
           "Height (cm)",
           "Width (cm)",
           "Length (cm)",
-          "Fragile",
         ],
-        ["Sample Product 1", 2, 1.5, 30, 20, 40, "No"],
-        ["Sample Product 2", 1, 0.8, 15, 15, 25, "Yes"],
+        ["Sample Product 1", 2, 1.5, 30, 20, 40],
+        ["Sample Product 2", 1, 0.8, 15, 15, 25],
       ];
 
       const wb = XLSX.utils.book_new();
@@ -43,13 +42,12 @@ export default function StepOrderItems({ form }: Props) {
         { wch: 12 }, // Height
         { wch: 12 }, // Width
         { wch: 12 }, // Length
-        { wch: 10 }, // Fragile
       ];
       ws["!cols"] = colWidths;
 
-      XLSX.utils.book_append_sheet(wb, ws, "Order Sample");
+      XLSX.utils.book_append_sheet(wb, ws, "Order Items");
 
-      XLSX.writeFile(wb, "sample_product_list.xlsx");
+      XLSX.writeFile(wb, "sample_order_items.xlsx");
     });
   };
 
@@ -83,10 +81,10 @@ export default function StepOrderItems({ form }: Props) {
           icon={<UploadOutlined />}
           onClick={() => setIsExcelModalOpen(true)}
           style={{
-                marginRight: 8,
-                backgroundColor: "#15803d",
-                borderColor: "#15803d",
-              }}
+            marginRight: 8,
+            backgroundColor: "#15803d",
+            borderColor: "#15803d",
+          }}
         >
           Import Excel File
         </Button>

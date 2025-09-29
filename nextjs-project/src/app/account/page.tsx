@@ -163,7 +163,7 @@ export default function CustomerAccount() {
             setDetailOrderId(text);
             setIsDetailModalVisible(true);
           }}
-          style={{ cursor: "pointer", color: "#1890ff" }}
+          style={{ cursor: "pointer", color: "#15803d" }}
         >
           {text}
         </a>
@@ -275,7 +275,7 @@ export default function CustomerAccount() {
                     "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
                   transition: "all 0.3s ease",
                 }}
-                bodyStyle={{ padding: "32px 24px" }}
+                styles={{ body: { padding: "32px 24px" } }}
               >
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
                   <BoxPlotOutlined style={{ fontSize: 48, color: "#0284c7" }} />
@@ -317,7 +317,7 @@ export default function CustomerAccount() {
                     "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
                   transition: "all 0.3s ease",
                 }}
-                bodyStyle={{ padding: "32px 24px" }}
+                styles={{ body: { padding: "32px 24px" } }}
               >
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
                   <EnvironmentOutlined
@@ -361,7 +361,7 @@ export default function CustomerAccount() {
                     "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
                   transition: "all 0.3s ease",
                 }}
-                bodyStyle={{ padding: "32px 24px" }}
+                styles={{ body: { padding: "32px 24px" } }}
               >
                 <div style={{ textAlign: "center", marginBottom: 16 }}>
                   <DollarOutlined style={{ fontSize: 48, color: "#d97706" }} />

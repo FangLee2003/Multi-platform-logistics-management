@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, Row, Col, Divider, Typography, Table, Select, Form } from "antd";
 import { Store } from "@/types/Store";
-import { OrderItem } from "@/types/orders";
+import { OrderItem, OrderForm } from "@/types/orders";
 import { FormInstance } from "antd";
 import {
   getServiceMultiplier,
@@ -16,7 +16,7 @@ import { isValidItem, calculateVolume } from "@/utils/orderItems";
 const { Text, Title } = Typography;
 
 interface Props {
-  form: FormInstance<any>;
+  form: FormInstance<OrderForm>;
   store: Store | null;
 }
 
@@ -81,7 +81,7 @@ export default function StepInvoice({ form, store }: Props) {
   let baseShippingFee = 0;
   items.forEach((item) => {
     if (isValidItem(item)) {
-      const itemFragile = (item as any)?.is_fragile || false;
+      const itemFragile = item.is_fragile || false;
       const itemFee = calculateBaseShippingFee([item], itemFragile);
       baseShippingFee += itemFee;
     }
@@ -96,7 +96,7 @@ export default function StepInvoice({ form, store }: Props) {
   }, [totalFee, form]);
 
   return (
-    <Card>
+    <>
       <Title level={4}>Order Details</Title>
       <Row gutter={[16, 24]}>
         {/* ===== Shipping Information ===== */}
@@ -104,7 +104,7 @@ export default function StepInvoice({ form, store }: Props) {
           <Card size="small" title="Shipping Information">
             <Row gutter={[16, 16]}>
               <Col xs={24} md={12}>
-                <Title level={5} style={{ marginBottom: 12, color: "#1890ff" }}>
+                <Title level={5} style={{ marginBottom: 12, color: "#d97706" }}>
                   📍 Pickup Address
                 </Title>
                 <div
@@ -130,7 +130,7 @@ export default function StepInvoice({ form, store }: Props) {
               </Col>
 
               <Col xs={24} md={12}>
-                <Title level={5} style={{ marginBottom: 12, color: "#52c41a" }}>
+                <Title level={5} style={{ marginBottom: 12, color: "#d97706" }}>
                   🏠 Delivery Address
                 </Title>
                 <div
@@ -201,35 +201,38 @@ export default function StepInvoice({ form, store }: Props) {
                     title: "Product Name",
                     dataIndex: "product_name",
                     key: "product_name",
+                    align: "left",
                   },
                   {
                     title: "Quantity",
                     dataIndex: "quantity",
                     key: "quantity",
+                    align: "right",
                   },
                   {
                     title: "Weight (kg)",
                     dataIndex: "weight",
                     key: "weight",
-                    render: (w: number) => `${w || 0} kg`,
+                    align: "right",
+                    render: (w: number) => w || 0,
                   },
                   {
                     title: "Volume (cm³)",
                     key: "volume",
+                    align: "right",
                     responsive: ["lg"],
                     render: (_, r: OrderItem) => {
                       const volume = calculateVolume(r);
-                      return volume > 0
-                        ? volume.toLocaleString("en-US") + " cm³"
-                        : "-";
+                      return volume > 0 ? volume.toLocaleString("en-US") : "-";
                     },
                   },
                   {
                     title: "Fragile",
                     key: "is_fragile",
+                    align: "left",
                     responsive: ["md"],
                     render: (_, r: OrderItem) => {
-                      const fragile = (r as any)?.is_fragile || false;
+                      const fragile = r.is_fragile || false;
                       return (
                         <Text
                           style={{ color: fragile ? "#ff4d4f" : "#52c41a" }}
@@ -242,13 +245,12 @@ export default function StepInvoice({ form, store }: Props) {
                   {
                     title: "Shipping Fee",
                     key: "shipping_fee",
+                    align: "right",
                     render: (_, r: OrderItem) => {
-                      const fragile = (r as any)?.is_fragile || false;
+                      const fragile = r.is_fragile || false;
                       const fee = calculateBaseShippingFee([r], fragile);
                       return (
-                        <Text strong style={{ color: "#1890ff" }}>
-                          {fee.toLocaleString("en-US")} ₫
-                        </Text>
+                        <Text strong>{fee.toLocaleString("en-US")} ₫</Text>
                       );
                     },
                   },
@@ -360,6 +362,6 @@ export default function StepInvoice({ form, store }: Props) {
           </Card>
         </Col>
       </Row>
-    </Card>
+    </>
   );
 }

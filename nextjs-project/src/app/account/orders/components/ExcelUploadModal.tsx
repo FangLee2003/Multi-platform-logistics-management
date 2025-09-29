@@ -34,17 +34,15 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
   const handleDownloadSample = () => {
     const sampleData = [
       [
-        [
-          "Product Name",
-          "Quantity",
-          "Weight (kg)",
-          "Height (cm)",
-          "Width (cm)",
-          "Length (cm)",
-        ],
-        ["Sample Product 1", 2, 1.5, 30, 20, 40],
-        ["Sample Product 2", 1, 0.8, 15, 15, 25],
+        "Product Name",
+        "Quantity",
+        "Weight (kg)",
+        "Height (cm)",
+        "Width (cm)",
+        "Length (cm)",
       ],
+      ["Sample Product 1", 2, 1.5, 30, 20, 40],
+      ["Sample Product 2", 1, 0.8, 15, 15, 25],
     ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sampleData);
@@ -128,7 +126,7 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
     },
     { title: "Quantity", dataIndex: "quantity", key: "quantity", width: 80 },
     { title: "Weight (kg)", dataIndex: "weight", key: "weight", width: 100 },
-    { title: "Height  (cm)", dataIndex: "height", key: "height", width: 100 },
+    { title: "Height (cm)", dataIndex: "height", key: "height", width: 100 },
     { title: "Width (cm)", dataIndex: "width", key: "width", width: 100 },
     { title: "Length (cm)", dataIndex: "length", key: "length", width: 100 },
   ];
@@ -138,7 +136,7 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
       open={open}
       onCancel={handleCloseModal}
       width="100%"
-      style={{ maxWidth: 700 }}
+      style={{ maxWidth: 650 }}
       footer={null}
       closeIcon={<CloseOutlined />}
       centered
@@ -212,7 +210,7 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
                 }))}
                 columns={tableColumns}
                 pagination={false}
-                scroll={{ y: 300, x: 700 }}
+                scroll={{ y: 300, x: 600 }}
                 size="small"
               />
             </div>

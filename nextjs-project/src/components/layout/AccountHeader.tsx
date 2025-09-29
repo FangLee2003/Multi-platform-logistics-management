@@ -94,7 +94,7 @@ export default function AccountHeader({
               icon={<LogoutOutlined />}
               style={{
                 background: "#fff",
-                color: "#15803d",
+                color: "#c9184a",
                 border: "none",
                 borderRadius: "6px",
               }}

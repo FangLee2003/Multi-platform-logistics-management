@@ -378,8 +378,8 @@ export default function StepStoreInfo({ store }: Props) {
               readOnly
               style={{
                 marginBottom: 16,
-                borderRadius: 6,
-                backgroundColor: addressValue ? "#f5f5f5" : "#fff",
+                // borderRadius: 6,
+                // backgroundColor: addressValue ? "#f5f5f5" : "#fff",
                 cursor: "default",
               }}
               suffix={

@@ -48,18 +48,24 @@ export default function CreateOrder() {
   const steps = [
     {
       title: "Store Information",
-      icon: <ShopOutlined />,
+      icon: <ShopOutlined style={{ color: "#0284c7" }} />,
       content: <StepStoreInfo store={store} />,
+      color: "#0284c7",
+      // backgroundColor: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
     },
     {
       title: "Order Details",
-      icon: <BoxPlotOutlined />,
+      icon: <BoxPlotOutlined style={{ color: "#15803d" }} />,
       content: <StepOrderItems form={form} />, // chỉ truyền form, không cần items props
+      color: "#15803d",
+      // backgroundColor: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
     },
     {
       title: "Invoice",
-      icon: <DollarOutlined />,
+      icon: <DollarOutlined style={{ color: "#d97706" }} />,
       content: <StepInvoice form={form} store={store} />,
+      color: "#d97706",
+      // backgroundColor: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
     },
   ];
 
@@ -109,7 +115,7 @@ export default function CreateOrder() {
       try {
         // BƯỚC 1: Lưu Address
         console.log("📍 Creating address with values:", mergedValues);
-        
+
         // Tạo payload chỉ với những field cần thiết cho address
         const addressOnlyValues = {
           addressType: mergedValues.addressType,
@@ -121,7 +127,7 @@ export default function CreateOrder() {
           latitude: mergedValues.latitude,
           longitude: mergedValues.longitude,
         };
-        
+
         const addressPayload = createAddressPayload(addressOnlyValues);
         console.log("📍 Address payload:", addressPayload);
         const addressResult = await OrderFlowService.createAddress(
@@ -148,7 +154,7 @@ export default function CreateOrder() {
             } catch (error: unknown) {
               productResults.push({
                 name: item.product_name,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
               });
             }
           }
@@ -195,7 +201,7 @@ export default function CreateOrder() {
             } catch (error: unknown) {
               orderItemResults.push({
                 productName: productResult.name,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : "Unknown error",
               });
             }
           }
@@ -249,7 +255,9 @@ export default function CreateOrder() {
       }
     } catch (error: unknown) {
       console.error("💥 Complete flow error:", error);
-      message.error(error instanceof Error ? error.message : "Lỗi khi tạo đơn hàng");
+      message.error(
+        error instanceof Error ? error.message : "Lỗi khi tạo đơn hàng"
+      );
     }
   };
 
@@ -260,38 +268,53 @@ export default function CreateOrder() {
         current={currentStep}
         items={steps.map((s) => ({ title: s.title, icon: s.icon }))}
       />
-      <Form form={form} layout="vertical" onFinish={handleTestCompleteFlow}>
-        {steps[currentStep].content}
-        <div style={{ marginTop: 24, textAlign: "right" }}>
-          {currentStep > 0 && (
-            <Button onClick={prev} style={{ marginRight: 8 }}>
-              Back
-            </Button>
-          )}
-          {currentStep < steps.length - 1 && (
-            <Button type="primary" onClick={next} style={{
-                marginRight: 8,
-                backgroundColor: "#15803d",
-                borderColor: "#15803d",
-              }}>
-              Next
-            </Button>
-          )}
-          {currentStep === steps.length - 1 && (
-            <Button
-              type="primary"
-              htmlType="submit"
-              style={{
-                marginRight: 8,
-                backgroundColor: "#15803d",
-                borderColor: "#15803d",
-              }}
-            >
-              Create New Order
-            </Button>
-          )}
-        </div>
-      </Form>
+      <div
+        style={{
+          
+          borderRadius: 8,
+          padding: "24px",
+          marginTop: 24,
+          marginBottom: 24,
+          // border: `1px solid ${steps[currentStep].color}20`,
+        }}
+      >
+        <Form form={form} layout="vertical" onFinish={handleTestCompleteFlow}>
+          {steps[currentStep].content}
+          <div style={{ marginTop: 24, textAlign: "right" }}>
+            {currentStep > 0 && (
+              <Button onClick={prev} style={{ marginRight: 8 }}>
+                Back
+              </Button>
+            )}
+            {currentStep < steps.length - 1 && (
+              <Button
+                type="primary"
+                onClick={next}
+                style={{
+                  marginRight: 8,
+                  backgroundColor: steps[currentStep].color,
+                  borderColor: steps[currentStep].color,
+                }}
+              >
+                Next
+              </Button>
+            )}
+            {currentStep === steps.length - 1 && (
+              <Button
+                type="primary"
+                htmlType="submit"
+                style={{
+                  marginRight: 8,
+                  backgroundColor: steps[currentStep].color,
+                  borderColor: steps[currentStep].color,
+                }}
+              >
+                Create New Order
+              </Button>
+            )}
+          </div>
+        </Form>
+      </div>
     </Card>
   );
 }
