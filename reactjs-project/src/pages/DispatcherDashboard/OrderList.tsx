@@ -1,16 +1,16 @@
-// ...existing code...
-
 import { useState, useEffect } from "react";
+import OrderChecklistTimeline from "../../components/OrderChecklistTimeline";
+import { fetchOrders, fetchOrderById } from "../../services/OrderAPI";
 import { useTranslation } from 'react-i18next';
 import { fetchOrders, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
 import { useQuery } from "@tanstack/react-query";
 
-
 export default function OrderList() {
   const { t } = useTranslation();
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [searchId, setSearchId] = useState("");
   const [searching, setSearching] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -20,6 +20,7 @@ export default function OrderList() {
   const [searchResults, setSearchResults] = useState<Order[]>([]);
   const [error, setError] = useState("");
 
+  // Use React Query to fetch orders with pagination
   // Sử dụng React Query để fetch orders chưa completed với phân trang
   const {
     data: ordersResponse,
@@ -31,6 +32,8 @@ export default function OrderList() {
       const token = localStorage.getItem("token") || "";
       return await fetchNotCompletedOrders(page, PAGE_SIZE, token);
     },
+    enabled: !isSearchMode, // Only fetch when not in search mode
+    staleTime: 30 * 1000, // Cache for 30 seconds
     enabled: !isSearchMode,
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
@@ -43,16 +46,18 @@ export default function OrderList() {
     : (ordersResponse?.content || []).slice().sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
   const totalPages = isSearchMode ? 1 : (ordersResponse?.totalPages || 1);
 
-  // Hàm chọn đơn hàng để hiển thị route
-  const handleOrderClick = (order: Order) => {
-    console.log('OrderList: Selected order:', order);
-    console.log('OrderList: Vehicle info:', order.vehicle);
-    console.log('OrderList: Vehicle ID:', order.vehicle?.id);
-    console.log('OrderList: Current driver:', order.vehicle?.currentDriver);
+  // Function to select order for route display
+  const handleOrderClick = async (order: Order) => {
     setSelectedOrder(order);
+    if (expandedOrderId === order.id) {
+      // Currently open, click again to close
+      setExpandedOrderId(null);
+      return;
+    }
+    setExpandedOrderId(order.id);
   };
 
-  // Hàm tìm kiếm đơn hàng theo ID
+  // Function to search order by ID
   const handleSearch = async () => {
     if (!searchId.trim()) return;
     setSearching(true);
@@ -68,8 +73,11 @@ export default function OrderList() {
         setSearchResults([]);
         setIsSearchMode(true);
         setPage(1);
+        setError("No order found with the entered ID");
         setError(t('dashboard.dispatcher.orders.orderNotFound'));
       }
+    } catch {
+      setError("Error when searching order");
     } catch (err) {
       setError(t('dashboard.dispatcher.orders.searchError'));
     } finally {
@@ -77,7 +85,7 @@ export default function OrderList() {
     }
   };
 
-  // Khi xóa nội dung ô tìm kiếm, tự động trả lại danh sách đơn hàng mặc định
+  // When search input is cleared, automatically return to default order list
   useEffect(() => {
     if (searchId.trim() === "") {
       setIsSearchMode(false);
@@ -94,14 +102,18 @@ export default function OrderList() {
     <div className="bg-gradient-to-br from-blue-50/80 via-white/90 to-blue-100/80 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl max-w-full overflow-x-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
+          <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">Order List</div>
+          <div className="text-gray-500 text-base">Track order status in the system</div>
+          <div className="text-sm text-blue-600 mt-1">💡 Click on an order to view the route on the map</div>
           <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">{t('dashboard.dispatcher.orders.title')}</div>
           <div className="text-gray-500 text-base">{t('dashboard.dispatcher.subtitle')}</div>
           <div className="text-sm text-blue-600 mt-1">💡 {t('dashboard.dispatcher.orders.clickToViewMap', 'Click on order to view route on map')}</div>
         </div>
-        {/* Tìm kiếm đơn hàng theo ID */}
+        {/* Search order by ID */}
         <div className="flex items-center gap-2 bg-white/80 border border-blue-100 rounded-xl px-3 py-2 shadow">
           <input
             type="text"
+            placeholder="Enter order ID..."
             placeholder={t('dashboard.dispatcher.orders.enterOrderId')}
             className="px-2 py-1 rounded border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
             value={searchId}
@@ -114,6 +126,7 @@ export default function OrderList() {
             disabled={!searchId.trim() || loading || searching}
             className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded transition-colors duration-200 font-semibold"
           >
+            {searching ? "Searching..." : "Search"}
             {searching ? t('common.loading') : t('dashboard.dispatcher.orders.search')}
           </button>
         </div>
@@ -140,12 +153,73 @@ export default function OrderList() {
       
       {error || fetchError ? (
         <div className="text-center py-8 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
+          {error || (fetchError as Error)?.message || "An error occurred"}
           {error || (fetchError as Error)?.message || t('common.error')}
         </div>
       ) : (
         <div className="relative">
           {/* Order list */}
           <div className="flex flex-col gap-4">
+            {orders.map((order) => (
+              <div key={order.id}>
+                <div
+                  onClick={() => handleOrderClick(order)}
+                  className={`rounded-2xl border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow hover:shadow-xl transition-all duration-200 cursor-pointer ${
+                    selectedOrder?.id === order.id 
+                      ? 'bg-blue-100/90 border-blue-400 ring-2 ring-blue-300' 
+                      : 'bg-white/90 border-blue-100 hover:bg-blue-50/80'
+                  }`}
+                >
+                  {/* Left: Order info */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-2">
+                    <div className="flex flex-wrap gap-2 items-center mb-1">
+                      <span className="font-extrabold text-lg text-blue-900">#{order.id}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
+                        ${order.status?.name === 'Pending'
+                          ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                          : order.status?.name === 'Completed'
+                          ? 'bg-green-100 text-green-800 border-green-300'
+                          : 'bg-blue-100 text-blue-700 border-blue-300'}
+                      `}>
+                        {order.status?.name === 'Delivered' ? 'Shipping' : order.status?.name}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
+                        ${order.status?.statusType === 'High'
+                          ? 'bg-red-100 text-red-700 border-red-300'
+                          : order.status?.statusType === 'Medium'
+                          ? 'bg-orange-100 text-orange-700 border-orange-300'
+                          : 'bg-green-100 text-green-700 border-green-300'}
+                      `}>
+                        {order.status?.statusType}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <div>
+                        <span className="font-semibold text-blue-700">Customer:</span>
+                        <span className="text-blue-800"> {order.store?.storeName}</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-blue-700">From:</span>
+                        <span className="text-gray-700"> {order.store?.address}</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-blue-700">To:</span>
+                        <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Right: Date & driver/vehicle */}
+                  <div className="flex flex-col items-end min-w-[180px] gap-1">
+                    <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold text-gray-500">Driver:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Not assigned"}</span>
+                      {order.vehicle?.licensePlate && (
+                        <>
+                          <span className="mx-1 text-gray-400">|</span>
+                          <span className="font-semibold text-blue-800">Vehicle: {order.vehicle.licensePlate}</span>
+                        </>
+                      )}
+                    </div>
             {paginatedOrders.map((order: Order) => (
               <div
                 key={order.id}
@@ -217,6 +291,13 @@ export default function OrderList() {
                     )}
                   </div>
                 </div>
+                {/* Checklist timeline vertical, only display for expanded order */}
+                {expandedOrderId === order.id && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    {/* <label className="block text-sm font-medium text-blue-700 mb-2">Order status checklist</label> */}
+                    <OrderChecklistTimeline orderId={order.id} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -228,8 +309,11 @@ export default function OrderList() {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
             >
+              &lt; Previous
               &lt; {t('common.previous')}
             </button>
+            <span className="mx-2 text-blue-900 font-semibold text-base">Page {page} / {totalPages}</span>
+            {/* <span className="mx-2 text-gray-500 text-sm">Total: {totalRecords}</span> */}
             <span className="mx-2 text-blue-900 font-semibold text-base">{t('common.page', 'Page')} {page} / {totalPages}</span>
             {/* <span className="mx-2 text-gray-500 text-sm">Tổng số: {totalRecords}</span> */}
             <button
@@ -237,6 +321,7 @@ export default function OrderList() {
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || loading}
             >
+              Next &gt;
               {t('common.next')} &gt;
             </button>
           </div>

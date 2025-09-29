@@ -405,8 +405,7 @@ User user = getUserById(id);
         user.setTotpEnabled(false);
         userRepository.save(user);
     }
-
-    /**
+     /**
      * Lấy danh sách store thuộc về user
      */
     public List<ktc.spring_project.entities.Store> getStoresByUserId(Long userId) {
@@ -414,5 +413,9 @@ User user = getUserById(id);
             throw new HttpException("User ID cannot be null", HttpStatus.BAD_REQUEST);
         }
         return storeRepository.findByCreatedById(userId);
+    }
+    // Tìm user theo username
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
     }
 }

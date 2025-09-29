@@ -53,3 +53,22 @@ export interface Order {
   // Thêm các trường khác nếu cần
   status_id?: number;
 }
+
+
+// Checklist/timeline cho đơn hàng
+export interface TimelineStepDto {
+  stepOrder: number;
+  stepCode: string;
+  stepName: string;
+  description?: string;
+  completed?: boolean;
+  completedAt?: string | Date;
+  actor?: {
+    userId?: number;
+    fullName?: string;
+    role?: string;
+    phone?: string;
+  };
+  details?: string;
+  status?: string;
+}

@@ -4,23 +4,24 @@ package ktc.spring_project.services;
 
 import ktc.spring_project.dtos.order.OrderStatusUpdateDTO;
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
+import ktc.spring_project.dtos.timeline.OrderTimelineResponse;
+import ktc.spring_project.dtos.timeline.ActorDto;
+import ktc.spring_project.dtos.timeline.OrderStatusDto;
 import ktc.spring_project.entities.Order;
-import ktc.spring_project.entities.Vehicle;
-import ktc.spring_project.entities.Address;
 import ktc.spring_project.entities.Status;
-import ktc.spring_project.entities.Store;
+import ktc.spring_project.entities.Vehicle;
 import ktc.spring_project.entities.User;
 import ktc.spring_project.repositories.OrderRepository;
-import ktc.spring_project.repositories.AddressRepository;
-import ktc.spring_project.repositories.StatusRepository;
-import ktc.spring_project.repositories.StoreRepository;
 import ktc.spring_project.repositories.UserRepository;
 import ktc.spring_project.repositories.VehicleRepository;
 import ktc.spring_project.repositories.DeliveryRepository;
+import ktc.spring_project.repositories.StoreRepository;
+import ktc.spring_project.repositories.StatusRepository;
 import ktc.spring_project.exceptions.EntityDuplicateException;
 import ktc.spring_project.exceptions.EntityNotFoundException;
 import ktc.spring_project.exceptions.HttpException;
-import lombok.extern.slf4j.Slf4j;
+import ktc.spring_project.enums.StatusType;
+import ktc.spring_project.repositories.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -30,16 +31,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 public class OrderService {
+    @Autowired
+    private OrderItemRepository orderItemRepository;
 
     // Lấy tất cả đơn hàng chưa hoàn thành, sort id giảm dần
     public List<Order> getAllNotCompletedOrdersSortedByIdDesc() {
@@ -48,29 +52,27 @@ public class OrderService {
 
     @Autowired
     private OrderRepository orderRepository;
-
     @Autowired
-    private AddressRepository addressRepository;
-
+    private ChecklistService checklistService;
     @Autowired
-    private StatusRepository statusRepository;
+    private StatusService statusService;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private VehicleRepository vehicleRepository;
+    @Autowired
+    private DeliveryRepository deliveryRepository;
 
     @Autowired
     private StoreRepository storeRepository;
-
+    
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private VehicleRepository vehicleRepository;
-
-    @Autowired
-    private DeliveryRepository deliveryRepository;
+    private StatusRepository statusRepository;
+    
 
     public Order createOrderFromDTO(ktc.spring_project.dtos.order.CreateDeliveryOrderRequestDTO dto) {
         try {
             log.debug("Creating order from DTO: {}", dto);
-
             validateCreateOrderDTO(dto);
             // Chỉ kiểm tra trùng lặp nếu orderCode không null
             if (dto.getOrderCode() != null) {
@@ -78,15 +80,128 @@ public class OrderService {
             }
 
             Order order = buildOrderFromDTO(dto);
+            // Nếu chưa có status, gán status mặc định là "pending"
+            if (order.getStatus() == null) {
+                Optional<Status> pendingStatus = statusService.getStatusByTypeAndName("ORDER", "Pending");
+                if (pendingStatus.isPresent()) {
+                    order.setStatus(pendingStatus.get());
+                } else {
+                    throw new HttpException("Không tìm thấy status mặc định 'pending'", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            }
             Order createdOrder = createOrder(order);
-            
+            // Lưu checklist_progress cho bước CUSTOMER_CREATE_ORDER
+            if (createdOrder != null && createdOrder.getCreatedBy() != null) {
+                checklistService.markStepCompleted(
+                    createdOrder.getCreatedBy().getId(),
+                    createdOrder.getId(),
+                    "CUSTOMER_CREATE_ORDER",
+                    "Customer created order"
+                );
+            }
             return createdOrder;
-
         } catch (EntityDuplicateException | HttpException e) {
             throw e;
         } catch (Exception e) {
             throw new HttpException("Failed to create order: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * Lấy danh sách đơn hàng theo status với phân trang
+     */
+    public Page<OrderTimelineResponse> getOrdersByStatusPaginated(String statusName, int page, int size) {
+    validateNotBlank(statusName, "Status name");
+    validatePaginationParams(page, size);
+    Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+    Status status = statusRepository.findFirstByName(statusName)
+        .orElseThrow(() -> new EntityNotFoundException("Status not found: " + statusName));
+    Page<Order> orders = orderRepository.findByStatus(status, pageable);
+    List<OrderTimelineResponse> timelineResponses = orders.getContent().stream()
+        .map(this::convertToOrderTimelineResponse)
+        .toList();
+    return new PageImpl<>(timelineResponses, pageable, orders.getTotalElements());
+    }
+
+    /**
+     * Dispatcher xác nhận đơn hàng (accept order)
+     */
+    public OrderTimelineResponse acceptOrderByDispatcher(Long orderId, Long dispatcherId) {
+        validateId(dispatcherId, "Dispatcher ID");
+        validateId(orderId, "Order ID");
+        Order order = getOrderById(orderId);
+        // Cập nhật status sang "Processing"
+        Optional<Status> processingStatus = statusService.getStatusByTypeAndName("ORDER", "Processing");
+        if (processingStatus.isPresent()) {
+            order.setStatus(processingStatus.get());
+            orderRepository.save(order);
+            checklistService.markStepCompleted(dispatcherId, orderId, "DISPATCHER_RECEIVE_ORDER", "Order accepted by dispatcher");
+            log.info("Dispatcher {} accepted order {}", dispatcherId, orderId);
+        } else {
+            throw new HttpException("Processing status not found", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return convertToOrderTimelineResponse(order);
+    }
+
+
+    /**
+     * Lấy thông tin tóm tắt đơn hàng theo userId với phân trang
+     */
+    public Page<OrderSummaryDTO> getOrderSummariesByUserIdPaginated(Long userId, int page, int size) {
+        validateId(userId, "User ID");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        return orderRepository.findOrderSummariesByUserIdPaginated(userId, pageable);
+    }
+
+    /**
+     * Unified search: tìm kiếm đơn hàng theo nhiều tiêu chí với phân trang
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdWithFiltersPaginated(Long storeId, Long orderId, LocalDateTime fromDate, LocalDateTime toDate, List<String> statusList, int page, int size) {
+        validateId(storeId, "Store ID");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        return orderRepository.findOrderSummariesByStoreIdWithFiltersPaginated(storeId, orderId, fromDate, toDate, statusList, pageable);
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo storeId và orderId với phân trang
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdAndOrderIdPaginated(Long storeId, Long orderId, int page, int size) {
+        validateId(storeId, "Store ID");
+        validateId(orderId, "Order ID");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        List<OrderSummaryDTO> summaries = orderRepository.findOrderSummariesByStoreIdAndOrderId(storeId, orderId);
+        int start = (page - 1) * size;
+        int end = Math.min(start + size, summaries.size());
+        List<OrderSummaryDTO> pagedSummaries = summaries.subList(start, end);
+        return new PageImpl<>(pagedSummaries, pageable, summaries.size());
+    }
+
+    /**
+     * Tìm kiếm đơn hàng theo khoảng thời gian với phân trang
+     */
+    public Page<OrderSummaryDTO> searchOrdersByStoreIdAndDateRangePaginated(Long storeId, LocalDateTime fromDate, LocalDateTime toDate, int page, int size) {
+        validateId(storeId, "Store ID");
+        validatePaginationParams(page, size);
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
+        return orderRepository.findOrderSummariesByStoreIdAndDateRangePaginated(storeId, fromDate, toDate, pageable);
+    }
+
+    /**
+     * Lấy thống kê đơn hàng theo storeId
+     */
+    public ktc.spring_project.dtos.order.OrderStatsDto getOrderStatsByStoreId(Long storeId) {
+        validateId(storeId, "Store ID");
+        long totalOrders = orderRepository.countTotalOrdersByStoreId(storeId);
+        long processingOrders = orderRepository.countProcessingOrdersByStoreId(storeId);
+        long completedOrders = orderRepository.countCompletedOrdersByStoreId(storeId);
+        return ktc.spring_project.dtos.order.OrderStatsDto.builder()
+                .totalOrders(totalOrders)
+                .processingOrders(processingOrders)
+                .completedOrders(completedOrders)
+                .build();
     }
 
     public Order createOrder(Order order) {
@@ -95,13 +210,33 @@ public class OrderService {
 
             validateOrder(order);
             validateBusinessRules(order);
-
+            
             return orderRepository.save(order);
-
+            
         } catch (EntityDuplicateException | HttpException e) {
             throw e;
         } catch (Exception e) {
             throw new HttpException("Failed to create order: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    public Order updateOrderStatusToDispatched(Long orderId, Long driverId) {
+        try {
+            log.debug("Updating order {} status to dispatched with driver {}", orderId, driverId);
+            
+            Order order = getOrderById(orderId);
+            
+            // Update status to "Dispatched"
+            Optional<Status> dispatchedStatus = statusService.getStatusByTypeAndName("ORDER", "Dispatched");
+            if (dispatchedStatus.isPresent()) {
+                order.setStatus(dispatchedStatus.get());
+                log.info("Order {} status updated to Dispatched", orderId);
+            }
+            
+            return orderRepository.save(order);
+            
+        } catch (Exception e) {
+            throw new HttpException("Failed to update order status to dispatched: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     // Lấy các đơn hàng chưa hoàn thành (status_id != 2) có phân trang
@@ -371,43 +506,30 @@ public class OrderService {
         order.setOrderCode(dto.getOrderCode());
         order.setDescription(dto.getDescription());
         order.setTotalAmount(dto.getTotalAmount());
-        
+
+        // Gán thông tin khách hàng (customer)
+        if (dto.getCreatedBy() != null) {
+            order.setCreatedBy(dto.getCreatedBy());
+        }
+        // Gán địa chỉ
+        if (dto.getAddress() != null) {
+            order.setAddress(dto.getAddress());
+        }
+        // Gán store
+        if (dto.getStore() != null) {
+            order.setStore(dto.getStore());
+        }
+
         // Lưu thời gian buổi lấy hàng vào trường note
         String notes = dto.getNotes() != null ? dto.getNotes() : "";
         if (dto.getPickupTimePeriod() != null) {
             notes = notes.isEmpty() ? dto.getPickupTimePeriod() : notes + " | Buổi lấy hàng: " + dto.getPickupTimePeriod();
         }
         order.setNotes(notes);
-        
+
         order.setBenefitPerOrder(BigDecimal.ZERO);
         order.setOrderProfitPerOrder(BigDecimal.ZERO);
 
-        // Fetch đầy đủ thông tin từ database thay vì chỉ nhận object từ DTO
-        if (dto.getStore() != null && dto.getStore().getId() != null) {
-            Store store = storeRepository.findById(dto.getStore().getId())
-                    .orElseThrow(
-                            () -> new EntityNotFoundException("Store not found with id: " + dto.getStore().getId()));
-            order.setStore(store);
-        }
-        if (dto.getStatus() != null && dto.getStatus().getId() != null) {
-            Status status = statusRepository.findById(dto.getStatus().getId())
-                    .orElseThrow(
-                            () -> new EntityNotFoundException("Status not found with id: " + dto.getStatus().getId()));
-            order.setStatus(status);
-        }
-        if (dto.getCreatedBy() != null && dto.getCreatedBy().getId() != null) {
-            User user = userRepository.findById(dto.getCreatedBy().getId())
-                    .orElseThrow(
-                            () -> new EntityNotFoundException("User not found with id: " + dto.getCreatedBy().getId()));
-            order.setCreatedBy(user);
-        }
-        if (dto.getAddress() != null && dto.getAddress().getId() != null) {
-            Address address = addressRepository.findById(dto.getAddress().getId())
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "Address not found with id: " + dto.getAddress().getId()));
-            order.setAddress(address);
-        }
-        // Set Vehicle nếu có
         if (dto.getVehicleId() != null) {
             Vehicle vehicle = vehicleRepository.findById(dto.getVehicleId())
                     .orElseThrow(() -> new EntityNotFoundException("Vehicle not found with id: " + dto.getVehicleId()));
@@ -517,106 +639,113 @@ public class OrderService {
 
     public List<OrderSummaryDTO> getOrderSummariesByUserId(Long userId) {
         validateId(userId, "User ID");
-        return orderRepository.findOrderSummariesByUserId(userId);
+        // Implement logic to get orders by user ID
+        // For now, return all orders (you can customize this based on your business
+        // logic)
+        List<Order> orders = orderRepository.findAll();
+        return orders.stream()
+                .map(this::convertToSummaryDTO)
+                .toList();
     }
 
-    public Page<OrderSummaryDTO> getOrderSummariesByUserIdPaginated(Long userId, int page, int size) {
-        try {
-            validateId(userId, "User ID");
-            validatePaginationParams(page, size);
-            log.debug("Getting order summaries by user ID paginated: userId={}, page={}, size={}", userId, page, size);
-            
-            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
-            return orderRepository.findOrderSummariesByUserIdPaginated(userId, pageable);
-            
-        } catch (HttpException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpException("Failed to get paginated order summaries by user ID: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    // Helper method to convert Order to OrderSummaryDTO
+    private OrderSummaryDTO convertToSummaryDTO(Order order) {
+        // Lấy số lượng sản phẩm từ OrderItemRepository
+        int totalItems = 0;
+        if (order.getId() != null) {
+            List<ktc.spring_project.entities.OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+            totalItems = items != null ? items.size() : 0;
         }
-    }
 
+        // Lấy deliveryFee từ DeliveryRepository
+        java.math.BigDecimal deliveryFee = java.math.BigDecimal.ZERO;
+        if (order.getId() != null) {
+            List<ktc.spring_project.entities.Delivery> deliveries = deliveryRepository.findByOrderId(order.getId());
+            if (deliveries != null && !deliveries.isEmpty() && deliveries.get(0).getDeliveryFee() != null) {
+                deliveryFee = deliveries.get(0).getDeliveryFee();
+            }
+        }
+
+        return new OrderSummaryDTO(
+            order.getId(),
+            order.getStore() != null ? order.getStore().getId() : null,
+            order.getCreatedAt(),
+            order.getAddress() != null ? order.getAddress().getAddress() : null,
+            totalItems,
+            deliveryFee,
+            order.getStatus() != null ? order.getStatus().getName() : null
+        );
+    }
+    
+    // Helper method to convert Order to OrderTimelineResponse
+    private OrderTimelineResponse convertToOrderTimelineResponse(Order order) {
+        return OrderTimelineResponse.builder()
+            .orderId(order.getId())
+            .orderCode(order.getOrderCode())
+            .createdAt(order.getCreatedAt() != null ? order.getCreatedAt().toLocalDateTime() : null)
+            .updatedAt(order.getUpdatedAt() != null ? order.getUpdatedAt().toLocalDateTime() : null)
+            // Order status
+            .orderStatus(OrderStatusDto.builder()
+                .statusId(order.getStatus() != null ? order.getStatus().getId() : null)
+                .statusName(order.getStatus() != null ? order.getStatus().getName() : null)
+                .build())
+            // Customer info
+            .customer(order.getCreatedBy() != null ? ActorDto.builder()
+                .userId(order.getCreatedBy().getId())
+                .fullName(order.getCreatedBy().getFullName())
+                .phone(order.getCreatedBy().getPhone())
+                .role("CUSTOMER")
+                .build() : null)
+            // Driver info
+            .driver(order.getDriver() != null ? ActorDto.builder()
+                .userId(order.getDriver().getId())
+                .fullName(order.getDriver().getFullName())
+                .phone(order.getDriver().getPhone())
+                .role("DRIVER")
+                .build() : null)
+            .timeline(checklistService.buildTimelineSteps(order.getId()))
+            .build();
+    }
+    
+    // ================ CHECKLIST INTEGRATION METHODS ================
+    
     /**
-     * Tìm kiếm đơn hàng theo ID đơn hàng và store ID
+     * Dispatcher bàn giao hàng cho driver
      */
-    public List<OrderSummaryDTO> searchOrdersByStoreIdAndOrderId(Long storeId, Long orderId) {
+    public void dispatcherHandoverToDriver(Long dispatcherId, Long orderId, Long driverId, String handoverNotes) {
         try {
-            validateId(storeId, "Store ID");
-            validateId(orderId, "Order ID");
-            log.debug("Searching orders by store ID and order ID: storeId={}, orderId={}", storeId, orderId);
+            Order order = getOrderById(orderId);
             
-            return orderRepository.findOrderSummariesByStoreIdAndOrderId(storeId, orderId);
+            checklistService.markStepCompleted(
+                dispatcherId, 
+                orderId,
+                "DISPATCHER_HANDOVER_TO_DRIVER", 
+                "Handed over Order: " + orderId + " to Driver: " + driverId + 
+                (handoverNotes != null ? " - Notes: " + handoverNotes : "")
+            );
             
-        } catch (HttpException e) {
-            throw e;
+            log.info("Dispatcher {} handed over order {} to driver {}", dispatcherId, orderId, driverId);
         } catch (Exception e) {
-            throw new HttpException("Failed to search orders by store ID and order ID: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Failed to process dispatcher handover: {}", e.getMessage());
+            throw new HttpException("Failed to process dispatcher handover", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    
     /**
-     * Tìm kiếm đơn hàng theo ID đơn hàng và store ID với phân trang
+     * Dispatcher nhận kết quả giao hàng từ driver
      */
-    public Page<OrderSummaryDTO> searchOrdersByStoreIdAndOrderIdPaginated(Long storeId, Long orderId, int page, int size) {
+    public void dispatcherReceiveDeliveryResult(Long dispatcherId, Long orderId, boolean isSuccess, String resultNotes) {
         try {
-            validateId(storeId, "Store ID");
-            validateId(orderId, "Order ID");
-            validatePaginationParams(page, size);
-            log.debug("Searching orders by store ID and order ID paginated: storeId={}, orderId={}, page={}, size={}", storeId, orderId, page, size);
+            String result = isSuccess ? "Success" : "Failed";
+            checklistService.markStepCompleted(
+                dispatcherId, 
+                orderId,
+                "DISPATCHER_RECEIVE_DELIVERY_RESULT", 
+                "Received delivery result: " + result + " for Order: " + orderId + 
+                (resultNotes != null ? " - Notes: " + resultNotes : "")
+            );
             
-            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
-            
-            // Tạo Page từ List kết quả
-            List<OrderSummaryDTO> orders = orderRepository.findOrderSummariesByStoreIdAndOrderId(storeId, orderId);
-            int start = Math.min((int) pageable.getOffset(), orders.size());
-            int end = Math.min((start + pageable.getPageSize()), orders.size());
-            
-            return new PageImpl<>(orders.subList(start, end), pageable, orders.size());
-            
-        } catch (HttpException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpException("Failed to search orders by store ID and order ID paginated: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * Tìm kiếm đơn hàng theo store ID và khoảng thời gian
-     */
-    public List<OrderSummaryDTO> searchOrdersByStoreIdAndDateRange(Long storeId, LocalDateTime fromDate, LocalDateTime toDate) {
-        try {
-            validateId(storeId, "Store ID");
-            log.debug("Searching orders by store ID and date range: storeId={}, fromDate={}, toDate={}", storeId, fromDate, toDate);
-            
-            return orderRepository.findOrderSummariesByStoreIdAndDateRange(storeId, fromDate, toDate);
-            
-        } catch (HttpException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpException("Failed to search orders by store ID and date range: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * Tìm kiếm đơn hàng theo store ID và khoảng thời gian với phân trang
-     */
-    public Page<OrderSummaryDTO> searchOrdersByStoreIdAndDateRangePaginated(Long storeId, LocalDateTime fromDate, LocalDateTime toDate, int page, int size) {
-        try {
-            validateId(storeId, "Store ID");
-            validatePaginationParams(page, size);
-            log.debug("Searching orders by store ID and date range paginated: storeId={}, fromDate={}, toDate={}, page={}, size={}", storeId, fromDate, toDate, page, size);
-            
-            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
-            return orderRepository.findOrderSummariesByStoreIdAndDateRangePaginated(storeId, fromDate, toDate, pageable);
-            
-        } catch (HttpException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpException("Failed to search orders by store ID and date range paginated: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
+            log.info("Dispatcher {} received delivery result {} for order {}", dispatcherId, result, orderId);
      * Unified search method that supports multiple search criteria
      * @param storeId - required, orders must belong to this store
      * @param orderId - optional, exact match if provided
@@ -645,34 +774,38 @@ public class OrderService {
         } catch (HttpException e) {
             throw e;
         } catch (Exception e) {
-            throw new HttpException("Failed to search orders with filters: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Failed to process dispatcher receive delivery result: {}", e.getMessage());
+            throw new HttpException("Failed to process dispatcher receive delivery result", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    
     /**
-     * Get order statistics by store ID
-     * @param storeId - the store ID to get statistics for
-     * @return OrderStatsDto with counts for total, processing, and completed orders
+     * Dispatcher cập nhật status thành "Completed"
      */
-    public ktc.spring_project.dtos.order.OrderStatsDto getOrderStatsByStoreId(Long storeId) {
+    public void dispatcherUpdateStatusToComplete(Long dispatcherId, Long orderId) {
         try {
-            validateId(storeId, "Store ID");
-            log.debug("Getting order stats for storeId: {}", storeId);
+            Order order = getOrderById(orderId);
             
-            long totalOrders = orderRepository.countTotalOrdersByStoreId(storeId);
-            long processingOrders = orderRepository.countProcessingOrdersByStoreId(storeId);
-            long completedOrders = orderRepository.countCompletedOrdersByStoreId(storeId);
-            
-            return ktc.spring_project.dtos.order.OrderStatsDto.builder()
-                    .totalOrders(totalOrders)
-                    .processingOrders(processingOrders)
-                    .completedOrders(completedOrders)
-                    .build();
-            
-        } catch (HttpException e) {
-            throw e;
+            // Cập nhật status sang "Completed"
+            Optional<Status> completedStatus = statusService.getStatusByTypeAndName("ORDER", "Completed");
+            if (completedStatus.isPresent()) {
+                order.setStatus(completedStatus.get());
+                orderRepository.save(order);
+                
+                checklistService.markStepCompleted(
+                    dispatcherId, 
+                    orderId,
+                    "DISPATCHER_UPDATE_STATUS_COMPLETE", 
+                    "Order status updated to Completed for Order: " + orderId
+                );
+                
+                log.info("Dispatcher {} updated order {} status to Completed", dispatcherId, orderId);
+            } else {
+                throw new HttpException("Completed status not found", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         } catch (Exception e) {
-            throw new HttpException("Failed to get order statistics: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Failed to process dispatcher status update to complete: {}", e.getMessage());
+            throw new HttpException("Failed to process dispatcher status update to complete", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

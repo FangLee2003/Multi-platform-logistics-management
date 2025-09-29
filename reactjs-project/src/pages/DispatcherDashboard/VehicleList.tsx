@@ -327,6 +327,7 @@ export default function VehicleList() {
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
+            <h2 className="text-2xl font-bold mb-2">Vehicle Management</h2>
             <h2 className="text-2xl font-bold mb-2">{t('dashboard.dispatcher.vehicles.title')}</h2>
           </div>
         </div>

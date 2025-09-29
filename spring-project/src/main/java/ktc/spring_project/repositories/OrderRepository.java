@@ -6,6 +6,7 @@ import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import ktc.spring_project.entities.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,6 +28,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
        Page<Order> findByStatus_Id(Short statusId, org.springframework.data.domain.Pageable pageable);
 
        // Lấy các đơn hàng chưa hoàn thành (status_id != 2) có phân trang
+       @Query("SELECT o FROM Order o WHERE o.status.id <> 2")
+       Page<Order> findNotCompletedOrders(Pageable pageable);
+
+       // Lấy tất cả đơn hàng chưa hoàn thành, sort id giảm dần
+       @Query("SELECT o FROM Order o WHERE o.status.id <> 2 ORDER BY o.id DESC")
+       List<Order> findAllNotCompletedOrdersSortedByIdDesc();
+    List<Order> findByStore_Id(Long storeId);
+    List<Order> findByCreatedBy_Id(Long createdBy);
+
+    // Lấy các đơn hàng chưa hoàn thành (status_id != 2) có phân trang
        @Query("SELECT o FROM Order o WHERE o.status.id <> 2")
        Page<Order> findNotCompletedOrders(Pageable pageable);
 

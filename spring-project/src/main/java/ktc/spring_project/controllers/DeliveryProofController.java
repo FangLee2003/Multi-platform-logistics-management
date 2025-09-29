@@ -74,6 +74,10 @@ public ResponseEntity<DeliveryProof> uploadDeliveryProof(
         e.printStackTrace(); // Log lỗi chi tiết ra console
         return ResponseEntity.badRequest().body(null);
         // Nếu muốn trả về message rõ ràng:
+// return ResponseEntity.badRequest().body(e.getMessage());
+        e.printStackTrace(); // Log lỗi chi tiết ra console
+        return ResponseEntity.badRequest().body(null);
+        // Nếu muốn trả về message rõ ràng:
         // return ResponseEntity.badRequest().body(e.getMessage());
     }
 }
@@ -117,6 +121,12 @@ public ResponseEntity<Void> deleteDeliveryProof(
      */
     @GetMapping("/order/{orderId}")
     public ResponseEntity<List<DeliveryProof>> getDeliveryProofsByOrder(@PathVariable Long orderId) {
+        // Truy vấn trực tiếp bằng repository, tối ưu hiệu năng
+        List<DeliveryProof> orderProofs = deliveryProofService.findByOrderId(orderId);
+        return ResponseEntity.ok(orderProofs);
+    }
+
+
         // Truy vấn trực tiếp bằng repository, tối ưu hiệu năng
         List<DeliveryProof> orderProofs = deliveryProofService.findByOrderId(orderId);
         return ResponseEntity.ok(orderProofs);

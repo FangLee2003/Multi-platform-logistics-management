@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.List;
 
 
 @Entity
@@ -57,6 +58,14 @@ public class Order {
     @ManyToOne
     @JoinColumn(name = "created_by")
     private User createdBy;
+    
+    // Driver assigned to this order
+    @ManyToOne
+    @JoinColumn(name = "driver_id")
+    private User driver;
+    
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<DeliveryProof> deliveryProofs;
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -102,6 +111,17 @@ public class Order {
 
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
+    
+    public User getDriver() { return driver; }
+    public void setDriver(User driver) { this.driver = driver; }
+    
+    // Helper method to get customer ID (using createdBy)
+    public Long getCustomerId() { 
+        return createdBy != null ? createdBy.getId() : null; 
+    }
+    
+    public List<DeliveryProof> getDeliveryProofs() { return deliveryProofs; }
+    public void setDeliveryProofs(List<DeliveryProof> deliveryProofs) { this.deliveryProofs = deliveryProofs; }
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
