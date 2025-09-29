@@ -6,9 +6,11 @@ import Navbar from '../../components/Navbar';
 import ResourceMonitoring from './ResourceMonitoring';
 import PerformanceAnalytics from './PerformanceAnalytics';
 import StaffManagement from './StaffManagement';
+import InvoiceManagement from './InvoiceManagement';
 import OperationsOverview, { type OperationsOverviewRef, type MetricsData } from './OperationsOverview';
 import OperationsMetricsService from '../../services/operationsMetricsService';
 import { FiHome, FiBarChart2, FiActivity, FiUsers } from "react-icons/fi";
+import { BsFileEarmarkText } from "react-icons/bs";
 
 interface OperationsDashboardProps {
   user: User;
@@ -169,6 +171,13 @@ export default function OperationsDashboard({ user, onLogout }: OperationsDashbo
               <FiUsers className="text-xl mb-1" />
               <span className="text-xs">{t('dashboard.operations.tabs.staff', 'Staff')}</span>
             </button>
+            <button
+              onClick={() => setTab("invoices")}
+              className={`flex flex-col items-center py-2 px-1 ${tab === "invoices" ? "text-blue-600" : "text-gray-600"}`}
+            >
+              <BsFileEarmarkText className="text-xl mb-1" />
+              <span className="text-xs">{t('dashboard.operations.tabs.invoices', 'Invoices')}</span>
+            </button>
           </div>
         </div>
         <main className="flex-1 p-2 sm:p-3 md:p-6 overflow-hidden pb-16 md:pb-0">
@@ -183,6 +192,7 @@ export default function OperationsDashboard({ user, onLogout }: OperationsDashbo
           {tab === "monitoring" && <ResourceMonitoring />}
           {tab === "performance" && <PerformanceAnalytics />}
           {tab === "staff" && <StaffManagement />}
+          {tab === "invoices" && <InvoiceManagement />}
         </main>
       </div>
     </div>
