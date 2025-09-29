@@ -16,7 +16,7 @@ export const calculateDistanceFee = (distance: number): DistanceFeeResult => {
     const fee = 15000 + distance * 1800;
     return {
       fee,
-      region: "Nội thành (0-50km)",
+      region: "Inner city (0-50km)",
       base: 15000,
       perKm: 1800,
     };
@@ -24,7 +24,7 @@ export const calculateDistanceFee = (distance: number): DistanceFeeResult => {
     const fee = 25000 + distance * 1500;
     return {
       fee,
-      region: "Ngoại thành (50-150km)",
+      region: "Suburban (50-150km)",
       base: 25000,
       perKm: 1500,
     };
@@ -32,7 +32,7 @@ export const calculateDistanceFee = (distance: number): DistanceFeeResult => {
     const fee = 40000 + distance * 500;
     return {
       fee,
-      region: "Liên tỉnh (>150km)",
+      region: "Inter-provincial (>150km)",
       base: 40000,
       perKm: 500,
     };
