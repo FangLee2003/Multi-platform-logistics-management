@@ -26,8 +26,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStore_Id(Long storeId);
     List<Order> findByCreatedBy_Id(Long createdBy);
 
-    // Tìm đơn hàng theo status với phân trang
-    Page<Order> findByStatus(Status status, Pageable pageable);
+    // Lấy các đơn hàng chưa hoàn thành (status_id != 2) có phân trang
+       @Query("SELECT o FROM Order o WHERE o.status.id <> 2")
+       Page<Order> findNotCompletedOrders(Pageable pageable);
+
+       // Lấy tất cả đơn hàng chưa hoàn thành, sort id giảm dần
+       @Query("SELECT o FROM Order o WHERE o.status.id <> 2 ORDER BY o.id DESC")
+       List<Order> findAllNotCompletedOrdersSortedByIdDesc();
+    List<Order> findByStore_Id(Long storeId);
+    List<Order> findByCreatedBy_Id(Long createdBy);
 
     // Query các đơn hàng có trạng thái AVAILABLE
     @Query("SELECT o FROM Order o WHERE o.status.name = 'AVAILABLE'")
