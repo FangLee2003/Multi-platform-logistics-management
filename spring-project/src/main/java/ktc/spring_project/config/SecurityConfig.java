@@ -113,13 +113,14 @@ authProvider.setUserDetailsService(userDetailsService);
                 // Cấu hình session management là STATELESS (không lưu session)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Cấu hình authorization rules cho các endpoints
-                .authorizeHttpRequests(authz -> authz
-                        // Static resources và public endpoints
-                        .requestMatchers("/", "/index.html", "/favicon.ico", "/static/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
+        .authorizeHttpRequests(authz -> authz
+            // Static resources và public endpoints
+            .requestMatchers("/", "/index.html", "/favicon.ico", "/static/**").permitAll()
+            .requestMatchers("/uploads/**").permitAll() // Cho phép truy cập công khai file minh chứng
+            .requestMatchers("/api/auth/**").permitAll()
+            .requestMatchers("/api/public/**").permitAll()
+            .requestMatchers("/actuator/**").permitAll()
+            .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                         
                         // Role-based access control
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

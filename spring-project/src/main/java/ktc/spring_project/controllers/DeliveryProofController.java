@@ -117,27 +117,9 @@ public ResponseEntity<Void> deleteDeliveryProof(
      */
     @GetMapping("/order/{orderId}")
     public ResponseEntity<List<DeliveryProof>> getDeliveryProofsByOrder(@PathVariable Long orderId) {
-        // TO-DO: This is a temporary implementation.
-        // In the future, implement findByOrder in the repository and service
-
-        // Get the order entity
-        try {
-            Order order = orderService.getOrderById(orderId);
-
-            // For now, return all proofs and filter manually (inefficient, for development only)
-            List<DeliveryProof> allProofs = deliveryProofService.findAll();
-            List<DeliveryProof> orderProofs = new ArrayList<>();
-
-            for (DeliveryProof proof : allProofs) {
-                if (proof.getOrder() != null && proof.getOrder().getId().equals(orderId)) {
-                    orderProofs.add(proof);
-                }
-            }
-
-            return ResponseEntity.ok(orderProofs);
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.notFound().build();
-        }
+        // Truy vấn trực tiếp bằng repository, tối ưu hiệu năng
+        List<DeliveryProof> orderProofs = deliveryProofService.findByOrderId(orderId);
+        return ResponseEntity.ok(orderProofs);
     }
 
     /**

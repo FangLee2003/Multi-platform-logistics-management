@@ -4,6 +4,7 @@ import OrderOverview from "./OrderOverview";
 import OrderList from "./OrderList";
 import OrderAssignment from "./OrderAssignment";
 import Sidebar, { type DispatcherTab } from "../../components/Sidebar";
+import CompletedOrdersList from "./CompletedOrdersList";
 import Navbar from "../../components/Navbar";
 import MapboxTrackingMap from "./MapboxTrackingMap";
 import MapErrorBoundary from '../../components/MapErrorBoundary';
@@ -64,6 +65,11 @@ export default function DispatcherDashboard({
                   <MapboxTrackingMap />
                 </MapErrorBoundary>
               </div>
+            </div>
+
+            {/* Completed Orders Tab */}
+            <div className={tab === "completedOrders" ? "block" : "hidden"}>
+              <CompletedOrdersList />
             </div>
 
             {/* Resources Tab */}

@@ -505,7 +505,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
                   </td>
                   <td className="py-3 pr-4">
                     <span
-                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${getRoleColorClass(u.roleValue)}`}
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${getRoleColorClass(u.roleValue || "")}`}
                     >
                       {u.roleIcon && <span>{u.roleIcon}</span>}
                       <span className="hidden sm:inline">{u.role}</span>

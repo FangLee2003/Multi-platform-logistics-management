@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { fetchActivityLogs, type ActivityLog } from "../../services/adminAPI";
 
 type DateFilter = "today" | "last7days" | "last30days" | "custom";
@@ -8,6 +9,7 @@ interface AuditLogTableProps {
 }
 
 export default function AuditLogTable({ onAuditCountUpdate }: AuditLogTableProps) {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<ActivityLog[]>([]);
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");

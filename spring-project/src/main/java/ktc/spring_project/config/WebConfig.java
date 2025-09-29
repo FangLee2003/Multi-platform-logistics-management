@@ -20,6 +20,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    // Đảm bảo các tài nguyên tĩnh của Swagger UI được phục vụ đúng cách
+    registry.addResourceHandler("/swagger-ui/**")
+        .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui/");
+    registry.addResourceHandler("/webjars/**")
+        .addResourceLocations("classpath:/META-INF/resources/webjars/");
+    // Cho phép truy cập file upload minh chứng
+    registry.addResourceHandler("/uploads/**")
+        .addResourceLocations("file:uploads/");
+    }
 
     /**
      * Cấu hình CORS mapping cho tất cả API endpoints
@@ -53,13 +64,5 @@ public class WebConfig implements WebMvcConfigurer {
      * 
      * @param registry ResourceHandlerRegistry để đăng ký resource handler
      */
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Đảm bảo các tài nguyên tĩnh của Swagger UI được phục vụ đúng cách
-        registry.addResourceHandler("/swagger-ui/**")
-                .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui/");
-                
-        registry.addResourceHandler("/webjars/**")
-                .addResourceLocations("classpath:/META-INF/resources/webjars/");
-    }
+        // Đã gộp addResourceHandlers ở trên, xóa method trùng này
 }

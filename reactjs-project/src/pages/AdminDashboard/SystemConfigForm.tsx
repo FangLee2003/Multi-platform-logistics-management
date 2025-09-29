@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useTranslation } from 'react-i18next';
 
 export default function SystemConfigForm() {
+  const { t } = useTranslation();
   const [config, setConfig] = useState({
     systemName: "KTC Logistics 2025",
     timezone: "Asia/Ho_Chi_Minh",
