@@ -27,6 +27,7 @@ export interface OrderItem {
   height: number;
   width: number;
   length: number;
+  is_fragile?: boolean;
 }
 
 export interface OrderForm {

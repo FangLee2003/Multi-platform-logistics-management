@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, Row, Col, Divider, Typography, Table, Select, Form } from "antd";
 import { Store } from "@/types/Store";
-import { OrderItem } from "@/types/orders";
+import { OrderItem, OrderForm } from "@/types/orders";
 import { FormInstance } from "antd";
 import {
   getServiceMultiplier,
@@ -16,7 +16,7 @@ import { isValidItem, calculateVolume } from "@/utils/orderItems";
 const { Text, Title } = Typography;
 
 interface Props {
-  form: FormInstance<any>;
+  form: FormInstance<OrderForm>;
   store: Store | null;
 }
 
@@ -81,7 +81,7 @@ export default function StepInvoice({ form, store }: Props) {
   let baseShippingFee = 0;
   items.forEach((item) => {
     if (isValidItem(item)) {
-      const itemFragile = (item as any)?.is_fragile || false;
+      const itemFragile = item.is_fragile || false;
       const itemFee = calculateBaseShippingFee([item], itemFragile);
       baseShippingFee += itemFee;
     }
@@ -232,7 +232,7 @@ export default function StepInvoice({ form, store }: Props) {
                     align: "left",
                     responsive: ["md"],
                     render: (_, r: OrderItem) => {
-                      const fragile = (r as any)?.is_fragile || false;
+                      const fragile = r.is_fragile || false;
                       return (
                         <Text
                           style={{ color: fragile ? "#ff4d4f" : "#52c41a" }}
@@ -247,7 +247,7 @@ export default function StepInvoice({ form, store }: Props) {
                     key: "shipping_fee",
                     align: "right",
                     render: (_, r: OrderItem) => {
-                      const fragile = (r as any)?.is_fragile || false;
+                      const fragile = r.is_fragile || false;
                       const fee = calculateBaseShippingFee([r], fragile);
                       return (
                         <Text strong>{fee.toLocaleString("en-US")} ₫</Text>
