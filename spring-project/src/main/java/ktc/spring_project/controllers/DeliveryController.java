@@ -1,4 +1,8 @@
+
 package ktc.spring_project.controllers;
+
+import ktc.spring_project.services.ChecklistService;
+import lombok.extern.slf4j.Slf4j;
 
 import ktc.spring_project.entities.Delivery;
 import ktc.spring_project.dtos.delivery.CreateDeliveryRequestDTO;
@@ -37,10 +41,14 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/deliveries")
+@Slf4j
 public class DeliveryController {
 
     @Autowired
     private DeliveryService deliveryService;
+
+    @Autowired
+    private ChecklistService checklistService;
 
     @Autowired
     private UserService userService;
@@ -287,9 +295,11 @@ public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id)
         // Lưu giao hàng đã cập nhật
         Delivery updatedDelivery = deliveryService.updateDelivery(id, delivery);
 
+        // ...ghi log checklist sẽ được tối ưu hóa ở service hoặc AOP...
+
         // Chuyển đổi kết quả thành Map
-         Map<String, Object> result = new com.fasterxml.jackson.databind.ObjectMapper().convertValue(updatedDelivery, Map.class);
-    return ResponseEntity.ok(result);
+        Map<String, Object> result = new com.fasterxml.jackson.databind.ObjectMapper().convertValue(updatedDelivery, Map.class);
+        return ResponseEntity.ok(result);
 }
 
     /**
@@ -314,6 +324,8 @@ public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id)
 
         // Lưu giao hàng đã cập nhật
         Delivery updatedDelivery = deliveryService.updateDelivery(id, delivery);
+
+        // ...ghi log checklist sẽ được tối ưu hóa ở service hoặc AOP...
 
         // Chuyển đổi kết quả thành Map
         Map<String, Object> result = new HashMap<>();

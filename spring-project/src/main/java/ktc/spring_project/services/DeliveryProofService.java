@@ -4,6 +4,7 @@ import ktc.spring_project.entities.DeliveryProof;
 import ktc.spring_project.repositories.DeliveryProofRepository;
 import ktc.spring_project.dtos.deliveryproof.SimplifiedDeliveryProofResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.core.Authentication;
@@ -25,6 +26,8 @@ public class DeliveryProofService {
     private ktc.spring_project.repositories.StatusRepository statusRepository;
 
 
+
+
     public List<DeliveryProof> findAll() {
         return deliveryProofRepository.findAll();
     }
@@ -44,6 +47,8 @@ public class DeliveryProofService {
     public List<DeliveryProof> findByOrderId(Long orderId) {
         return deliveryProofRepository.findByOrderId(orderId);
     }
+
+    // ...existing code...
 
     public DeliveryProof createProof(
             Long orderId,
@@ -123,13 +128,13 @@ public class DeliveryProofService {
         return savedProof;
     }
 
-public DeliveryProof updateProof(
+    public DeliveryProof updateProof(
         Long id,
         Map<String, Object> updateData,
         Authentication authentication) {
-    // TODO: Implement the update logic
-    throw new UnsupportedOperationException("Not implemented yet");
-        }
+        // TODO: Implement the update logic
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
     public void deleteById(Long id, Authentication authentication) {
         // TODO: Implement the logic to delete a DeliveryProof by id, possibly checking authentication
         throw new UnsupportedOperationException("Not implemented yet");

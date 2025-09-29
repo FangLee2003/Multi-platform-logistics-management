@@ -3,9 +3,10 @@ package ktc.spring_project.repositories;
 
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
 import ktc.spring_project.entities.Order;
-import ktc.spring_project.entities.Status;
+// ...existing code...
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import ktc.spring_project.entities.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,18 +24,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Kiểm tra trùng lặp orderCode
     boolean existsByOrderCode(String orderCode);
 
-       List<Order> findByStatus_Id(Short statusId);
-       Page<Order> findByStatus_Id(Short statusId, org.springframework.data.domain.Pageable pageable);
-
-       // Lấy các đơn hàng chưa hoàn thành (status_id != 2) có phân trang
-       @Query("SELECT o FROM Order o WHERE o.status.id <> 2")
-       Page<Order> findNotCompletedOrders(Pageable pageable);
-
-       // Lấy tất cả đơn hàng chưa hoàn thành, sort id giảm dần
-       @Query("SELECT o FROM Order o WHERE o.status.id <> 2 ORDER BY o.id DESC")
-       List<Order> findAllNotCompletedOrdersSortedByIdDesc();
-    List<Order> findByStore_Id(Long storeId);
-    List<Order> findByCreatedBy_Id(Long createdBy);
+        List<Order> findByStatus_Id(Short statusId);
+        Page<Order> findByStatus_Id(Short statusId, org.springframework.data.domain.Pageable pageable);
+        @Query("SELECT o FROM Order o WHERE o.status.id <> 2")
+        Page<Order> findNotCompletedOrders(Pageable pageable);
+        @Query("SELECT o FROM Order o WHERE o.status.id <> 2 ORDER BY o.id DESC")
+        List<Order> findAllNotCompletedOrdersSortedByIdDesc();
+        List<Order> findByStore_Id(Long storeId);
+        List<Order> findByCreatedBy_Id(Long createdBy);
 
     // Find orders by status with pagination
     Page<Order> findByStatus(Status status, Pageable pageable);
@@ -243,4 +240,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Count all completed orders (for performance metrics)
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status.name = 'Completed'")
     long countAllCompletedOrders();
+    
+    // Find completed orders with pagination (supports both 'Completed' and 'COMPLETED' status)
+    @Query("SELECT o FROM Order o WHERE o.status.name IN ('Completed', 'COMPLETED') ORDER BY o.createdAt DESC")
+    Page<Order> findCompletedOrdersPaginated(Pageable pageable);
 }

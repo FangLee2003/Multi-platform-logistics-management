@@ -751,10 +751,12 @@ export default function MapboxTrackingMap() {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 h-full min-h-[300px] w-full flex flex-col">
-      <div className="mb-4">
-        <h3 className="text-lg font-bold text-gray-800 mb-2">{t('dashboard.dispatcher.orders.trackingTitle')}</h3>
-      </div>
-  {selectedOrder && selectedOrder.vehicle && selectedOrder.vehicle.currentDriver && (
+      {selectedOrder && selectedOrder.vehicle && selectedOrder.vehicle.currentDriver && (
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-gray-800 mb-2">{t('dashboard.dispatcher.orders.trackingTitle')}</h3>
+        </div>
+      )}
+      {selectedOrder && selectedOrder.vehicle && selectedOrder.vehicle.currentDriver && (
         <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <div className="text-sm font-semibold text-blue-900 mb-1">
             {t('orders.orderNumber', 'Order')} #{selectedOrder.id}
@@ -794,24 +796,24 @@ export default function MapboxTrackingMap() {
                   const hours = Math.floor(totalMinutes / 60);
                   const minutes = totalMinutes % 60;
                   if (hours > 0) {
-                    return `${hours}h ${minutes}p`;
+                    return `${hours}h ${minutes}m`;
                   } else {
-                    return `${minutes} phút`;
+                    return `${minutes} min`;
                   }
                 })()}
               </div>
             )}
         </div>
       )}
-  {selectedOrder && !selectedOrder.vehicle && (
+      {selectedOrder && !selectedOrder.vehicle && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <div className="text-sm font-semibold text-gray-700 mb-1">
-            Đơn hàng #{selectedOrder.id}
+            {t('orders.orderNumber', 'Order')} #{selectedOrder.id}
           </div>
           <div className="text-xs text-gray-500">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 bg-orange-500 rounded-full inline-block"></span>
-              <span>Đơn hàng này chưa được gán xe</span>
+              <span>{t('dashboard.dispatcher.orders.notAssignedVehicle', 'This order has not been assigned a vehicle')}</span>
             </div>
           </div>
         </div>

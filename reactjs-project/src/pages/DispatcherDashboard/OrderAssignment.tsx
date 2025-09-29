@@ -298,8 +298,40 @@ export default function OrdersAssignment(_props: any) {
 
     setAssigningOrders(prev => ({ ...prev, [orderId]: true }));
     try {
-      // Gán xe cho đơn hàng
+      // --- Giữ lại code cũ: Gán xe cho đơn hàng ---
       await updateOrderVehicle(orderId, Number(selectedVehicle.id));
+
+      // --- Gọi thêm API ghi log checklist ---
+      const assignDriverPayload = {
+        driverId: selectedVehicle.currentDriver.id,
+        vehicleId: selectedVehicle.id
+      };
+      const dispatcherApiUrl = `http://localhost:8080/api/dispatcher/orders/${orderId}/assign-driver`;
+      const dispatcherResponse = await fetch(dispatcherApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(assignDriverPayload)
+      });
+      let dispatcherResult = null;
+      if (dispatcherResponse.ok) {
+        dispatcherResult = await dispatcherResponse.json();
+        // Nếu có dữ liệu timeline/checklistLog thì log ra để debug
+        if (dispatcherResult.timeline) {
+          console.log('📝 Timeline:', dispatcherResult.timeline);
+        }
+        if (dispatcherResult.checklistLog) {
+          console.log('📝 ChecklistLog:', dispatcherResult.checklistLog);
+        }
+      } else {
+        const errorText = await dispatcherResponse.text();
+        console.error('❌ Lỗi khi gọi API assign-driver:', dispatcherResponse.status, errorText);
+      }
+
+      // --- Giữ lại code cũ: Tạo/cập nhật tracking ---
+      // const updatedOrder = data.find(o => o.id.toString() === orderId);
 
       // Sau khi gán xe thành công, tự động tạo/cập nhật tracking
       const updatedOrder = paginatedData.find((o: OrderType) => o.id.toString() === orderId);
@@ -482,14 +514,17 @@ export default function OrdersAssignment(_props: any) {
       console.log('🔍 OrderAssignment: contactName from API:', contactName);
       console.log('🔍 OrderAssignment: contactPhone from API:', contactPhone);
       
-      // Cập nhật order với contact info
+      // Cập nhật order với contact info, đảm bảo giữ nguyên id
       const orderWithContact = {
         ...order,
+        id: order.id, // Đảm bảo id được giữ lại
         addressDetail: {
           contactName,
           contactPhone
         }
       };
+      
+      console.log('🔍 OrderAssignment: orderWithContact.id:', orderWithContact.id);
       
       setDetailOrder(orderWithContact);
       setOrderProductsPage(0);
@@ -499,7 +534,8 @@ export default function OrdersAssignment(_props: any) {
       fetchOrderProductsPaged(order.id, 0);
     } catch (error) {
       console.error('Error fetching order detail:', error);
-      setDetailOrder(order);
+      // Đảm bảo order có id khi có lỗi
+      setDetailOrder({...order, id: order.id});
       setOrderProductsPage(0);
       setDetailOpen(true);
       fetchOrderProductsPaged(order.id, 0);
@@ -555,6 +591,7 @@ export default function OrdersAssignment(_props: any) {
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         orderItem={detailOrder ? {
+          id: detailOrder.id,
           code: detailOrder.code,
           customer: detailOrder.customer,
           status: detailOrder.status.name, // Pass only the status name as string
@@ -698,7 +735,7 @@ export default function OrdersAssignment(_props: any) {
                           className="px-3 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold text-sm border border-blue-200 shadow transition-all duration-150"
                           onClick={() => handleOpenDetail(order)}
                         >
-                          Xem chi tiết
+                          {t('dashboard.dispatcher.assignment.viewDetails', 'View details')}
                         </button>
                       </td>
                       <td className="p-5 align-top">
@@ -732,7 +769,7 @@ export default function OrdersAssignment(_props: any) {
                                 className="mt-2 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200 transition-all duration-150"
                                 onClick={() => setEditingOrders(prev => ({ ...prev, [order.id]: true }))}
                               >
-{t('dashboard.dispatcher.assignment.edit', 'Chỉnh sửa')}
+                                {t('dashboard.dispatcher.assignment.edit', 'Chỉnh sửa')}
                               </button>
                             </div>
                           ) : order.currentDriver && !editingOrders[order.id] ? (
@@ -893,7 +930,7 @@ export default function OrdersAssignment(_props: any) {
                 disabled={currentPage === 1}
                 className="px-4 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed text-blue-700 font-bold shadow transition-all duration-150"
               >
-&lt; {t('common.previous')}
+                &lt; {t('common.previous')}
               </button>
               
               {/* Desktop pagination - hiển thị nhiều trang hơn */}
@@ -961,15 +998,17 @@ export default function OrdersAssignment(_props: any) {
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed text-blue-700 font-bold shadow transition-all duration-150"
               >
-{t('common.next')} &gt;
+                {t('common.next')} &gt;
               </button>
             </div>
           )}
 
           {/* Thông tin trang hiện tại */}
           <div className="text-center mt-4 text-gray-600">
-
-            Tổng số {totalOrders} đơn hàng
+            {t('dashboard.dispatcher.pagination.showing', 'Showing')} {paginatedData.length > 0 ? ((currentPage - 1) * PAGE_SIZE + 1) : 0}
+            -
+            {paginatedData.length > 0 ? ((currentPage - 1) * PAGE_SIZE + paginatedData.length) : 0}
+            {t('dashboard.dispatcher.pagination.of')} {totalOrders} {t('navigation.orders', 'orders')}
             {totalPages > 1 && (
               <span className="ml-2">| {t('dashboard.dispatcher.pagination.page', 'Page {{current}} / {{total}}', { current: currentPage, total: totalPages })}</span>
             )}

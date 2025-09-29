@@ -1,16 +1,15 @@
-// ...existing code...
-
 import { useState, useEffect } from "react";
+import OrderChecklistTimeline from "../../components/OrderChecklistTimeline";
 import { useTranslation } from 'react-i18next';
 import { fetchOrders, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
 import { useQuery } from "@tanstack/react-query";
 
-
 export default function OrderList() {
   const { t } = useTranslation();
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [searchId, setSearchId] = useState("");
   const [searching, setSearching] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -20,7 +19,7 @@ export default function OrderList() {
   const [searchResults, setSearchResults] = useState<Order[]>([]);
   const [error, setError] = useState("");
 
-  // Sử dụng React Query để fetch orders chưa completed với phân trang
+  // Use React Query to fetch orders with pagination
   const {
     data: ordersResponse,
     isLoading: loading,
@@ -36,23 +35,22 @@ export default function OrderList() {
     refetchOnWindowFocus: true,
   });
 
-  // Nếu đang search theo ID thì chỉ hiển thị searchResults, không phân trang
-  // Sắp xếp theo orderId giảm dần (cao -> thấp)
   const paginatedOrders: Order[] = isSearchMode
     ? searchResults
     : (ordersResponse?.content || []).slice().sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
   const totalPages = isSearchMode ? 1 : (ordersResponse?.totalPages || 1);
 
-  // Hàm chọn đơn hàng để hiển thị route
-  const handleOrderClick = (order: Order) => {
-    console.log('OrderList: Selected order:', order);
-    console.log('OrderList: Vehicle info:', order.vehicle);
-    console.log('OrderList: Vehicle ID:', order.vehicle?.id);
-    console.log('OrderList: Current driver:', order.vehicle?.currentDriver);
+  // Function to select order for route display
+  const handleOrderClick = async (order: Order) => {
     setSelectedOrder(order);
+    if (expandedOrderId === order.id) {
+      setExpandedOrderId(null);
+      return;
+    }
+    setExpandedOrderId(order.id);
   };
 
-  // Hàm tìm kiếm đơn hàng theo ID
+  // Function to search order by ID
   const handleSearch = async () => {
     if (!searchId.trim()) return;
     setSearching(true);
@@ -77,7 +75,6 @@ export default function OrderList() {
     }
   };
 
-  // Khi xóa nội dung ô tìm kiếm, tự động trả lại danh sách đơn hàng mặc định
   useEffect(() => {
     if (searchId.trim() === "") {
       setIsSearchMode(false);
@@ -85,10 +82,6 @@ export default function OrderList() {
       setError("");
     }
   }, [searchId]);
-
-  // const handleRefresh = () => {
-  //   fetchOrdersCallback();
-  // };
 
   return (
     <div className="bg-gradient-to-br from-blue-50/80 via-white/90 to-blue-100/80 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl max-w-full overflow-x-auto">
@@ -98,7 +91,8 @@ export default function OrderList() {
           <div className="text-gray-500 text-base">{t('dashboard.dispatcher.subtitle')}</div>
           <div className="text-sm text-blue-600 mt-1">💡 {t('dashboard.dispatcher.orders.clickToViewMap', 'Click on order to view route on map')}</div>
         </div>
-        {/* Tìm kiếm đơn hàng theo ID */}
+        
+        {/* Search order by ID */}
         <div className="flex items-center gap-2 bg-white/80 border border-blue-100 rounded-xl px-3 py-2 shadow">
           <input
             type="text"
@@ -117,25 +111,6 @@ export default function OrderList() {
             {searching ? t('common.loading') : t('dashboard.dispatcher.orders.search')}
           </button>
         </div>
-        {/* <button
-          onClick={handleRefresh}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
-        >
-          {loading ? (
-            <>
-              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-              {t('common.loading')}
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              {t('common.refresh', 'Refresh')}
-            </>
-          )}
-        </button> */}
       </div>
       
       {error || fetchError ? (
@@ -145,99 +120,134 @@ export default function OrderList() {
       ) : (
         <div className="relative">
           {/* Order list */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             {paginatedOrders.map((order: Order) => (
-              <div
-                key={order.id}
-                onClick={() => handleOrderClick(order)}
-                className={`rounded-2xl border p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow hover:shadow-xl transition-all duration-200 cursor-pointer ${
-                  selectedOrder?.id === order.id 
-                    ? 'bg-blue-100/90 border-blue-400 ring-2 ring-blue-300' 
-                    : 'bg-white/90 border-blue-100 hover:bg-blue-50/80'
-                }`}
-              >
-                {/* Left: Order info */}
-                <div className="flex-1 min-w-0 flex flex-col gap-2">
-                  <div className="flex flex-wrap gap-2 items-center mb-1">
-                    <span className="font-extrabold text-lg text-blue-900">#{order.id}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
-                      ${order.status?.name === 'Pending'
-                        ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                        : order.status?.name === 'Processing'
-                        ? 'bg-purple-100 text-purple-800 border-purple-300'
-                        : order.status?.name === 'Shipping'
-                        ? 'bg-blue-100 text-blue-800 border-blue-300'
-                        : order.status?.name === 'Delivered'
-                        ? 'bg-green-100 text-green-800 border-green-300'
-                        : order.status?.name === 'Completed'
-                        ? 'bg-green-100 text-green-800 border-green-300'
-                        : order.status?.name === 'Cancelled'
-                        ? 'bg-red-100 text-red-800 border-red-300'
-                        : order.status?.name === 'FAILED'
-                        ? 'bg-red-100 text-red-800 border-red-300'
-                        : 'bg-gray-100 text-gray-700 border-gray-300'}
-                    `}>
-                      {order.status?.name}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border shadow-sm
-                      ${order.status?.statusType === 'High'
-                        ? 'bg-red-100 text-red-700 border-red-300'
-                        : order.status?.statusType === 'Medium'
-                        ? 'bg-orange-100 text-orange-700 border-orange-300'
-                        : 'bg-green-100 text-green-700 border-green-300'}
-                    `}>
-                      {order.status?.statusType}
-                    </span>
+              <div key={order.id} className="space-y-4">
+                {/* Order Card */}
+                <div
+                  onClick={() => handleOrderClick(order)}
+                  className={`rounded-2xl border p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
+                    selectedOrder?.id === order.id 
+                      ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-400 ring-2 ring-blue-300 shadow-blue-200/50' 
+                      : 'bg-white/95 backdrop-blur-sm border-gray-200 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50'
+                  }`}
+                >
+                  {/* Left: Order info */}
+                  <div className="flex-1 min-w-0 flex flex-col gap-3">
+                    <div className="flex flex-wrap gap-3 items-center mb-2">
+                      <span className="font-bold text-xl text-blue-900 bg-blue-100 px-3 py-1 rounded-full shadow-sm">
+                        #{order.id}
+                      </span>
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-md transition-all duration-200 hover:scale-105 ${
+                        order.status?.name === 'Pending'
+                          ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-400 shadow-yellow-200/50'
+                          : order.status?.name === 'Processing'
+                          ? 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-400 shadow-purple-200/50'
+                          : order.status?.name === 'Shipping'
+                          ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-400 shadow-blue-200/50'
+                          : order.status?.name === 'Delivered'
+                          ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-400 shadow-green-200/50'
+                          : order.status?.name === 'Completed'
+                          ? 'bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800 border-emerald-400 shadow-emerald-200/50'
+                          : order.status?.name === 'Cancelled'
+                          ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-400 shadow-red-200/50'
+                          : order.status?.name === 'FAILED'
+                          ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-400 shadow-red-200/50'
+                          : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 border-gray-400 shadow-gray-200/50'
+                      }`}>
+                        {order.status?.name}
+                      </span>
+                      {order.status?.statusType && (
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-md ${
+                          order.status?.statusType === 'High'
+                            ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-700 border-red-400 shadow-red-200/50'
+                            : order.status?.statusType === 'Medium'
+                            ? 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700 border-orange-400 shadow-orange-200/50'
+                            : 'bg-gradient-to-r from-green-100 to-green-200 text-green-700 border-green-400 shadow-green-200/50'
+                        }`}>
+                          📊 {order.status?.statusType}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs">
+                          🏪 {t('dashboard.dispatcher.orders.customer')}:
+                        </span>
+                        <span className="text-gray-800 font-medium">{order.store?.storeName}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-green-700 bg-green-50 px-2 py-1 rounded-md text-xs">
+                          📍 {t('common.from')}:
+                        </span>
+                        <span className="text-gray-700 flex-1">{order.store?.address}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold text-orange-700 bg-orange-50 px-2 py-1 rounded-md text-xs">
+                          🎯 {t('common.to')}:
+                        </span>
+                        <span className="text-gray-700 flex-1">
+                          {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-700">
-                    <div>
-                      <span className="font-semibold text-blue-700">{t('dashboard.dispatcher.orders.customer')}:</span>
-                      <span className="text-blue-800"> {order.store?.storeName}</span>
+                  
+                  {/* Right: Date & driver/vehicle info */}
+                  <div className="flex flex-col items-end min-w-[220px] gap-2 bg-gray-50/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50">
+                    <div className="text-base text-blue-900 font-bold bg-blue-100 px-3 py-1 rounded-lg shadow-sm">
+                      📅 {order.createdAt?.slice(0, 10)}
                     </div>
-                    <div>
-                      <span className="font-semibold text-blue-700">{t('common.from')}:</span>
-                      <span className="text-gray-700"> {order.store?.address}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-blue-700">{t('common.to')}:</span>
-                      <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
+                    <div className="text-sm text-gray-700 text-right space-y-1 w-full">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-gray-600 text-xs">👤 {t('dashboard.dispatcher.orders.driver')}:</span> 
+                        <span className="font-bold text-blue-800 bg-blue-50 px-2 py-1 rounded-md text-xs">
+                          {order.vehicle?.currentDriver?.fullName || t('dashboard.dispatcher.orders.notAssigned')}
+                        </span>
+                      </div>
+                      {order.vehicle?.licensePlate && (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-gray-600 text-xs">🚛 {t('dashboard.dispatcher.orders.vehicle')}:</span>
+                          <span className="font-bold text-indigo-800 bg-indigo-50 px-2 py-1 rounded-md text-xs">
+                            {order.vehicle.licensePlate}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-                {/* Right: Date & driver/vehicle */}
-                <div className="flex flex-col items-end min-w-[180px] gap-1">
-                  <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
-                  <div className="text-sm text-gray-700">
-                    <span className="font-semibold text-gray-500">{t('dashboard.dispatcher.orders.driver')}:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || t('dashboard.dispatcher.orders.notAssigned')}</span>
-                    {order.vehicle?.licensePlate && (
-                      <>
-                        <span className="mx-1 text-gray-400">|</span>
-                        <span className="font-semibold text-blue-800">{t('dashboard.dispatcher.orders.vehicle')}: {order.vehicle.licensePlate}</span>
-                      </>
-                    )}
+                
+                {/* Checklist timeline - display when expanded */}
+                {expandedOrderId === order.id && (
+                  <div className="px-2">
+                    <OrderChecklistTimeline orderId={order.id} />
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
-          {/* No spinner overlay while loading */}
+          
           {/* Pagination controls */}
-          <div className="flex justify-center items-center gap-3 mt-8">
+          <div className="flex justify-center items-center gap-4 mt-8">
             <button
-              className="px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow disabled:opacity-50 transition-all duration-150 hover:bg-blue-200"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 font-bold shadow-md disabled:opacity-50 transition-all duration-200 hover:from-blue-200 hover:to-blue-300 hover:scale-105"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
             >
-              &lt; {t('common.previous')}
+              ← {t('common.previous')}
             </button>
-            <span className="mx-2 text-blue-900 font-semibold text-base">{t('common.page', 'Page')} {page} / {totalPages}</span>
-            {/* <span className="mx-2 text-gray-500 text-sm">Tổng số: {totalRecords}</span> */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl px-4 py-2 border border-gray-200 shadow-sm">
+              <span className="text-blue-900 font-semibold text-base">
+                {t('common.page', 'Page')} {page} / {totalPages}
+              </span>
+            </div>
             <button
-              className="px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow disabled:opacity-50 transition-all duration-150 hover:bg-blue-200"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 font-bold shadow-md disabled:opacity-50 transition-all duration-200 hover:from-blue-200 hover:to-blue-300 hover:scale-105"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || loading}
             >
-              {t('common.next')} &gt;
+              {t('common.next')} →
             </button>
           </div>
         </div>

@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 
 @Entity
 @Table(name = "vehicles")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "orders", "deliveries"})
 public class Vehicle {
 
     @Id

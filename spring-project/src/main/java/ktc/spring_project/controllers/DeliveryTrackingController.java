@@ -1,5 +1,10 @@
 package ktc.spring_project.controllers;
 import ktc.spring_project.services.DeliveryService;
+import ktc.spring_project.services.ChecklistService;
+import ktc.spring_project.entities.Delivery;
+import ktc.spring_project.entities.Order;
+import java.util.Optional;
+import ktc.spring_project.dtos.ChecklistProgressResponse;
 
 import ktc.spring_project.entities.DeliveryTracking;
 import ktc.spring_project.entities.Delivery;
@@ -76,6 +81,9 @@ public class DeliveryTrackingController {
 
     @Autowired
     private DeliveryRepository deliveryRepository;
+
+    @Autowired
+    private ChecklistService checklistService;
 
     /**
      * Simple vehicle location update - chỉ cần vehicleId, latitude, longitude
@@ -613,19 +621,68 @@ public class DeliveryTrackingController {
             
             log.info("✅ Tracking updated successfully: id={}", updated.getId());
 
-            Map<String, Object> result = new java.util.HashMap<>();
-            result.put("success", true);
-            result.put("message", "Vehicle location updated successfully");
-            result.put("trackingId", updated.getId());
-            result.put("vehicleId", updated.getVehicle().getId());
-            result.put("deliveryId", updated.getDelivery().getId());
-            result.put("latitude", updated.getLatitude());
-            result.put("longitude", updated.getLongitude());
-            result.put("timestamp", updated.getTimestamp());
-            result.put("location", updated.getLocation());
-            result.put("notes", updated.getNotes());
-            result.put("statusId", updated.getStatusId());
-            return ResponseEntity.ok(result);
+                    // Ghi log checklist step DRIVER_START_DELIVERY
+                    Delivery delivery = updated.getDelivery();
+                    if (delivery != null && delivery.getOrder() != null && updated.getVehicle() != null && updated.getVehicle().getCurrentDriver() != null) {
+                        Long driverId = updated.getVehicle().getCurrentDriver().getId();
+                        Long orderId = delivery.getOrder().getId();
+                        String stepCode = null;
+                        if (locationData.containsKey("stepCode")) {
+                            stepCode = locationData.get("stepCode").toString();
+                        }
+
+                        // Xử lý logic trạng thái theo stepCode
+                        if ("DRIVER_RECEIVE_ORDER".equals(stepCode)) {
+                            // Chuyển trạng thái sang Shipped
+                            Optional<ktc.spring_project.entities.Status> shippedStatus = statusService.getStatusByTypeAndName("ORDER", "Shipped");
+                            if (shippedStatus.isPresent()) {
+                                delivery.getOrder().setStatus(shippedStatus.get());
+                                deliveryService.save(delivery);
+                            }
+                            checklistService.markStepCompleted(driverId, orderId, "DRIVER_RECEIVE_ORDER", "Driver received order (order shipped)");
+                        } else if ("DRIVER_DELIVERED".equals(stepCode)) {
+                            // Chuyển trạng thái sang Delivered
+                            Optional<ktc.spring_project.entities.Status> deliveredStatus = statusService.getStatusByTypeAndName("ORDER", "Delivered");
+                            if (deliveredStatus.isPresent()) {
+                                delivery.getOrder().setStatus(deliveredStatus.get());
+                                deliveryService.save(delivery);
+                            }
+                            checklistService.markStepCompleted(driverId, orderId, "DRIVER_DELIVERED", "Order delivered (customer chưa thanh toán)");
+                        }
+
+                        // Trả về log checklist progress cho order
+                        ChecklistProgressResponse checklistLog = checklistService.getProgressByOrder(orderId);
+                        Map<String, Object> result = new java.util.HashMap<>();
+                        result.put("success", true);
+                        result.put("message", "Vehicle location updated and checklist log updated");
+                        result.put("trackingId", updated.getId());
+                        result.put("vehicleId", updated.getVehicle().getId());
+                        result.put("deliveryId", updated.getDelivery().getId());
+                        result.put("latitude", updated.getLatitude());
+                        result.put("longitude", updated.getLongitude());
+                        result.put("timestamp", updated.getTimestamp());
+                        result.put("location", updated.getLocation());
+                        result.put("notes", updated.getNotes());
+                        result.put("statusId", updated.getStatusId());
+                        result.put("checklistLog", checklistLog);
+                        // Removed stepName reference (only use stepCode)
+                        result.put("orderStatus", delivery.getOrder().getStatus() != null ? delivery.getOrder().getStatus().getName() : null);
+                        return ResponseEntity.ok(result);
+                } else {
+                    Map<String, Object> result = new java.util.HashMap<>();
+                    result.put("success", true);
+                    result.put("message", "Vehicle location updated successfully, but checklist log not updated (missing driver/order info)");
+                    result.put("trackingId", updated.getId());
+                    result.put("vehicleId", updated.getVehicle() != null ? updated.getVehicle().getId() : null);
+                    result.put("deliveryId", updated.getDelivery() != null ? updated.getDelivery().getId() : null);
+                    result.put("latitude", updated.getLatitude());
+                    result.put("longitude", updated.getLongitude());
+                    result.put("timestamp", updated.getTimestamp());
+                    result.put("location", updated.getLocation());
+                    result.put("notes", updated.getNotes());
+                    result.put("statusId", updated.getStatusId());
+                    return ResponseEntity.ok(result);
+                }
         } catch (Exception e) {
             log.error("Error updating tracking record {}: {}", trackingId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

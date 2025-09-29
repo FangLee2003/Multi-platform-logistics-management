@@ -115,12 +115,11 @@ public ResponseEntity<Void> deleteDeliveryProof(
      * Get delivery proofs for an order
      * TO-DO: Implement findByOrder method in DeliveryProofRepository
      */
-    @GetMapping("/order/{orderId}")
-    public ResponseEntity<List<DeliveryProof>> getDeliveryProofsByOrder(@PathVariable Long orderId) {
-        // Truy vấn trực tiếp bằng repository, tối ưu hiệu năng
-        List<DeliveryProof> orderProofs = deliveryProofService.findByOrderId(orderId);
-        return ResponseEntity.ok(orderProofs);
-    }
+        @GetMapping("/order/{orderId}")
+        public ResponseEntity<List<DeliveryProof>> getDeliveryProofsByOrder(@PathVariable Long orderId) {
+            List<DeliveryProof> orderProofs = deliveryProofService.findByOrderId(orderId);
+            return ResponseEntity.ok(orderProofs);
+        }
 
     /**
      * Serve delivery proof image file with authentication
