@@ -1,9 +1,11 @@
 
 
 import React, { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import type { Order } from "../../types/Order";
 
 export default function CompletedOrdersList() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -64,13 +66,13 @@ export default function CompletedOrdersList() {
 
   return (
     <div className="p-8 w-full">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Danh sách đơn hàng đã giao thành công</h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">{t('dashboard.dispatcher.completedOrders.title')}</h2>
       {loading ? (
-        <div className="text-lg text-gray-500">Đang tải...</div>
+        <div className="text-lg text-gray-500">{t('dashboard.dispatcher.completedOrders.loading')}</div>
       ) : error ? (
         <div className="text-red-600 font-semibold">{error}</div>
       ) : orders.length === 0 ? (
-        <div className="text-gray-500">Không có đơn hàng nào đã giao thành công.</div>
+        <div className="text-gray-500">{t('dashboard.dispatcher.completedOrders.noOrders')}</div>
       ) : (
         <>
           <div className="flex flex-col gap-4">
@@ -105,15 +107,15 @@ export default function CompletedOrdersList() {
                     </div>
                     <div className="text-sm text-gray-700">
                       <div>
-                        <span className="font-semibold text-blue-700">Khách hàng:</span>
+                        <span className="font-semibold text-blue-700">{t('dashboard.dispatcher.completedOrders.customer')}:</span>
                         <span className="text-blue-800"> {order.store?.storeName}</span>
                       </div>
                       <div>
-                        <span className="font-semibold text-blue-700">Từ:</span>
+                        <span className="font-semibold text-blue-700">{t('dashboard.dispatcher.completedOrders.from')}:</span>
                         <span className="text-gray-700"> {order.store?.address}</span>
                       </div>
                       <div>
-                        <span className="font-semibold text-blue-700">Đến:</span>
+                        <span className="font-semibold text-blue-700">{t('dashboard.dispatcher.completedOrders.to')}:</span>
                         <span className="text-gray-700"> {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}</span>
                       </div>
                     </div>
@@ -122,11 +124,11 @@ export default function CompletedOrdersList() {
                   <div className="flex flex-col items-end min-w-[180px] gap-1">
                     <div className="text-base text-blue-900 font-bold">{order.createdAt?.slice(0, 10)}</div>
                     <div className="text-sm text-gray-700">
-                      <span className="font-semibold text-gray-500">Tài xế:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || "Chưa phân công"}</span>
+                      <span className="font-semibold text-gray-500">{t('dashboard.dispatcher.completedOrders.driver')}:</span> <span className="font-semibold text-blue-800">{order.vehicle?.currentDriver?.fullName || t('dashboard.dispatcher.completedOrders.notAssigned')}</span>
                       {order.vehicle?.licensePlate && (
                         <>
                           <span className="mx-1 text-gray-400">|</span>
-                          <span className="font-semibold text-blue-800">Xe: {order.vehicle.licensePlate}</span>
+                          <span className="font-semibold text-blue-800">{t('dashboard.dispatcher.completedOrders.vehicle')}: {order.vehicle.licensePlate}</span>
                         </>
                       )}
                     </div>
@@ -135,13 +137,13 @@ export default function CompletedOrdersList() {
                 {/* Hiển thị minh chứng nếu là đơn hàng đang chọn */}
                 {selectedOrderId === order.id && (
                   <div className="bg-gray-50 border-l-4 border-blue-400 mt-2 mb-4 p-4 rounded-xl">
-                    <div className="font-bold text-blue-700 mb-2">Minh chứng giao hàng:</div>
+                    <div className="font-bold text-blue-700 mb-2">{t('dashboard.dispatcher.completedOrders.deliveryProof')}:</div>
                     {proofsLoading ? (
-                      <div className="text-gray-500">Đang tải minh chứng...</div>
+                      <div className="text-gray-500">{t('dashboard.dispatcher.completedOrders.loadingProof')}</div>
                     ) : proofsError ? (
                       <div className="text-red-600">{proofsError}</div>
                     ) : deliveryProofs.length === 0 ? (
-                      <div className="text-gray-500">Chưa có minh chứng giao hàng.</div>
+                      <div className="text-gray-500">{t('dashboard.dispatcher.completedOrders.noProof')}</div>
                     ) : (
                       <ul className="space-y-2">
                         {deliveryProofs.map((proof: any, idx: number) => (
@@ -175,22 +177,22 @@ export default function CompletedOrdersList() {
               onClick={() => setPage((p: number) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
             >
-              &lt; Trước
+              &lt; {t('dashboard.dispatcher.completedOrders.previous')}
             </button>
-            <span className="mx-2 text-blue-900 font-semibold text-base">Trang {page} / {totalPages}</span>
+            <span className="mx-2 text-blue-900 font-semibold text-base">{t('dashboard.dispatcher.completedOrders.page')} {page} / {totalPages}</span>
             <button
               className="px-4 py-2 rounded-xl bg-blue-100 text-blue-700 font-bold shadow disabled:opacity-50 transition-all duration-150 hover:bg-blue-200"
               onClick={() => setPage((p: number) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || loading}
             >
-              Tiếp &gt;
+              {t('dashboard.dispatcher.completedOrders.next')} &gt;
             </button>
           </div>
           {/* Tổng số đơn hàng và trang hiện tại ở dưới */}
           <div className="text-center mt-6 text-gray-600">
-            Tổng số {totalOrders} đơn hàng
+            {t('dashboard.dispatcher.completedOrders.total')} {totalOrders} {t('dashboard.dispatcher.completedOrders.orders')}
             {totalPages > 1 && (
-              <span className="ml-2">| Trang {page} / {totalPages}</span>
+              <span className="ml-2">| {t('dashboard.dispatcher.completedOrders.page')} {page} / {totalPages}</span>
             )}
           </div>
         </>

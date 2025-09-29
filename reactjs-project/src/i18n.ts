@@ -116,6 +116,7 @@ const resources = {
           "subtitle": "Manage orders and fleet operations",
           "tabs": {
             "orders": "Orders",
+            "completedOrders": "Completed Orders",
             "resources": "Resources",
             "assignment": "Assignment"
           },
@@ -138,8 +139,27 @@ const resources = {
             "orderNotFound": "Order not found with the entered ID",
             "searchError": "Error searching for order"
           },
+          "completedOrders": {
+            "title": "List of successfully delivered orders",
+            "loading": "Loading...",
+            "noOrders": "No completed orders.",
+            "customer": "Customer",
+            "from": "From",
+            "to": "To",
+            "driver": "Driver",
+            "notAssigned": "Not assigned",
+            "vehicle": "Vehicle", 
+            "deliveryProof": "Delivery proof",
+            "noProof": "No delivery proof yet.",
+            "loadingProof": "Loading proof...",
+            "previous": "Previous",
+            "next": "Next",
+            "page": "Page",
+            "total": "Total",
+            "orders": "orders"
+          },
             "vehicles": {
-              "title": "Vehicle List",
+              "title": "Vehicle Management",
               "licensePlate": "License plate",
               "type": "Type",
               "driver": "Driver",
@@ -170,20 +190,17 @@ const resources = {
               "confirmAssign": "Confirm Assignment",
               "assigning": "Assigning..."
             },
-          "drivers": {
-            "title": "Driver List",
-            "name": "Name",
-            "phone": "Phone",
-            "status": "Status",
-            "currentOrder": "Current order",
-            "rating": "Rating",
-            "searchPlaceholder": "Search by name, email or phone...",
-            "contactInfo": "Contact Info",
-            "noDriversFound": "No drivers found",
-            "noSearchResults": "No drivers match your search criteria",
-            "noDriversInSystem": "No drivers in the system yet",
-            "driverNotFound": "Driver not found"
-          },
+            "drivers": {
+              "title": "Driver Management",
+              "name": "Driver",
+              "contactInfo": "Contact Information",
+              "status": "Status",
+              "searchPlaceholder": "Search by name, email or phone...",
+              "noDriversFound": "No drivers found",
+              "noSearchResults": "No drivers match your search criteria",
+              "noDriversInSystem": "No drivers in the system yet",
+              "driverNotFound": "Driver not found"
+            },
             "assignment": {
               "title": "Order Assignment Management",
               "noOrders": "No orders waiting for assignment",
@@ -346,7 +363,8 @@ const resources = {
             "overview": "Overview",
             "performance": "Performance", 
             "monitoring": "Monitoring",
-            "staff": "Staff Management"
+            "staff": "Staff Management",
+            "invoices": "Invoice Management"
           },
           "overview": {
             "todaysOrders": "Today's Orders",
@@ -439,6 +457,69 @@ const resources = {
             "growthComparedToLastMonth": "Growth compared to last month",
             "monthlyAverage": "Monthly average",
             "month": "Month"
+          },
+          "invoices": {
+            "title": "Invoice Management",
+            "subtitle": "Manage and track payment invoices",
+            "list": {
+              "title": "Invoice List",
+              "emptyState": "No invoices found",
+              "loading": "Loading invoices...",
+              "search": "Search invoices...",
+              "filter": "Filter by status"
+            },
+            "table": {
+              "headers": {
+                "invoiceNumber": "Invoice Number",
+                "orderId": "Order ID",
+                "customer": "Customer",
+                "amount": "Amount",
+                "status": "Status",
+                "issuedDate": "Issued Date",
+                "actions": "Actions"
+              }
+            },
+            "detail": {
+              "title": "Invoice Details",
+              "orderInfo": "Order Information",
+              "storeInfo": "Store Information",
+              "invoiceInfo": "Invoice Information",
+              "products": "Products",
+              "summary": "Summary"
+            },
+            "status": {
+              "created": "Created",
+              "sent": "Sent",
+              "delivered": "Delivered",
+              "cancelled": "Cancelled"
+            },
+            "actions": {
+              "download": "Download Invoice",
+              "sendEmail": "Send Email to Customer",
+              "viewDetails": "View Details",
+              "downloadPdf": "Download PDF",
+              "sendEmailConfirm": "Send Email",
+              "downloading": "Downloading...",
+              "sending": "Sending email..."
+            },
+            "notifications": {
+              "downloadSuccess": "Invoice downloaded successfully",
+              "downloadError": "Failed to download invoice",
+              "emailSent": "Email sent successfully to customer",
+              "emailError": "Failed to send email",
+              "loadError": "Failed to load invoice data"
+            },
+            "modal": {
+              "sendEmail": {
+                "title": "Send Invoice Email",
+                "subtitle": "Send invoice to customer email address",
+                "emailLabel": "Customer Email",
+                "emailPlaceholder": "Enter customer email address",
+                "message": "Invoice will be sent to the customer's email address along with PDF attachment.",
+                "confirmButton": "Send Email",
+                "cancelButton": "Cancel"
+              }
+            }
           }
         },
         "driver": {
@@ -586,6 +667,7 @@ const resources = {
           "subtitle": "Quản lý đơn hàng và hoạt động đội xe",
           "tabs": {
             "orders": "Đơn hàng",
+            "completedOrders": "Đơn hàng đã hoàn thành",
             "resources": "Tài nguyên",
             "assignment": "Phân công"
           },
@@ -608,8 +690,27 @@ const resources = {
             "orderNotFound": "Không tìm thấy đơn hàng với ID đã nhập",
             "searchError": "Lỗi khi tìm kiếm đơn hàng"
           },
+          "completedOrders": {
+            "title": "Danh sách đơn hàng đã giao thành công",
+            "loading": "Đang tải...",
+            "noOrders": "Không có đơn hàng nào đã giao thành công.",
+            "customer": "Khách hàng",
+            "from": "Từ",
+            "to": "Đến",
+            "driver": "Tài xế",
+            "notAssigned": "Chưa phân công",
+            "vehicle": "Xe",
+            "deliveryProof": "Minh chứng giao hàng",
+            "noProof": "Chưa có minh chứng giao hàng.",
+            "loadingProof": "Đang tải minh chứng...",
+            "previous": "Trước",
+            "next": "Tiếp",
+            "page": "Trang",
+            "total": "Tổng số",
+            "orders": "đơn hàng"
+          },
             "vehicles": {
-              "title": "Danh sách phương tiện",
+              "title": "Quản lý phương tiện",
               "licensePlate": "Biển số xe",
               "type": "Loại xe",
               "driver": "Tài xế",
@@ -640,20 +741,17 @@ const resources = {
               "confirmAssign": "Xác nhận gán",
               "assigning": "Đang gán..."
             },
-          "drivers": {
-            "title": "Danh sách tài xế",
-            "name": "Tên",
-            "phone": "Điện thoại",
-            "status": "Trạng thái",
-            "currentOrder": "Đơn hàng hiện tại",
-            "rating": "Đánh giá",
-            "searchPlaceholder": "Tìm kiếm theo tên, email hoặc số điện thoại...",
-            "contactInfo": "Thông tin liên hệ",
-            "noDriversFound": "Không tìm thấy tài xế",
-            "noSearchResults": "Không có tài xế nào phù hợp với từ khóa tìm kiếm",
-            "noDriversInSystem": "Chưa có tài xế nào trong hệ thống",
-            "driverNotFound": "Không tìm thấy tài xế"
-          },
+            "drivers": {
+              "title": "Quản lý tài xế",
+              "name": "Tài xế",
+              "contactInfo": "Thông tin liên hệ",
+              "status": "Trạng thái",
+              "searchPlaceholder": "Tìm kiếm theo tên, email hoặc số điện thoại...",
+              "noDriversFound": "Không tìm thấy tài xế",
+              "noSearchResults": "Không có tài xế nào phù hợp với tiêu chí tìm kiếm",
+              "noDriversInSystem": "Chưa có tài xế nào trong hệ thống",
+              "driverNotFound": "Không tìm thấy tài xế"
+            },
             "assignment": {
               "title": "Quản lý phân công đơn hàng",
               "noOrders": "Không có đơn hàng chờ phân công",
@@ -833,7 +931,8 @@ const resources = {
             "overview": "Tổng quan",
             "performance": "Hiệu suất", 
             "monitoring": "Giám sát",
-            "staff": "Quản lý nhân viên"
+            "staff": "Quản lý nhân viên",
+            "invoices": "Quản lý hóa đơn"
           },
           "overview": {
             "todaysOrders": "Đơn hàng hôm nay",
@@ -926,6 +1025,69 @@ const resources = {
             "growthComparedToLastMonth": "Tăng trưởng so với tháng trước",
             "monthlyAverage": "Trung bình hàng tháng",
             "month": "Tháng"
+          },
+          "invoices": {
+            "title": "Quản lý hóa đơn",
+            "subtitle": "Quản lý và theo dõi hóa đơn thanh toán",
+            "list": {
+              "title": "Danh sách hóa đơn",
+              "emptyState": "Không tìm thấy hóa đơn",
+              "loading": "Đang tải hóa đơn...",
+              "search": "Tìm kiếm hóa đơn...",
+              "filter": "Lọc theo trạng thái"
+            },
+            "table": {
+              "headers": {
+                "invoiceNumber": "Số hóa đơn",
+                "orderId": "Mã đơn hàng",
+                "customer": "Khách hàng",
+                "amount": "Số tiền",
+                "status": "Trạng thái",
+                "issuedDate": "Ngày xuất",
+                "actions": "Thao tác"
+              }
+            },
+            "detail": {
+              "title": "Chi tiết hóa đơn",
+              "orderInfo": "Thông tin đơn hàng",
+              "storeInfo": "Thông tin cửa hàng",
+              "invoiceInfo": "Thông tin hóa đơn",
+              "products": "Sản phẩm",
+              "summary": "Tổng kết"
+            },
+            "status": {
+              "created": "Đã tạo",
+              "sent": "Đã gửi",
+              "delivered": "Đã giao",
+              "cancelled": "Đã hủy"
+            },
+            "actions": {
+              "download": "Tải hóa đơn",
+              "sendEmail": "Gửi email cho khách hàng",
+              "viewDetails": "Xem chi tiết",
+              "downloadPdf": "Tải PDF",
+              "sendEmailConfirm": "Gửi email",
+              "downloading": "Đang tải...",
+              "sending": "Đang gửi email..."
+            },
+            "notifications": {
+              "downloadSuccess": "Tải hóa đơn thành công",
+              "downloadError": "Lỗi khi tải hóa đơn",
+              "emailSent": "Gửi email thành công đến khách hàng",
+              "emailError": "Lỗi khi gửi email",
+              "loadError": "Lỗi khi tải dữ liệu hóa đơn"
+            },
+            "modal": {
+              "sendEmail": {
+                "title": "Gửi email hóa đơn",
+                "subtitle": "Gửi hóa đơn đến địa chỉ email khách hàng",
+                "emailLabel": "Email khách hàng",
+                "emailPlaceholder": "Nhập địa chỉ email khách hàng",
+                "message": "Hóa đơn sẽ được gửi đến địa chỉ email của khách hàng kèm file PDF đính kèm.",
+                "confirmButton": "Gửi email",
+                "cancelButton": "Hủy"
+              }
+            }
           }
         },
         "driver": {

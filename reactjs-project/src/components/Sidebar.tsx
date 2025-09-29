@@ -3,13 +3,14 @@ import { RiShieldKeyholeLine } from "react-icons/ri";
 import { AiOutlineSetting, AiOutlineSafetyCertificate } from "react-icons/ai";
 import { FiActivity, FiBarChart2, FiHome, FiUsers } from "react-icons/fi";
 import { HiOutlineDocumentReport } from "react-icons/hi";
+import { BsFileEarmarkText } from "react-icons/bs";
 import { useTranslation } from 'react-i18next';
 // Logo từ public folder
 
 
 
 export type DispatcherTab = "orders" | "resources" | "assignment" | "completedOrders";
-export type OperationsTab = "overview" | "performance" | "monitoring" | "staff";
+export type OperationsTab = "overview" | "performance" | "monitoring" | "staff" | "invoices";
 export type AdminTab = "users" | "roles" | "settings" | "logs";
 export type FleetTab = "vehicles" | "maintenance" | "schedule";
 export type TabType = DispatcherTab | OperationsTab | AdminTab | FleetTab;
@@ -25,7 +26,6 @@ interface SidebarProps<T extends TabType> {
 
 interface MenuItem<T extends TabType> {
   key: T;
-  label: string;
   icon: React.ReactNode;
 }
 
@@ -33,27 +33,28 @@ interface MenuItem<T extends TabType> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ALL_MENUS: Record<UserRole, MenuItem<any>[]> = {
   dispatcher: [
-    { key: "orders", label: "Orders", icon: <MdManageAccounts /> },
-    { key: "completedOrders", label: "Completed Orders", icon: <AiOutlineSafetyCertificate /> },
-    { key: "resources", label: "Resources", icon: <RiShieldKeyholeLine /> },
-    { key: "assignment", label: "Assignment", icon: <AiOutlineSetting /> },
+    { key: "orders", icon: <MdManageAccounts /> },
+    { key: "completedOrders", icon: <AiOutlineSafetyCertificate /> },
+    { key: "resources", icon: <RiShieldKeyholeLine /> },
+    { key: "assignment", icon: <AiOutlineSetting /> },
   ],
  operations : [
-    { key: "overview", label: "Overview", icon: <FiHome /> },
-    { key: "performance", label: "Performance", icon: <FiBarChart2 /> },
-    { key: "monitoring", label: "Monitoring", icon: <FiActivity /> },
-    { key: "staff", label: "Staff", icon: <FiUsers /> },
+    { key: "overview", icon: <FiHome /> },
+    { key: "performance", icon: <FiBarChart2 /> },
+    { key: "monitoring", icon: <FiActivity /> },
+    { key: "staff", icon: <FiUsers /> },
+    { key: "invoices", icon: <BsFileEarmarkText /> },
   ],
   fleet: [
-    { key: "vehicles", label: "Quản lý phương tiện", icon: <MdManageAccounts /> },
-    { key: "maintenance", label: "Bảo trì xe", icon: <AiOutlineSetting /> },
-    { key: "schedule", label: "Lịch bảo trì", icon: <FiActivity /> },
+    { key: "vehicles", icon: <MdManageAccounts /> },
+    { key: "maintenance", icon: <AiOutlineSetting /> },
+    { key: "schedule", icon: <FiActivity /> },
   ],
   admin: [
-    { key: "users", label: "User Management", icon: <MdManageAccounts /> },
-    { key: "roles", label: "Role Permissions", icon: <RiShieldKeyholeLine /> },
-    { key: "settings", label: "System Settings", icon: <AiOutlineSetting /> },
-    { key: "logs", label: "Audit Logs", icon: <FiActivity /> },
+    { key: "users", icon: <MdManageAccounts /> },
+    { key: "roles", icon: <RiShieldKeyholeLine /> },
+    { key: "settings", icon: <AiOutlineSetting /> },
+    { key: "logs", icon: <FiActivity /> },
   ],
 };
 
@@ -68,7 +69,23 @@ export default function Sidebar<T extends TabType>({
   role,
 }: SidebarProps<T>) {
   const { t } = useTranslation();
-    const MENU = getMenu<T>(role);
+  const MENU = getMenu<T>(role);
+
+  // Hàm để get label từ i18n
+  const getMenuLabel = (key: string) => {
+    switch(role) {
+      case 'dispatcher':
+        return t(`dashboard.dispatcher.tabs.${key}`, key);
+      case 'operations':
+        return t(`dashboard.operations.tabs.${key}`, key);
+      case 'fleet':
+        return t(`dashboard.fleet.tabs.${key}`, key);
+      case 'admin':
+        return t(`dashboard.admin.tabs.${key}`, key);
+      default:
+        return key;
+    }
+  };
 
   return (
     <aside className="group ml-3 flex-shrink-0 w-20 hover:w-64 transition-all duration-300 bg-white/20 backdrop-blur-lg border-r border-white/30 text-gray-800 flex flex-col py-6 px-4 overflow-hidden h-screen sticky top-0">
@@ -103,7 +120,7 @@ export default function Sidebar<T extends TabType>({
               className="hidden group-hover:inline transition-all duration-300 whitespace-nowrap overflow-hidden"
               style={{ maxWidth: "160px" }}
             >
-              {item.label}
+              {getMenuLabel(item.key)}
             </span>
           </button>
         ))}
