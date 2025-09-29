@@ -228,7 +228,7 @@ export default function OrdersPage() {
       } catch (error) {
         console.error("Unified search failed:", error);
         setLoading(false);
-        messageApi.error("Tìm kiếm thất bại");
+        messageApi.error("Search failed");
       }
     };
 
@@ -262,13 +262,13 @@ export default function OrdersPage() {
   const handleCopyOrderId = (orderId: string) => {
     navigator.clipboard
       .writeText(orderId)
-      .then(() => messageApi.success(`Đã sao chép mã đơn hàng: ${orderId}`))
-      .catch(() => messageApi.error("Không thể sao chép mã đơn hàng"));
+      .then(() => messageApi.success(`Order ID copied: ${orderId}`))
+      .catch(() => messageApi.error("Unable to copy Order ID"));
   };
 
   const handleInvoiceCreated = (invoice: { invoiceNumber: string }) => {
     messageApi.success(
-      `Hóa đơn ${invoice.invoiceNumber} đã được tạo thành công!`
+      `Invoice ${invoice.invoiceNumber} has been created successfully!`
     );
     setTimeout(() => {
       fetchOrders(currentPage, pageSize);
@@ -277,50 +277,50 @@ export default function OrdersPage() {
 
   const columns = [
     {
-      title: "Mã đơn hàng",
+      title: "Order ID",
       dataIndex: "id",
       key: "id",
       render: (text: string) => (
         <a
           onClick={() => handleCopyOrderId(text)}
           style={{ cursor: "pointer" }}
-          title="Click để sao chép mã đơn hàng"
+          title="Click to copy Order ID"
         >
           {text}
         </a>
       ),
     },
     {
-      title: "Ngày tạo",
+      title: "Created Date",
       dataIndex: "created_at",
       key: "created_at",
-      render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+      render: (date: string) => new Date(date).toLocaleDateString("en-US"),
     },
     {
-      title: "Địa chỉ nhận hàng",
+      title: "Shipping Address",
       dataIndex: "shipping_address",
       key: "shipping_address",
       ellipsis: true,
     },
     {
-      title: "Số SP",
+      title: "Total Items",
       dataIndex: "total_items",
       key: "total_items",
       align: "center" as const,
     },
     {
-      title: "Phí vận chuyển",
+      title: "Shipping Fee",
       dataIndex: "shipping_fee",
       key: "shipping_fee",
       align: "right" as const,
       render: (amount: number | null) =>
-        (amount || 0).toLocaleString("vi-VN", {
+        (amount || 0).toLocaleString("en-US", {
           style: "currency",
-          currency: "VND",
+          currency: "USD",
         }),
     },
     {
-      title: "Trạng thái",
+      title: "Status",
       dataIndex: "status",
       key: "status",
       render: (status: { name: string; color: string }) => (
@@ -328,11 +328,11 @@ export default function OrdersPage() {
       ),
     },
     {
-      title: "Thao tác",
+      title: "Actions",
       key: "action",
       render: (_: unknown, record: Order) => (
         <Space size="middle">
-          <Tooltip title="Xem chi tiết">
+          <Tooltip title="View Details">
             <Button
               type="text"
               icon={<EyeOutlined />}
@@ -342,7 +342,7 @@ export default function OrdersPage() {
               }}
             />
           </Tooltip>
-          <Tooltip title="Lịch sử vận chuyển">
+          <Tooltip title="Tracking History">
             <Button
               type="text"
               icon={<HistoryOutlined />}
@@ -361,111 +361,167 @@ export default function OrdersPage() {
   ];
 
   return (
-    <>
-      <Card className="orders-page" style={{ margin: "24px" }}>
-        <div className="orders-header" style={{ marginBottom: "24px" }}>
-          <Row
-            justify="space-between"
-            align="middle"
-            style={{ marginBottom: 24 }}
-            wrap
-          >
-            <Col xs={24} sm="auto">
-              <Title level={2} style={{ marginBottom: 12 }}>
-                Quản lý đơn hàng
-              </Title>
-            </Col>
-            <Col xs={24} sm="auto">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => router.push("/account/orders/new")}
-                block={!screens.md}
-              >
-                Tạo đơn hàng
-              </Button>
-            </Col>
-          </Row>
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: "24px",
+      }}
+    >
+      <div className="orders-header" style={{ marginBottom: "24px" }}>
+        <Row
+          justify="space-between"
+          align="middle"
+          style={{ marginBottom: 24 }}
+          wrap
+        >
+          <Col xs={24} sm="auto">
+            <Title
+              level={2}
+              style={{
+                marginBottom: 12,
+                color: "#15803d",
+                fontSize: "clamp(20px, 4vw, 28px)",
+              }}
+            >
+              Order Management
+            </Title>
+          </Col>
+          <Col xs={24} sm="auto">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => router.push("/account/orders/new")}
+              block={!screens.md}
+              style={{
+                backgroundColor: "#15803d",
+                borderColor: "#15803d",
+                borderRadius: 8,
+                height: 40,
+                fontWeight: 500,
+              }}
+            >
+              Create Order
+            </Button>
+          </Col>
+        </Row>
 
-          <OrderFilters
-            searchText={searchText}
-            dateRange={dateRange}
-            statusFilter={statusFilter}
-            onSearchChange={setSearchText}
-            onDateRangeChange={(dates) => setDateRange(dates)}
-            onStatusFilterChange={setStatusFilter}
-          />
-        </div>
-
-        <Table
-          columns={columns}
-          dataSource={orders}
-          loading={loading}
-          rowKey="id"
-          scroll={{ x: "max-content" }}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: totalRecords,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} của ${total} đơn hàng`,
-            position: ["bottomCenter"],
-            onChange: (page, size) => {
-              setCurrentPage(page);
-              setPageSize(size || 10);
-            },
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50"],
-          }}
+        <OrderFilters
+          searchText={searchText}
+          dateRange={dateRange}
+          statusFilter={statusFilter}
+          onSearchChange={setSearchText}
+          onDateRangeChange={(dates) => setDateRange(dates)}
+          onStatusFilterChange={setStatusFilter}
         />
-      </Card>
+      </div>
+
+      <Table
+        columns={columns}
+        dataSource={orders}
+        loading={loading}
+        rowKey="id"
+        scroll={{ x: "max-content" }}
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: totalRecords,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} orders`,
+          position: ["bottomCenter"],
+          onChange: (page, size) => {
+            setCurrentPage(page);
+            setPageSize(size || 10);
+          },
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "20", "50"],
+        }}
+      />
 
       {isDetailModalVisible && detailOrderId && (
         <OrderDetailModal
           orderId={Number(detailOrderId)}
-          onClose={() => setIsDetailModalVisible(false)}
+          onClose={() => {
+            setIsDetailModalVisible(false);
+            setDetailOrderId(null);
+          }}
         />
       )}
 
       <Modal
         title={
-          <Space>
-            <HistoryOutlined />
-            <span>Lịch sử vận chuyển</span>
-          </Space>
+          <div
+            style={{
+              color: "#15803d",
+              fontSize: "18px",
+              fontWeight: 600,
+            }}
+          >
+            <Space>
+              <HistoryOutlined />
+              <span>Tracking History</span>
+            </Space>
+          </div>
         }
         open={isTrackingModalVisible}
         onCancel={() => setIsTrackingModalVisible(false)}
         footer={null}
-        width={screens.md ? 600 : "100%"}
-        style={{ top: screens.md ? 100 : 0 }}
-        styles={{ body: { padding: screens.md ? 24 : 12 } }}
+        width={screens.md ? 600 : "90%"}
+        style={{ top: screens.md ? 80 : 30 }}
+        styles={{
+          body: {
+            padding: screens.md ? 24 : 16,
+            backgroundColor: "#fafafa",
+          },
+          header: {
+            backgroundColor: "#fff",
+            borderBottom: "1px solid #f0f0f0",
+            padding: "16px 24px",
+          },
+        }}
       >
         {selectedOrder && (
-          <>
-            <p>
-              <strong>Mã đơn hàng:</strong> {selectedOrder.id}
+          <div
+            style={{
+              backgroundColor: "#fff",
+              padding: "20px",
+              borderRadius: 8,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+            }}
+          >
+            <p
+              style={{
+                marginBottom: 16,
+                padding: "12px",
+                backgroundColor: "#f6ffed",
+                borderRadius: 6,
+                border: "1px solid #d9f7be",
+              }}
+            >
+              <strong style={{ color: "#15803d" }}>Order ID:</strong>{" "}
+              {selectedOrder.id}
             </p>
             <Timeline
               items={selectedOrder.tracking_updates.map((update) => ({
-                color: "blue",
+                color: "#15803d",
                 children: (
                   <>
-                    <p style={{ margin: 0 }}>
-                      <strong>{update.status}</strong>
+                    <p style={{ margin: 0, fontWeight: 600, color: "#15803d" }}>
+                      {update.status}
                     </p>
-                    <p style={{ margin: 0 }}>{update.description}</p>
-                    <p style={{ margin: 0, color: "#8c8c8c" }}>
-                      {new Date(update.time).toLocaleString("vi-VN")}
+                    <p style={{ margin: "4px 0", color: "#666" }}>
+                      {update.description}
+                    </p>
+                    <p style={{ margin: 0, color: "#999", fontSize: "12px" }}>
+                      {new Date(update.time).toLocaleString("en-US")}
                     </p>
                   </>
                 ),
               }))}
             />
-          </>
+          </div>
         )}
       </Modal>
       {contextHolder}
-    </>
+    </div>
   );
 }

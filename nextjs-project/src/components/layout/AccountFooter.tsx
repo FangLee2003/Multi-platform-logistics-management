@@ -23,7 +23,7 @@ export default function AccountFooter() {
         }}
       >
         © 2025 Fast Route Logistics.
-        {screens.md && " Tất cả quyền được bảo lưu."}
+        {screens.md && " All rights reserved."}
       </Typography.Text>
     </Footer>
   );

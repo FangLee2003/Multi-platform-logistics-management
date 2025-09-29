@@ -1,7 +1,19 @@
 "use client";
 
-import { Modal, Button, Upload, Typography, Divider, Table, message } from "antd";
-import { CloudUploadOutlined, CloseOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  Modal,
+  Button,
+  Upload,
+  Typography,
+  Divider,
+  Table,
+  message,
+} from "antd";
+import {
+  CloudUploadOutlined,
+  CloseOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import { useState } from "react";
 import type { UploadProps } from "antd";
 import { OrderItem } from "@/types/orders";
@@ -21,9 +33,18 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
 
   const handleDownloadSample = () => {
     const sampleData = [
-      ["Tên sản phẩm", "Số lượng", "Cân nặng (kg)", "Chiều cao (cm)", "Chiều rộng (cm)", "Chiều dài (cm)"],
-      ["Sản phẩm mẫu 1", 2, 1.5, 30, 20, 40],
-      ["Sản phẩm mẫu 2", 1, 0.8, 15, 15, 25],
+      [
+        [
+          "Product Name",
+          "Quantity",
+          "Weight (kg)",
+          "Height (cm)",
+          "Width (cm)",
+          "Length (cm)",
+        ],
+        ["Sample Product 1", 2, 1.5, 30, 20, 40],
+        ["Sample Product 2", 1, 0.8, 15, 15, 25],
+      ],
     ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sampleData);
@@ -40,20 +61,26 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        const orderItems: OrderItem[] = (jsonData as Record<string, unknown>[]).map((row) => ({
-          product_name: String(row["Tên sản phẩm"] || row["product_name"] || ""),
-          quantity: Number(row["Số lượng"] || row["quantity"]) || 1,
-          weight: Number(row["Cân nặng (kg)"] || row["weight"]) || 0,
-          height: Number(row["Chiều cao (cm)"] || row["height"]) || 0,
-          width: Number(row["Chiều rộng (cm)"] || row["width"]) || 0,
-          length: Number(row["Chiều dài (cm)"] || row["length"]) || 0,
+        const orderItems: OrderItem[] = (
+          jsonData as Record<string, unknown>[]
+        ).map((row) => ({
+          product_name: String(
+            row["Product Name"] || row["product_name"] || ""
+          ),
+          quantity: Number(row["Quantity"] || row["quantity"]) || 1,
+          weight: Number(row["Weight (kg)"] || row["weight"]) || 0,
+          height: Number(row["Height (cm)"] || row["height"]) || 0,
+          width: Number(row["Width (cm)"] || row["width"]) || 0,
+          length: Number(row["Length (cm)"] || row["length"]) || 0,
         }));
 
         setExcelData(orderItems);
-        message.success(`Đã đọc ${orderItems.length} sản phẩm từ file`);
+        message.success(
+          `Successfully read ${orderItems.length} products from file`
+        );
       } catch (error) {
         console.error("Error reading Excel file:", error);
-        message.error("Không thể đọc file Excel, vui lòng kiểm tra định dạng.");
+        message.error("Unable to read Excel file, please check the format.");
       }
     };
     reader.readAsBinaryString(file);
@@ -66,7 +93,7 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
     disabled: uploadedFile !== null,
     beforeUpload: (file) => {
       if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-        message.error("Chỉ hỗ trợ file Excel (.xlsx, .xls)");
+        message.error("Only Excel files are supported (.xlsx, .xls)");
         return Upload.LIST_IGNORE;
       }
       setUploadedFile(file);
@@ -93,12 +120,17 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
   };
 
   const tableColumns = [
-    { title: "Tên sản phẩm", dataIndex: "product_name", key: "product_name", width: 200 },
-    { title: "Số lượng", dataIndex: "quantity", key: "quantity", width: 80 },
-    { title: "Cân nặng (kg)", dataIndex: "weight", key: "weight", width: 100 },
-    { title: "Chiều cao (cm)", dataIndex: "height", key: "height", width: 100 },
-    { title: "Chiều rộng (cm)", dataIndex: "width", key: "width", width: 100 },
-    { title: "Chiều dài (cm)", dataIndex: "length", key: "length", width: 100 },
+    {
+      title: "Product Name",
+      dataIndex: "product_name",
+      key: "product_name",
+      width: 200,
+    },
+    { title: "Quantity", dataIndex: "quantity", key: "quantity", width: 80 },
+    { title: "Weight (kg)", dataIndex: "weight", key: "weight", width: 100 },
+    { title: "Height  (cm)", dataIndex: "height", key: "height", width: 100 },
+    { title: "Width (cm)", dataIndex: "width", key: "width", width: 100 },
+    { title: "Length (cm)", dataIndex: "length", key: "length", width: 100 },
   ];
 
   return (
@@ -135,9 +167,11 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
             <CloudUploadOutlined style={{ fontSize: 48, color: "#bfbfbf" }} />
           </p>
           <p style={{ fontSize: 16, color: "#8c8c8c" }}>
-            <strong>Click to upload</strong> hoặc kéo thả file
+            <strong>Click to upload</strong> or drag and drop files
           </p>
-          <p style={{ fontSize: 14, color: "#bfbfbf" }}>Chỉ hỗ trợ file Excel (.xlsx, .xls)</p>
+          <p style={{ fontSize: 14, color: "#bfbfbf" }}>
+            Only Excel files are supported (.xlsx, .xls){" "}
+          </p>
         </Upload.Dragger>
 
         {uploadedFile && (
@@ -172,7 +206,10 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
             <Divider orientation="left">Preview Data</Divider>
             <div style={{ overflowX: "auto" }}>
               <Table
-                dataSource={excelData.map((item, index) => ({ ...item, key: index }))}
+                dataSource={excelData.map((item, index) => ({
+                  ...item,
+                  key: index,
+                }))}
                 columns={tableColumns}
                 pagination={false}
                 scroll={{ y: 300, x: 700 }}
@@ -184,7 +221,11 @@ export default function ExcelUploadModal({ open, onClose, onSaveData }: Props) {
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
           <Button onClick={handleCloseModal}>Cancel</Button>
-          <Button type="primary" onClick={handleSaveData} disabled={excelData.length === 0}>
+          <Button
+            type="primary"
+            onClick={handleSaveData}
+            disabled={excelData.length === 0}
+          >
             Save Data
           </Button>
         </div>

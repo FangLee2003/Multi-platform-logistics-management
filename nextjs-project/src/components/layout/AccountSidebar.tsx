@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, Layout, Drawer, Grid } from "antd";
+import React from "react";
+import { Menu, Layout, Drawer, Grid, Typography } from "antd";
 import Link from "next/link";
 import {
   HomeOutlined,
@@ -27,27 +28,48 @@ export default function AccountSidebar({
   const screens = useBreakpoint();
 
   const menuItems = [
-    { key: "/account", label: "Trang chủ", icon: <HomeOutlined /> },
-    { key: "/account/orders/new", label: "Tạo đơn", icon: <PlusOutlined /> },
-    { key: "/account/orders", label: "Đơn hàng", icon: <ShoppingOutlined /> },
-    { key: "/account/estimate", label: "Cước phí", icon: <WalletOutlined /> },
-    { key: "/account/profile", label: "Cửa hàng", icon: <UserOutlined /> },
+    { key: "/account", label: "Home", icon: <HomeOutlined /> },
+    {
+      key: "/account/orders/new",
+      label: "Create Order",
+      icon: <PlusOutlined />,
+    },
+    { key: "/account/orders", label: "Orders", icon: <ShoppingOutlined /> },
+    { key: "/account/estimate", label: "Estimates", icon: <WalletOutlined /> },
+    {
+      key: "/account/profile",
+      label: "Store Information",
+      icon: <UserOutlined />,
+    },
   ];
 
   const renderMenu = (isDesktop: boolean) => (
     <Menu
       mode="inline"
       selectedKeys={[pathname]}
-      theme="dark"
+      style={{
+        borderRight: 0,
+        background: "#fff",
+      }}
       items={menuItems.map((item) => ({
         key: item.key,
-        icon: item.icon,
+        icon: React.cloneElement(item.icon, {
+          style: { color: "#15803d" },
+        }),
+        style: {
+          borderRadius: isDesktop ? "8px" : "6px",
+          margin: isDesktop ? "4px 8px" : "2px 4px",
+        },
         label: (
           <Link
             href={item.key}
-            style={{ color: "inherit", fontSize: isDesktop ? "14px" : "12px" }}
+            style={{
+              color: pathname === item.key ? "#15803d" : "#666",
+              textDecoration: "none",
+              fontSize: isDesktop ? "14px" : "12px",
+              fontWeight: pathname === item.key ? 600 : 400,
+            }}
             onClick={() => {
-              // Nếu đang ở mobile thì đóng Drawer sau khi chọn menu
               if (!isDesktop && onClose) {
                 onClose();
               }
@@ -66,15 +88,17 @@ export default function AccountSidebar({
       <Sider
         width={200}
         style={{
-          background: "#001529",
+          background: "#fff",
           position: "fixed",
-          height: "100vh",
+          height: "calc(100vh - 64px)",
           left: 0,
           top: 64,
           overflow: "auto",
+          boxShadow: "2px 0 8px rgba(0,0,0,0.1)",
+          borderRight: "1px solid #f0f0f0",
         }}
       >
-        {renderMenu(true)}
+        <div style={{ paddingTop: "16px" }}>{renderMenu(true)}</div>
       </Sider>
     );
   }
@@ -85,14 +109,39 @@ export default function AccountSidebar({
       open={open}
       onClose={onClose}
       placement="left"
-      width={130}
-      style={{ top: 64, height: "calc(100%)" }}
+      width={180}
+      style={{ top: 64, height: "calc(100vh - 64px)" }}
       styles={{
-        content: { background: "#001529" },
-        body: { padding: 0, height: "100%" },
+        content: {
+          background: "#fff",
+          padding: 0,
+        },
+        body: {
+          padding: 0,
+          height: "100%",
+        },
+        header: { display: "none" },
       }}
     >
-      {renderMenu(false)}
+      <div
+        style={{
+          padding: "12px 0",
+          borderBottom: "1px solid #f0f0f0",
+          background: "#fafafa",
+        }}
+      >
+        <Typography.Text
+          strong
+          style={{
+            paddingLeft: "16px",
+            color: "#15803d",
+            fontSize: "14px",
+          }}
+        >
+          Menu
+        </Typography.Text>
+      </div>
+      <div style={{ paddingTop: "8px" }}>{renderMenu(false)}</div>
     </Drawer>
   );
 }

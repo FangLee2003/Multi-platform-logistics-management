@@ -35,7 +35,7 @@ export const OrderFilters = ({
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8} md={6}>
           <Input
-            placeholder="Tìm theo ID đơn hàng..."
+            placeholder="Search by Order ID..."
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -48,14 +48,14 @@ export const OrderFilters = ({
             onChange={(dates) =>
               onDateRangeChange(dates as [Dayjs | null, Dayjs | null])
             }
-            placeholder={["Từ ngày", "Đến ngày"]}
+            placeholder={["From", "To"]}
           />
         </Col>
         <Col xs={24} sm={8} md={6}>
           <Select
             mode="multiple"
             style={{ width: "100%" }}
-            placeholder="Lọc theo trạng thái"
+            placeholder="Filter by status"
             value={statusFilter}
             onChange={onStatusFilterChange}
             options={orderStatuses.map((status) => ({

@@ -18,43 +18,38 @@ export default function StepOrderItems({ form }: Props) {
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
 
   const handleDownloadSample = () => {
-    // Import XLSX dynamically to avoid SSR issues
     import("xlsx").then((XLSX) => {
       const sampleData = [
         [
-          "Tên sản phẩm",
-          "Số lượng",
-          "Cân nặng (kg)",
-          "Chiều cao (cm)",
-          "Chiều rộng (cm)",
-          "Chiều dài (cm)",
-          "Hàng dễ vỡ",
+          "Product Name",
+          "Quantity",
+          "Weight (kg)",
+          "Height (cm)",
+          "Width (cm)",
+          "Length (cm)",
+          "Fragile",
         ],
-        ["Sản phẩm mẫu 1", 2, 1.5, 30, 20, 40, "Không"],
-        ["Sản phẩm mẫu 2", 1, 0.8, 15, 15, 25, "Có"],
+        ["Sample Product 1", 2, 1.5, 30, 20, 40, "No"],
+        ["Sample Product 2", 1, 0.8, 15, 15, 25, "Yes"],
       ];
 
-      // Create a new workbook
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(sampleData);
 
-      // Set column widths
       const colWidths = [
-        { wch: 20 }, // Tên sản phẩm
-        { wch: 10 }, // Số lượng
-        { wch: 12 }, // Cân nặng
-        { wch: 12 }, // Chiều cao
-        { wch: 12 }, // Chiều rộng
-        { wch: 12 }, // Chiều dài
-        { wch: 10 }, // Hàng dễ vỡ
+        { wch: 20 }, // Product Name
+        { wch: 10 }, // Quantity
+        { wch: 12 }, // Weight
+        { wch: 12 }, // Height
+        { wch: 12 }, // Width
+        { wch: 12 }, // Length
+        { wch: 10 }, // Fragile
       ];
       ws["!cols"] = colWidths;
 
-      // Add the worksheet to the workbook
-      XLSX.utils.book_append_sheet(wb, ws, "Mẫu đơn hàng");
+      XLSX.utils.book_append_sheet(wb, ws, "Order Sample");
 
-      // Generate Excel file
-      XLSX.writeFile(wb, "mau_danh_sach_san_pham.xlsx");
+      XLSX.writeFile(wb, "sample_product_list.xlsx");
     });
   };
 
@@ -81,14 +76,19 @@ export default function StepOrderItems({ form }: Props) {
           icon={<DownloadOutlined />}
           onClick={handleDownloadSample}
         >
-          Tải file mẫu
+          Download Sample File
         </Button>
         <Button
           type="primary"
           icon={<UploadOutlined />}
           onClick={() => setIsExcelModalOpen(true)}
+          style={{
+                marginRight: 8,
+                backgroundColor: "#15803d",
+                borderColor: "#15803d",
+              }}
         >
-          Nhập file Excel
+          Import Excel File
         </Button>
       </div>
 
@@ -109,28 +109,28 @@ export default function StepOrderItems({ form }: Props) {
                 size="small"
                 columns={[
                   {
-                    title: "Tên sản phẩm",
+                    title: "Product Name",
                     key: "product_name",
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "product_name"]}
                         rules={[
-                          { required: true, message: "Nhập tên sản phẩm" },
+                          { required: true, message: "Enter product name" },
                         ]}
                         style={{ margin: 0 }}
                       >
-                        <Input placeholder="Tên sản phẩm" />
+                        <Input placeholder="Product Name" />
                       </Form.Item>
                     ),
                   },
                   {
-                    title: "Số lượng",
+                    title: "Quantity",
                     key: "quantity",
                     width: 120,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "quantity"]}
-                        rules={[{ required: true, message: "Nhập số lượng" }]}
+                        rules={[{ required: true, message: "Enter quantity" }]}
                         style={{ margin: 0 }}
                       >
                         <InputNumber min={1} style={{ width: "100%" }} />
@@ -138,13 +138,13 @@ export default function StepOrderItems({ form }: Props) {
                     ),
                   },
                   {
-                    title: "Cân nặng (kg)",
+                    title: "Weight (kg)",
                     key: "weight",
                     width: 150,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "weight"]}
-                        rules={[{ required: true, message: "Nhập cân nặng" }]}
+                        rules={[{ required: true, message: "Enter weight" }]}
                         style={{ margin: 0 }}
                       >
                         <InputNumber
@@ -156,13 +156,13 @@ export default function StepOrderItems({ form }: Props) {
                     ),
                   },
                   {
-                    title: "Chiều cao (cm)",
+                    title: "Height (cm)",
                     key: "height",
                     width: 150,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "height"]}
-                        rules={[{ required: true, message: "Nhập chiều cao" }]}
+                        rules={[{ required: true, message: "Enter height" }]}
                         style={{ margin: 0 }}
                       >
                         <InputNumber min={0} style={{ width: "100%" }} />
@@ -170,13 +170,13 @@ export default function StepOrderItems({ form }: Props) {
                     ),
                   },
                   {
-                    title: "Chiều rộng (cm)",
+                    title: "Width (cm)",
                     key: "width",
                     width: 150,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "width"]}
-                        rules={[{ required: true, message: "Nhập chiều rộng" }]}
+                        rules={[{ required: true, message: "Enter width" }]}
                         style={{ margin: 0 }}
                       >
                         <InputNumber min={0} style={{ width: "100%" }} />
@@ -184,13 +184,13 @@ export default function StepOrderItems({ form }: Props) {
                     ),
                   },
                   {
-                    title: "Chiều dài (cm)",
+                    title: "Length (cm)",
                     key: "length",
                     width: 150,
                     render: (_, __, index) => (
                       <Form.Item
                         name={[index, "length"]}
-                        rules={[{ required: true, message: "Nhập chiều dài" }]}
+                        rules={[{ required: true, message: "Enter length" }]}
                         style={{ margin: 0 }}
                       >
                         <InputNumber min={0} style={{ width: "100%" }} />
@@ -198,7 +198,7 @@ export default function StepOrderItems({ form }: Props) {
                     ),
                   },
                   {
-                    title: "Hàng dễ vỡ",
+                    title: "Fragile",
                     key: "is_fragile",
                     width: 120,
                     render: (_, __, index) => (
@@ -207,7 +207,7 @@ export default function StepOrderItems({ form }: Props) {
                         valuePropName="checked"
                         style={{ margin: 0 }}
                       >
-                        <Checkbox>Dễ vỡ</Checkbox>
+                        <Checkbox>Fragile</Checkbox>
                       </Form.Item>
                     ),
                   },
@@ -234,14 +234,14 @@ export default function StepOrderItems({ form }: Props) {
                 icon={<PlusOutlined />}
                 block
               >
-                Thêm sản phẩm
+                Add Product
               </Button>
             </div>
           );
         }}
       </Form.List>
 
-      {/* Modal nhập Excel */}
+      {/* Excel Import Modal */}
       <ExcelUploadModal
         open={isExcelModalOpen}
         onClose={() => setIsExcelModalOpen(false)}

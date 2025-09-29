@@ -27,7 +27,6 @@ import { Store } from "@/types/Store";
 import { storeService } from "@/services/storeService";
 import {
   calculateBaseShippingFee,
-  calculateShippingFee as calculateShippingFeeUtil,
   SERVICE_MULTIPLIERS,
   ServiceType,
 } from "@/utils/shipping";
@@ -43,12 +42,10 @@ interface EstimateForm {
   deliveryAddress: string;
   weight: number;
   distance: number;
-  // Thêm các field cho địa chỉ mới
   delivery_city?: string;
   delivery_address_detail?: string;
   delivery_latitude?: number | null;
   delivery_longitude?: number | null;
-  // Thêm field cho dịch vụ và hàng dễ vỡ
   service_type?: ServiceType;
   is_fragile?: boolean;
 }
@@ -64,40 +61,36 @@ const calculateShippingFee = async (
   distanceKm: number;
   region: string;
 }> => {
-  // Tạo mock OrderItem từ form values
   const mockOrderItem = {
-    product_name: "Sản phẩm ước tính",
+    product_name: "Estimated Product",
     quantity: 1,
     weight: values.weight,
-    height: 10, // Giá trị mặc định
-    width: 10, // Giá trị mặc định
-    length: 10, // Giá trị mặc định
+    height: 10,
+    width: 10,
+    length: 10,
     is_fragile: values.is_fragile || false,
   };
 
-  // Tính phí cơ bản dựa trên sản phẩm (chưa có hệ số dịch vụ)
   const baseFee = calculateBaseShippingFee([mockOrderItem], values.is_fragile);
 
   let distanceFee = 0;
   let distanceKm = 0;
-  let region = "Không xác định";
+  let region = "Unknown";
 
-  // Tính phí khoảng cách nếu có tọa độ
   let storeLatitude = store?.latitude;
   let storeLongitude = store?.longitude;
 
-  // Nếu store chưa có tọa độ, thử geocode địa chỉ store
   if (store?.address && (!storeLatitude || !storeLongitude)) {
     try {
       const storeCoords = await getCoordinatesFromAddress(
-        store.address + ", Việt Nam"
+        store.address + ", Vietnam"
       );
       if (storeCoords.latitude && storeCoords.longitude) {
         storeLatitude = storeCoords.latitude;
         storeLongitude = storeCoords.longitude;
       }
     } catch (error) {
-      console.warn("Không thể lấy tọa độ cho store:", error);
+      console.warn("Could not get store coordinates:", error);
     }
   }
 
@@ -108,7 +101,6 @@ const calculateShippingFee = async (
     values.delivery_longitude
   ) {
     try {
-      // Sử dụng Mapbox để tính khoảng cách thực tế
       const coordinates = await getMapboxRoute(
         storeLongitude,
         storeLatitude,
@@ -117,7 +109,6 @@ const calculateShippingFee = async (
       );
 
       if (coordinates.length >= 2) {
-        // Tính tổng khoảng cách qua các waypoint
         const points: [number, number][] = coordinates.map((coord) => [
           coord[0],
           coord[1],
@@ -128,7 +119,6 @@ const calculateShippingFee = async (
           distanceKm += haversineDistance(points[i - 1], points[i]);
         }
 
-        // Tính phí theo khoảng cách
         const distanceResult = calculateDistanceFee(distanceKm);
         distanceFee = distanceResult.fee;
         region = distanceResult.region;
@@ -139,7 +129,6 @@ const calculateShippingFee = async (
         error
       );
 
-      // Fallback: sử dụng khoảng cách thẳng
       distanceKm = haversineDistance(
         [storeLongitude, storeLatitude],
         [values.delivery_longitude, values.delivery_latitude]
@@ -151,12 +140,10 @@ const calculateShippingFee = async (
     }
   }
 
-  // Áp dụng hệ số dịch vụ
   const serviceType = values.service_type || "STANDARD";
   const serviceFeeMultiplier =
     SERVICE_MULTIPLIERS[serviceType as ServiceType] || 1.0;
 
-  // Tính tổng phí theo đúng công thức
   const totalFee = Math.round(baseFee * serviceFeeMultiplier + distanceFee);
 
   return {
@@ -189,7 +176,6 @@ export default function EstimatePage() {
     }[];
   } | null>(null);
 
-  // States cho địa chỉ giao hàng
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
@@ -220,8 +206,7 @@ export default function EstimatePage() {
         }
       } catch (error) {
         console.error("Error loading store:", error);
-        // Fallback to default address if store loading fails
-        const defaultAddress = "Không thể tải địa chỉ cửa hàng";
+        const defaultAddress = "Unable to load store address";
         form.setFieldsValue({ pickupAddress: defaultAddress });
       }
     };
@@ -229,7 +214,6 @@ export default function EstimatePage() {
     fetchStore();
   }, [form]);
 
-  // Load danh sách tỉnh/thành phố khi component mount
   useEffect(() => {
     const loadProvinces = async () => {
       try {
@@ -242,7 +226,6 @@ export default function EstimatePage() {
     loadProvinces();
   }, []);
 
-  // Load danh sách quận/huyện khi chọn tỉnh
   const handleProvinceChange = async (value: string) => {
     setSelectedProvince(value);
     setSelectedDistrict("");
@@ -260,7 +243,6 @@ export default function EstimatePage() {
     }
   };
 
-  // Load danh sách xã/phường khi chọn quận
   const handleDistrictChange = async (value: string) => {
     setSelectedDistrict(value);
     setSelectedWard("");
@@ -276,7 +258,6 @@ export default function EstimatePage() {
     }
   };
 
-  // Xử lý khi chọn xã/phường
   const handleWardChange = async (value: string) => {
     setSelectedWard(value);
     await updateAddressDisplay(
@@ -287,7 +268,6 @@ export default function EstimatePage() {
     );
   };
 
-  // Xử lý khi nhập số nhà/đường
   const handleStreetAddressChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -301,7 +281,6 @@ export default function EstimatePage() {
     );
   };
 
-  // Cập nhật hiển thị địa chỉ đầy đủ
   const updateAddressDisplay = async (
     provinceCode: string,
     districtCode: string,
@@ -314,7 +293,6 @@ export default function EstimatePage() {
       districts.find((d) => d.code === districtCode)?.name || "";
     const wardName = wards.find((w) => w.code === wardCode)?.name || "";
 
-    // Địa chỉ lưu backend chỉ gồm số nhà, xã/phường, quận/huyện
     const addressParts = [];
     if (street.trim()) {
       addressParts.push(street.trim());
@@ -327,7 +305,6 @@ export default function EstimatePage() {
     }
     const addressForBackend = addressParts.join(", ");
 
-    // Địa chỉ hiển thị cho user vẫn gồm cả tỉnh/thành phố
     const displayParts = [...addressParts];
     if (provinceName) {
       displayParts.push(provinceName);
@@ -336,14 +313,13 @@ export default function EstimatePage() {
 
     setDeliveryAddressValue(displayAddress);
 
-    // Chỉ lấy tọa độ khi có đủ thông tin
     if (provinceName && districtName && displayAddress.trim()) {
       let geocodeAddress = displayAddress;
       if (!displayAddress.toLowerCase().includes(provinceName.toLowerCase())) {
         geocodeAddress += `, ${provinceName}`;
       }
-      if (!displayAddress.toLowerCase().includes("việt nam")) {
-        geocodeAddress += ", Việt Nam";
+      if (!displayAddress.toLowerCase().includes("vietnam")) {
+        geocodeAddress += ", Vietnam";
       }
 
       try {
@@ -351,7 +327,6 @@ export default function EstimatePage() {
         const coords = await getCoordinatesFromAddress(geocodeAddress);
         setCoordinates(coords);
 
-        // Cập nhật form
         form.setFieldsValue({
           deliveryAddress: displayAddress,
           delivery_city: provinceName,
@@ -379,7 +354,6 @@ export default function EstimatePage() {
     }
   };
 
-  // Hàm xóa toàn bộ địa chỉ và reset
   const handleClearAddress = () => {
     setSelectedProvince("");
     setSelectedDistrict("");
@@ -401,14 +375,12 @@ export default function EstimatePage() {
 
   const handleCalculate = async (values: EstimateForm) => {
     try {
-      // Merge coordinates từ state vào values
       const valuesWithCoords = {
         ...values,
         delivery_latitude: coordinates.latitude,
         delivery_longitude: coordinates.longitude,
       };
 
-      // Tính toán cho tất cả loại dịch vụ
       const allServiceResults = [];
 
       for (const [serviceKey, multiplier] of Object.entries(
@@ -428,7 +400,6 @@ export default function EstimatePage() {
         });
       }
 
-      // Set kết quả đầu tiên làm mặc định (STANDARD)
       const standardResult =
         allServiceResults.find((r) => r.serviceType === "STANDARD") ||
         allServiceResults[0];
@@ -446,291 +417,315 @@ export default function EstimatePage() {
     }
   };
 
-  // Helper function để lấy tên dịch vụ
   const getServiceName = (serviceType: ServiceType): string => {
     switch (serviceType) {
       case "SECOND_CLASS":
-        return "Tiết kiệm";
+        return "Second Class";
       case "STANDARD":
-        return "Tiêu chuẩn";
+        return "Standard";
       case "FIRST_CLASS":
-        return "Nhanh";
+        return "First Class";
       case "EXPRESS":
-        return "Hỏa tốc";
+        return "Express";
       case "PRIORITY":
-        return "Ưu tiên";
+        return "Priority";
       default:
         return serviceType;
     }
   };
 
   return (
-    <Card>
-      <Title level={2}>Ước tính phí vận chuyển</Title>
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleCalculate}
-        initialValues={{
-          weight: 0,
-          distance: 0,
-          is_fragile: false,
-        }}
-      >
-        <Row gutter={[24, 16]}>
-          {/* Địa chỉ lấy hàng - Full width */}
-          <Col xs={24}>
-            <Form.Item
-              name="pickupAddress"
-              label="Địa chỉ lấy hàng (Cửa hàng của bạn)"
-              rules={[
-                { required: true, message: "Vui lòng nhập địa chỉ lấy hàng!" },
-              ]}
-            >
-              <TextArea
-                rows={2}
-                disabled
-                placeholder={
-                  store ? "Đang tải địa chỉ cửa hàng..." : "Địa chỉ cửa hàng"
-                }
-                style={{ backgroundColor: "#f5f5f5" }}
-              />
-            </Form.Item>
-          </Col>
+    <div style={{ maxWidth: "100%", padding: "24px" }}>
+      <Title
+        level={2}
+        style={{
+          textAlign: "left",
+            color: "#15803d",
+            marginBottom: 24,
+            fontSize: "clamp(1.5rem, 4vw, 2rem)",
+          }}
+        >
+          Shipping Fee Estimation
+        </Title>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCalculate}
+          initialValues={{
+            weight: 0,
+            distance: 0,
+            is_fragile: false,
+          }}
+        >
+          <Row gutter={[24, 16]}>
+            <Col xs={24}>
+              <Form.Item
+                name="pickupAddress"
+                label="Pickup Address (Your Store)"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter the pickup address!",
+                  },
+                ]}
+              >
+                <TextArea
+                  rows={2}
+                  disabled
+                  placeholder={
+                    store ? "Loading store address..." : "Store address"
+                  }
+                  style={{ backgroundColor: "#f5f5f5" }}
+                />
+              </Form.Item>
+            </Col>
 
-          {/* Địa chỉ giao hàng - Full width với hệ thống chọn địa chỉ */}
-          <Col xs={24}>
-            <Form.Item label="Địa chỉ giao hàng" required>
-              <Input
-                placeholder="Địa chỉ sẽ hiển thị sau khi chọn tỉnh/huyện/xã"
-                value={deliveryAddressValue}
-                readOnly
-                style={{
-                  marginBottom: 16,
-                  borderRadius: 6,
-                  backgroundColor: deliveryAddressValue ? "#f5f5f5" : "#fff",
-                  cursor: "default",
-                }}
-                suffix={
-                  <CloseCircleOutlined
-                    onClick={handleClearAddress}
-                    style={{
-                      cursor: "pointer",
-                      color: "#999",
-                      visibility: deliveryAddressValue ? "visible" : "hidden",
-                    }}
-                  />
-                }
-              />
-
-              {/* Hiển thị tọa độ nếu có */}
-              {isGeocodingLoading && (
-                <div
+            <Col xs={24}>
+              <Form.Item label="Delivery Address" required>
+                <Input
+                  placeholder="The address will be displayed after selecting province/district/ward"
+                  value={deliveryAddressValue}
+                  readOnly
                   style={{
-                    fontSize: "12px",
-                    color: "#1890ff",
-                    marginBottom: 12,
-                    padding: "4px 8px",
-                    background: "#f0f8ff",
-                    borderRadius: 4,
-                    border: "1px solid #91d5ff",
+                    marginBottom: 16,
+                    borderRadius: 6,
+                    backgroundColor: deliveryAddressValue ? "#f5f5f5" : "#fff",
+                    cursor: "default",
                   }}
-                >
-                  🔄 Đang lấy tọa độ...
-                </div>
-              )}
-              {!isGeocodingLoading &&
-                coordinates.latitude &&
-                coordinates.longitude && (
+                  suffix={
+                    <CloseCircleOutlined
+                      onClick={handleClearAddress}
+                      style={{
+                        cursor: "pointer",
+                        color: "#999",
+                        visibility: deliveryAddressValue ? "visible" : "hidden",
+                      }}
+                    />
+                  }
+                />
+
+                {isGeocodingLoading && (
                   <div
                     style={{
                       fontSize: "12px",
-                      color: "#52c41a",
+                      color: "#1890ff",
                       marginBottom: 12,
                       padding: "4px 8px",
-                      background: "#f6ffed",
+                      background: "#f0f8ff",
                       borderRadius: 4,
-                      border: "1px solid #b7eb8f",
+                      border: "1px solid #91d5ff",
                     }}
                   >
-                    📍 Tọa độ: {coordinates.latitude.toFixed(6)},{" "}
-                    {coordinates.longitude.toFixed(6)}
+                    🔄 Retrieving coordinates...
                   </div>
                 )}
-              {!isGeocodingLoading &&
-                deliveryAddressValue &&
-                !coordinates.latitude && (
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#ff4d4f",
-                      marginBottom: 12,
-                      padding: "4px 8px",
-                      background: "#fff2f0",
-                      borderRadius: 4,
-                      border: "1px solid #ffccc7",
-                    }}
-                  >
-                    ⚠️ Không tìm thấy tọa độ cho địa chỉ này
-                  </div>
-                )}
+                {!isGeocodingLoading &&
+                  coordinates.latitude &&
+                  coordinates.longitude && (
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#52c41a",
+                        marginBottom: 12,
+                        padding: "4px 8px",
+                        background: "#f6ffed",
+                        borderRadius: 4,
+                        border: "1px solid #b7eb8f",
+                      }}
+                    >
+                      📍 Coordinates: {coordinates.latitude.toFixed(6)},{" "}
+                      {coordinates.longitude.toFixed(6)}
+                    </div>
+                  )}
+                {!isGeocodingLoading &&
+                  deliveryAddressValue &&
+                  !coordinates.latitude && (
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#ff4d4f",
+                        marginBottom: 12,
+                        padding: "4px 8px",
+                        background: "#fff2f0",
+                        borderRadius: 4,
+                        border: "1px solid #ffccc7",
+                      }}
+                    >
+                      ⚠️ Could not find coordinates for this address
+                    </div>
+                  )}
 
-              <Row gutter={[12, 12]}>
-                <Col xs={24} sm={12} md={6}>
-                  <Select
-                    placeholder="Tỉnh/Thành phố"
-                    style={{ width: "100%" }}
-                    value={selectedProvince || undefined}
-                    onChange={handleProvinceChange}
-                    showSearch
-                    filterOption={(input, option) =>
-                      option?.label
-                        ?.toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase()) ?? false
-                    }
-                  >
-                    {provinces.map((province) => (
-                      <Select.Option
-                        key={province.code}
-                        value={province.code}
-                        label={province.name}
-                      >
-                        {province.name}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Select
-                    placeholder="Huyện/Quận"
-                    style={{ width: "100%" }}
-                    value={selectedDistrict || undefined}
-                    onChange={handleDistrictChange}
-                    disabled={!selectedProvince}
-                    showSearch
-                    filterOption={(input, option) =>
-                      option?.label
-                        ?.toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase()) ?? false
-                    }
-                  >
-                    {districts.map((district) => (
-                      <Select.Option
-                        key={district.code}
-                        value={district.code}
-                        label={district.name}
-                      >
-                        {district.name}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Select
-                    placeholder="Xã/Phường"
-                    style={{ width: "100%" }}
-                    value={selectedWard || undefined}
-                    onChange={handleWardChange}
-                    disabled={!selectedDistrict}
-                    showSearch
-                    filterOption={(input, option) =>
-                      option?.label
-                        ?.toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase()) ?? false
-                    }
-                  >
-                    {wards.map((ward) => (
-                      <Select.Option
-                        key={ward.code}
-                        value={ward.code}
-                        label={ward.name}
-                      >
-                        {ward.name}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Input
-                    placeholder="Đường/Thôn/Xóm/Số nhà"
-                    style={{ width: "100%" }}
-                    value={streetAddress}
-                    onChange={handleStreetAddressChange}
-                  />
-                </Col>
-              </Row>
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={[24, 0]}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="weight"
-              label="Khối lượng (kg)"
-              rules={[{ required: true, message: "Vui lòng nhập khối lượng!" }]}
-            >
-              <InputNumber
-                min={0}
-                step={0.1}
-                style={{ width: "100%" }}
-                placeholder="Nhập khối lượng"
-              />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="is_fragile"
-              label="Hàng dễ vỡ"
-              valuePropName="checked"
-            >
-              <Checkbox>Hàng dễ vỡ (phụ phí x1.3)</Checkbox>
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Divider />
-
-        <Row>
-          <Col span={24} style={{ textAlign: "center" }}>
-            <Space direction="vertical" size="large">
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<CalculatorOutlined />}
-                size="large"
-                disabled={!deliveryAddressValue || !coordinates.latitude}
-              >
-                Tính phí vận chuyển
-              </Button>
-
-              {(!deliveryAddressValue || !coordinates.latitude) && (
-                <Text type="secondary" style={{ fontSize: "12px" }}>
-                  Vui lòng chọn địa chỉ giao hàng để tính phí chính xác
-                </Text>
-              )}
-            </Space>
-          </Col>
-        </Row>
-
-        {feeDetails && feeDetails.allServices && (
-          <Row style={{ marginTop: 24 }}>
-            <Col span={24}>
-              <Title
-                level={4}
-                style={{ textAlign: "center", marginBottom: 20 }}
-              >
-                Bảng giá các loại dịch vụ vận chuyển
-              </Title>
-              <ShippingFeeTable services={feeDetails.allServices} />
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} sm={12} md={6}>
+                    <Select
+                      placeholder="Province/City"
+                      style={{ width: "100%" }}
+                      value={selectedProvince || undefined}
+                      onChange={handleProvinceChange}
+                      showSearch
+                      filterOption={(input, option) =>
+                        option?.label
+                          ?.toString()
+                          .toLowerCase()
+                          .includes(input.toLowerCase()) ?? false
+                      }
+                    >
+                      {provinces.map((province) => (
+                        <Select.Option
+                          key={province.code}
+                          value={province.code}
+                          label={province.name}
+                        >
+                          {province.name}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <Select
+                      placeholder="District"
+                      style={{ width: "100%" }}
+                      value={selectedDistrict || undefined}
+                      onChange={handleDistrictChange}
+                      disabled={!selectedProvince}
+                      showSearch
+                      filterOption={(input, option) =>
+                        option?.label
+                          ?.toString()
+                          .toLowerCase()
+                          .includes(input.toLowerCase()) ?? false
+                      }
+                    >
+                      {districts.map((district) => (
+                        <Select.Option
+                          key={district.code}
+                          value={district.code}
+                          label={district.name}
+                        >
+                          {district.name}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <Select
+                      placeholder="Ward/Commune"
+                      style={{ width: "100%" }}
+                      value={selectedWard || undefined}
+                      onChange={handleWardChange}
+                      disabled={!selectedDistrict}
+                      showSearch
+                      filterOption={(input, option) =>
+                        option?.label
+                          ?.toString()
+                          .toLowerCase()
+                          .includes(input.toLowerCase()) ?? false
+                      }
+                    >
+                      {wards.map((ward) => (
+                        <Select.Option
+                          key={ward.code}
+                          value={ward.code}
+                          label={ward.name}
+                        >
+                          {ward.name}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <Input
+                      placeholder="Street/Village/House number"
+                      style={{ width: "100%" }}
+                      value={streetAddress}
+                      onChange={handleStreetAddressChange}
+                    />
+                  </Col>
+                </Row>
+              </Form.Item>
             </Col>
           </Row>
-        )}
-      </Form>
-    </Card>
+
+          <Row gutter={[24, 0]}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="weight"
+                label="Weight (kg)"
+                rules={[
+                  { required: true, message: "Please enter the weight!" },
+                ]}
+              >
+                <InputNumber
+                  min={0}
+                  step={0.1}
+                  style={{ width: "100%" }}
+                  placeholder="Enter weight"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="is_fragile"
+                label="Fragile Item"
+                valuePropName="checked"
+              >
+                <Checkbox>Fragile (extra fee x1.3)</Checkbox>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider />
+
+          <Row>
+            <Col span={24} style={{ textAlign: "center" }}>
+              <Space direction="vertical" size="large">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  icon={<CalculatorOutlined />}
+                  size="large"
+                  disabled={!deliveryAddressValue || !coordinates.latitude}
+                  style={{
+                    backgroundColor: "#15803d",
+                    borderColor: "#15803d",
+                    borderRadius: 8,
+                    height: 48,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    paddingLeft: 32,
+                    paddingRight: 32,
+                    minWidth: 200,
+                  }}
+                >
+                  Calculate Shipping Fee
+                </Button>
+
+                {(!deliveryAddressValue || !coordinates.latitude) && (
+                  <Text type="secondary" style={{ fontSize: "12px" }}>
+                    Please select a delivery address to calculate the fee
+                    accurately
+                  </Text>
+                )}
+              </Space>
+            </Col>
+          </Row>
+
+          {feeDetails && feeDetails.allServices && (
+            <Row style={{ marginTop: 24 }}>
+              <Col span={24}>
+                <Title
+                  level={4}
+                  style={{ textAlign: "center", marginBottom: 20 }}
+                >
+                  Delivery Services Price Table
+                </Title>
+                <ShippingFeeTable services={feeDetails.allServices} />
+              </Col>
+            </Row>
+          )}
+        </Form>
+      
+    </div>
   );
 }

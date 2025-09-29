@@ -160,11 +160,11 @@ const calculateShippingFee = async (
 const getServiceName = (serviceType: ServiceType): string => {
   switch (serviceType) {
     case "SECOND_CLASS":
-      return "Economy";
+      return "Second Class";
     case "STANDARD":
       return "Standard";
     case "FIRST_CLASS":
-      return "Fast";
+      return "First Class";
     case "EXPRESS":
       return "Express";
     case "PRIORITY":

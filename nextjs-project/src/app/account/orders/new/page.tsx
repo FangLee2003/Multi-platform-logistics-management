@@ -47,17 +47,17 @@ export default function CreateOrder() {
 
   const steps = [
     {
-      title: "Thông tin cửa hàng",
+      title: "Store Information",
       icon: <ShopOutlined />,
       content: <StepStoreInfo store={store} />,
     },
     {
-      title: "Chi tiết đơn hàng",
+      title: "Order Details",
       icon: <BoxPlotOutlined />,
       content: <StepOrderItems form={form} />, // chỉ truyền form, không cần items props
     },
     {
-      title: "Hoá đơn",
+      title: "Invoice",
       icon: <DollarOutlined />,
       content: <StepInvoice form={form} store={store} />,
     },
@@ -85,26 +85,26 @@ export default function CreateOrder() {
 
       // Kiểm tra dữ liệu bắt buộc
       if (!store) {
-        message.error("Không tìm thấy thông tin cửa hàng!");
+        message.error("Store information not found!");
         return;
       }
 
       if (!mergedValues.address || !mergedValues.city) {
-        message.error("Vui lòng chọn đầy đủ địa chỉ giao hàng!");
+        message.error("Please select a complete delivery address!");
         return;
       }
 
       if (!mergedValues.items || mergedValues.items.length === 0) {
-        message.error("Vui lòng thêm ít nhất một sản phẩm!");
+        message.error("You need to add at least one product!");
         return;
       }
 
       if (!mergedValues.pickup_date || !mergedValues.pickup_time_period) {
-        message.error("Vui lòng chọn thời gian lấy hàng!");
+        message.error("Please select a pickup time!");
         return;
       }
 
-      const loadingMessage = message.loading("Đang tạo đơn hàng...", 0);
+      const loadingMessage = message.loading("Order is being created...", 0);
 
       try {
         // BƯỚC 1: Lưu Address
@@ -145,10 +145,10 @@ export default function CreateOrder() {
                 name: item.product_name,
                 result: productResult,
               });
-            } catch (error: any) {
+            } catch (error: unknown) {
               productResults.push({
                 name: item.product_name,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
               });
             }
           }
@@ -192,10 +192,10 @@ export default function CreateOrder() {
                 productName: productResult.name,
                 result: orderItemResult,
               });
-            } catch (error: any) {
+            } catch (error: unknown) {
               orderItemResults.push({
                 productName: productResult.name,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
               });
             }
           }
@@ -214,7 +214,7 @@ export default function CreateOrder() {
           deliveryResult = await OrderFlowService.createDelivery(
             deliveryPayload
           );
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("❌ Delivery creation failed:", error);
         }
 
@@ -243,19 +243,19 @@ export default function CreateOrder() {
         // Reset form sau khi tạo thành công
         form.resetFields();
         setCurrentStep(0);
-      } catch (error: any) {
+      } catch (error: unknown) {
         loadingMessage();
         throw error;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("💥 Complete flow error:", error);
-      message.error(error.message || "Lỗi khi tạo đơn hàng");
+      message.error(error instanceof Error ? error.message : "Lỗi khi tạo đơn hàng");
     }
   };
 
   return (
     <Card>
-      <Title level={2}>Tạo đơn hàng mới</Title>
+      <Title level={2}>Create New Order</Title>
       <Steps
         current={currentStep}
         items={steps.map((s) => ({ title: s.title, icon: s.icon }))}
@@ -265,12 +265,16 @@ export default function CreateOrder() {
         <div style={{ marginTop: 24, textAlign: "right" }}>
           {currentStep > 0 && (
             <Button onClick={prev} style={{ marginRight: 8 }}>
-              Quay lại
+              Back
             </Button>
           )}
           {currentStep < steps.length - 1 && (
-            <Button type="primary" onClick={next}>
-              Tiếp tục
+            <Button type="primary" onClick={next} style={{
+                marginRight: 8,
+                backgroundColor: "#15803d",
+                borderColor: "#15803d",
+              }}>
+              Next
             </Button>
           )}
           {currentStep === steps.length - 1 && (
@@ -279,11 +283,11 @@ export default function CreateOrder() {
               htmlType="submit"
               style={{
                 marginRight: 8,
-                backgroundColor: "#722ed1",
-                borderColor: "#722ed1",
+                backgroundColor: "#15803d",
+                borderColor: "#15803d",
               }}
             >
-              Tạo đơn hàng
+              Create New Order
             </Button>
           )}
         </div>

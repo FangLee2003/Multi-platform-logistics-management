@@ -93,11 +93,7 @@ export default function CustomerAccount() {
       if (!userStr) return;
       const user = JSON.parse(userStr);
 
-      const response = await orderApi.getOrdersByUserPaginated(
-        user.id,
-        1,
-        3
-      );
+      const response = await orderApi.getOrdersByUserPaginated(user.id, 1, 3);
 
       const formattedOrders: Order[] = response.data.map((order) => ({
         id: order.orderId?.toString() || "N/A",
@@ -116,7 +112,7 @@ export default function CustomerAccount() {
 
       setRecentOrders(formattedOrders);
     } catch (error) {
-      messageApi.error("Không thể tải danh sách đơn hàng");
+      messageApi.error("Unable to load order list");
     } finally {
       setLoading(false);
     }
@@ -147,7 +143,7 @@ export default function CustomerAccount() {
         completedOrders: statsResponse.completedOrders,
       });
     } catch (error) {
-      messageApi.error("Không thể tải thống kê đơn hàng");
+      messageApi.error("Unable to load order statistics");
     }
   }, [messageApi]);
 
@@ -158,7 +154,7 @@ export default function CustomerAccount() {
 
   const recentOrdersColumns = [
     {
-      title: "Mã đơn hàng",
+      title: "Order ID",
       dataIndex: "id",
       key: "id",
       render: (text: string) => (
@@ -174,36 +170,36 @@ export default function CustomerAccount() {
       ),
     },
     {
-      title: "Ngày tạo",
+      title: "Created Date",
       dataIndex: "created_at",
       key: "created_at",
-      render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+      render: (date: string) => new Date(date).toLocaleDateString("en-US"),
     },
     {
-      title: "Địa chỉ nhận hàng",
+      title: "Delivery Address",
       dataIndex: "shipping_address",
       key: "shipping_address",
       ellipsis: true,
     },
     {
-      title: "Số SP",
+      title: "Items",
       dataIndex: "total_items",
       key: "total_items",
       align: "center" as const,
     },
     {
-      title: "Phí vận chuyển",
+      title: "Shipping Fee",
       dataIndex: "shipping_fee",
       key: "shipping_fee",
       align: "right" as const,
       render: (amount: number) =>
-        amount.toLocaleString("vi-VN", {
+        amount.toLocaleString("en-US", {
           style: "currency",
-          currency: "VND",
+          currency: "USD",
         }),
     },
     {
-      title: "Trạng thái",
+      title: "Status",
       dataIndex: "status",
       key: "status",
       render: (status: { name: string; color: string }) => (
@@ -211,11 +207,11 @@ export default function CustomerAccount() {
       ),
     },
     {
-      title: "Thao tác",
+      title: "Actions",
       key: "action",
       render: (_: unknown, record: Order) => (
         <Space size="middle">
-          <Tooltip title="Xem chi tiết">
+          <Tooltip title="View Details">
             <Button
               type="text"
               icon={<EyeOutlined />}
@@ -231,148 +227,312 @@ export default function CustomerAccount() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Welcome Section */}
-      <Card>
-        <Title level={2} style={{ marginBottom: 16, fontSize: "clamp(20px, 4vw, 28px)" }}>
-          Chào mừng đến với Fast Route! <CarOutlined />
-        </Title>
-        <Text style={{ fontSize: "clamp(14px, 3vw, 16px)" }}>
-          Dịch vụ giao hàng thông minh với công nghệ tối ưu hóa tuyến đường.
-          Chúng tôi cam kết mang đến trải nghiệm giao hàng nhanh chóng, an toàn
-          và tiết kiệm chi phí.
-        </Text>
-      </Card>
+    <div style={{ maxWidth: "100%", padding: "24px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        {/* Welcome Section */}
+        <Card
+          style={{
+            borderRadius: 16,
+            border: "1px solid #f0f0f0",
+          }}
+        >
+          <Title
+            level={2}
+            style={{
+              marginBottom: 16,
+              fontSize: "clamp(20px, 4vw, 28px)",
+              color: "#15803d",
+              textAlign: "center",
+            }}
+          >
+            Welcome to Fast Route! <CarOutlined />
+          </Title>
+          <Text
+            style={{
+              fontSize: "clamp(14px, 3vw, 16px)",
+              display: "block",
+              textAlign: "center",
+              color: "#4b5563",
+            }}
+          >
+            Smart delivery service with route optimization technology. We are
+            committed to providing fast, safe, and cost-effective delivery
+            experience.
+          </Text>
+        </Card>
 
-      {/* Feature cards */}
-      <Row gutter={[24, 24]}>
-        <Col xs={24} sm={12} md={8}>
-          <Link href="/account/orders/new">
-            <Card hoverable>
-              <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <BoxPlotOutlined style={{ fontSize: 32, color: "#1890ff" }} />
-              </div>
-              <Title level={4} style={{ textAlign: "center" }}>
-                Tạo đơn hàng
-              </Title>
-              <Text type="secondary" style={{ display: "block", textAlign: "center" }}>
-                Tạo đơn hàng giao hàng mới nhanh chóng
-              </Text>
-            </Card>
-          </Link>
-        </Col>
-
-        <Col xs={24} sm={12} md={8}>
-          <Link href="/account/orders">
-            <Card hoverable>
-              <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <EnvironmentOutlined style={{ fontSize: 32, color: "#1890ff" }} />
-              </div>
-              <Title level={4} style={{ textAlign: "center" }}>
-                Theo dõi đơn hàng
-              </Title>
-              <Text type="secondary" style={{ display: "block", textAlign: "center" }}>
-                Xem trạng thái và vị trí đơn hàng real-time
-              </Text>
-            </Card>
-          </Link>
-        </Col>
-
-        <Col xs={24} sm={12} md={8}>
-          <Link href="/account/estimate">
-            <Card hoverable>
-              <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <DollarOutlined style={{ fontSize: 32, color: "#1890ff" }} />
-              </div>
-              <Title level={4} style={{ textAlign: "center" }}>
-                Tính phí giao hàng
-              </Title>
-              <Text type="secondary" style={{ display: "block", textAlign: "center" }}>
-                Ước tính chi phí giao hàng trước khi đặt
-              </Text>
-            </Card>
-          </Link>
-        </Col>
-      </Row>
-
-      {/* Recent Orders */}
-      <Card
-        title={
-          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap" }}>
-            <Title level={3} style={{ margin: 0, fontSize: "clamp(18px, 3vw, 22px)" }}>
-              Đơn hàng gần đây
-            </Title>
-            <Link href="/account/orders">
-              <Button type="link">Xem tất cả</Button>
-            </Link>
-          </div>
-        }
-      >
-        {recentOrders.length > 0 ? (
-          <Table
-            columns={recentOrdersColumns}
-            dataSource={recentOrders}
-            loading={loading}
-            rowKey="id"
-            pagination={false}
-            size="small"
-            scroll={{ x: "max-content" }}
-          />
-        ) : (
-          <div style={{ textAlign: "center", padding: "32px 0" }}>
-            <BoxPlotOutlined style={{ fontSize: 64, color: "#bfbfbf" }} />
-            <Title level={4} type="secondary">
-              Chưa có đơn hàng nào
-            </Title>
-            <Text type="secondary" style={{ display: "block", marginBottom: 24 }}>
-              Tạo đơn hàng đầu tiên để bắt đầu!
-            </Text>
+        {/* Feature cards */}
+        <Row gutter={[24, 24]}>
+          <Col xs={24} sm={12} md={8}>
             <Link href="/account/orders/new">
-              <Button type="primary" icon={<PlusOutlined />} size="large">
-                Tạo đơn hàng ngay
-              </Button>
+              <Card
+                hoverable
+                style={{
+                  borderRadius: 16,
+                  height: "100%",
+                  border: "1px solid #e5f3ff",
+                  background:
+                    "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                  transition: "all 0.3s ease",
+                }}
+                bodyStyle={{ padding: "32px 24px" }}
+              >
+                <div style={{ textAlign: "center", marginBottom: 16 }}>
+                  <BoxPlotOutlined style={{ fontSize: 48, color: "#0284c7" }} />
+                </div>
+                <Title
+                  level={4}
+                  style={{
+                    textAlign: "center",
+                    color: "#0284c7",
+                    marginBottom: 12,
+                  }}
+                >
+                  Create Order
+                </Title>
+                <Text
+                  type="secondary"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    fontSize: 14,
+                    color: "#0369a1",
+                  }}
+                >
+                  Create new delivery orders quickly
+                </Text>
+              </Card>
             </Link>
-          </div>
+          </Col>
+
+          <Col xs={24} sm={12} md={8}>
+            <Link href="/account/orders">
+              <Card
+                hoverable
+                style={{
+                  borderRadius: 16,
+                  height: "100%",
+                  border: "1px solid #dcfce7",
+                  background:
+                    "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                  transition: "all 0.3s ease",
+                }}
+                bodyStyle={{ padding: "32px 24px" }}
+              >
+                <div style={{ textAlign: "center", marginBottom: 16 }}>
+                  <EnvironmentOutlined
+                    style={{ fontSize: 48, color: "#15803d" }}
+                  />
+                </div>
+                <Title
+                  level={4}
+                  style={{
+                    textAlign: "center",
+                    color: "#15803d",
+                    marginBottom: 12,
+                  }}
+                >
+                  Track Orders
+                </Title>
+                <Text
+                  type="secondary"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    fontSize: 14,
+                    color: "#166534",
+                  }}
+                >
+                  View order status and location in real-time
+                </Text>
+              </Card>
+            </Link>
+          </Col>
+
+          <Col xs={24} sm={12} md={8}>
+            <Link href="/account/estimate">
+              <Card
+                hoverable
+                style={{
+                  borderRadius: 16,
+                  height: "100%",
+                  border: "1px solid #fef3c7",
+                  background:
+                    "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                  transition: "all 0.3s ease",
+                }}
+                bodyStyle={{ padding: "32px 24px" }}
+              >
+                <div style={{ textAlign: "center", marginBottom: 16 }}>
+                  <DollarOutlined style={{ fontSize: 48, color: "#d97706" }} />
+                </div>
+                <Title
+                  level={4}
+                  style={{
+                    textAlign: "center",
+                    color: "#d97706",
+                    marginBottom: 12,
+                  }}
+                >
+                  Calculate Shipping Fee
+                </Title>
+                <Text
+                  type="secondary"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    fontSize: 14,
+                    color: "#92400e",
+                  }}
+                >
+                  Estimate shipping costs before placing orders
+                </Text>
+              </Card>
+            </Link>
+          </Col>
+        </Row>
+
+        {/* Recent Orders */}
+        <Card
+          style={{
+            borderRadius: 16,
+            border: "1px solid #f0f0f0",
+          }}
+          title={
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+              }}
+            >
+              <Title
+                level={3}
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(18px, 3vw, 22px)",
+                  color: "#15803d",
+                }}
+              >
+                Recent Orders
+              </Title>
+              <Link href="/account/orders">
+                <Button
+                  type="link"
+                  style={{ color: "#15803d", fontWeight: 500 }}
+                >
+                  View All
+                </Button>
+              </Link>
+            </div>
+          }
+        >
+          {recentOrders.length > 0 ? (
+            <Table
+              columns={recentOrdersColumns}
+              dataSource={recentOrders}
+              loading={loading}
+              rowKey="id"
+              pagination={false}
+              size="small"
+              scroll={{ x: "max-content" }}
+            />
+          ) : (
+            <div style={{ textAlign: "center", padding: "32px 0" }}>
+              <BoxPlotOutlined style={{ fontSize: 64, color: "#bfbfbf" }} />
+              <Title level={4} type="secondary">
+                No orders yet
+              </Title>
+              <Text
+                type="secondary"
+                style={{ display: "block", marginBottom: 24 }}
+              >
+                Create your first order to get started!
+              </Text>
+              <Link href="/account/orders/new">
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  size="large"
+                  style={{
+                    backgroundColor: "#15803d",
+                    borderColor: "#15803d",
+                    borderRadius: 8,
+                    height: 48,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    paddingLeft: 32,
+                    paddingRight: 32,
+                  }}
+                >
+                  Create Order Now
+                </Button>
+              </Link>
+            </div>
+          )}
+        </Card>
+
+        {/* Stats Overview */}
+        <Row gutter={[24, 24]}>
+          <Col xs={24} sm={12} md={8}>
+            <Card
+              style={{
+                borderRadius: 16,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <Statistic
+                title="Total Orders"
+                value={stats.totalOrders}
+                prefix={<BarChartOutlined style={{ color: "#15803d" }} />}
+                valueStyle={{ color: "#15803d", fontWeight: 600 }}
+              />
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={8}>
+            <Card
+              style={{
+                borderRadius: 16,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <Statistic
+                title="In Transit"
+                value={stats.shippingOrders}
+                prefix={<CarOutlined style={{ color: "#1890ff" }} />}
+                valueStyle={{ color: "#1890ff", fontWeight: 600 }}
+              />
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={8}>
+            <Card
+              style={{
+                borderRadius: 16,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <Statistic
+                title="Completed"
+                value={stats.completedOrders}
+                prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+                valueStyle={{ color: "#52c41a", fontWeight: 600 }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Modal */}
+        {isDetailModalVisible && detailOrderId && (
+          <OrderDetailModal
+            orderId={Number(detailOrderId)}
+            onClose={() => setIsDetailModalVisible(false)}
+          />
         )}
-      </Card>
 
-      {/* Stats Overview */}
-      <Row gutter={[24, 24]}>
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic title="Tổng đơn hàng" value={stats.totalOrders} prefix={<BarChartOutlined />} />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic
-              title="Đang vận chuyển"
-              value={stats.shippingOrders}
-              prefix={<CarOutlined />}
-              valueStyle={{ color: "#1890ff" }}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic
-              title="Đã hoàn thành"
-              value={stats.completedOrders}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: "#52c41a" }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Modal */}
-      {isDetailModalVisible && detailOrderId && (
-        <OrderDetailModal orderId={Number(detailOrderId)} onClose={() => setIsDetailModalVisible(false)} />
-      )}
-
-      {contextHolder}
+        {contextHolder}
+      </div>
     </div>
   );
 }
