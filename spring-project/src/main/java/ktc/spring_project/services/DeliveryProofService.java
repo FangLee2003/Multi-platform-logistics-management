@@ -14,12 +14,15 @@ import java.util.stream.Collectors;
 
 @Service
 public class DeliveryProofService {
+
     @Autowired
     private DeliveryProofRepository deliveryProofRepository;
     @Autowired
     private ktc.spring_project.repositories.OrderRepository orderRepository;
     @Autowired
     private ktc.spring_project.repositories.UserRepository userRepository;
+    @Autowired
+    private ktc.spring_project.repositories.StatusRepository statusRepository;
 
 
     public List<DeliveryProof> findAll() {
@@ -36,6 +39,10 @@ public class DeliveryProofService {
 
     public void delete(Long id) {
         deliveryProofRepository.deleteById(id);
+    }
+
+    public List<DeliveryProof> findByOrderId(Long orderId) {
+        return deliveryProofRepository.findByOrderId(orderId);
     }
 
     public DeliveryProof createProof(
@@ -101,8 +108,19 @@ public class DeliveryProofService {
         proof.setCapturedAt(new java.sql.Timestamp(System.currentTimeMillis()));
         proof.setUploadedBy(user);
 
-        // 7. Lưu DB
-        return deliveryProofRepository.save(proof);
+        // 7. Lưu DB minh chứng
+        DeliveryProof savedProof = deliveryProofRepository.save(proof);
+
+
+        // 8. Tự động cập nhật trạng thái đơn hàng sang 'Completed'
+        // Tìm status 'Completed' cho ORDER
+        var completedStatusOpt = statusRepository.findByStatusTypeAndName(ktc.spring_project.enums.StatusType.ORDER, "Completed");
+        if (completedStatusOpt.isPresent()) {
+            order.setStatus(completedStatusOpt.get());
+            orderRepository.save(order);
+        }
+
+        return savedProof;
     }
 
 public DeliveryProof updateProof(
@@ -111,21 +129,12 @@ public DeliveryProof updateProof(
         Authentication authentication) {
     // TODO: Implement the update logic
     throw new UnsupportedOperationException("Not implemented yet");
-    }
-
+        }
     public void deleteById(Long id, Authentication authentication) {
         // TODO: Implement the logic to delete a DeliveryProof by id, possibly checking authentication
         throw new UnsupportedOperationException("Not implemented yet");
     }
-    
-    public List<DeliveryProof> findByOrder(ktc.spring_project.entities.Order order) {
-        return deliveryProofRepository.findByOrderId(order.getId());
-    }
-    
-    public List<DeliveryProof> findByOrderId(Long orderId) {
-        return deliveryProofRepository.findByOrderId(orderId);
-    }
-    
+
     // New method to get simplified delivery proofs for mobile app
     public List<SimplifiedDeliveryProofResponseDTO> findSimplifiedByOrderId(Long orderId) {
         List<DeliveryProof> proofs = deliveryProofRepository.findByOrderId(orderId);

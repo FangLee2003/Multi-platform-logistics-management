@@ -1,3 +1,4 @@
+
 package ktc.spring_project.repositories;
 
 import ktc.spring_project.dtos.order.OrderSummaryDTO;
@@ -22,7 +23,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Kiểm tra trùng lặp orderCode
     boolean existsByOrderCode(String orderCode);
 
-    List<Order> findByStatus_Id(Short statusId);
+       List<Order> findByStatus_Id(Short statusId);
+       Page<Order> findByStatus_Id(Short statusId, org.springframework.data.domain.Pageable pageable);
+
+       // Lấy các đơn hàng chưa hoàn thành (status_id != 2) có phân trang
+       @Query("SELECT o FROM Order o WHERE o.status.id <> 2")
+       Page<Order> findNotCompletedOrders(Pageable pageable);
+
+       // Lấy tất cả đơn hàng chưa hoàn thành, sort id giảm dần
+       @Query("SELECT o FROM Order o WHERE o.status.id <> 2 ORDER BY o.id DESC")
+       List<Order> findAllNotCompletedOrdersSortedByIdDesc();
     List<Order> findByStore_Id(Long storeId);
     List<Order> findByCreatedBy_Id(Long createdBy);
 

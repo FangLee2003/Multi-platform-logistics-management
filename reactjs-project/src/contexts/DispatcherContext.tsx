@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { fetchOrdersRaw } from '../services/OrderAPI';
+import { fetchOrdersRaw } from '../services/orderAPI';
 import { fetchVehicleStats } from '../services/VehicleListAPI';
 import { fetchDrivers } from '../services/adminAPI';
 import type { Vehicle } from '../types/Operations';
@@ -146,9 +146,18 @@ export const DispatcherProvider = ({ children }: DispatcherProviderProps) => {
       setDriversLoading(true);
       setDriversError('');
       const driverList = await fetchDrivers();
-      const filteredDrivers = driverList.filter((u: User) => 
-        u.role === 'DRIVER'
-      );
+      // Lọc lại chỉ lấy user có role là DRIVER hoặc role_id = 7
+      const filteredDrivers = driverList.filter((u: any) => {
+        // u.role có thể là string hoặc object
+        if (typeof u.role === 'string') {
+          return u.role.toLowerCase() === 'driver';
+        }
+        if (typeof u.role === 'object' && u.role !== null) {
+          return (u.role.roleName && u.role.roleName.toLowerCase() === 'driver') || u.role.id === 7;
+        }
+        // fallback cho trường hợp có role_id
+        return u.role_id === 7;
+      });
       setDrivers(filteredDrivers);
       setDriversLastFetch(now);
     } catch (err: any) {

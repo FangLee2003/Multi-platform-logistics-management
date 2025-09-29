@@ -1,3 +1,5 @@
+
+
 package ktc.spring_project.services;
 
 import ktc.spring_project.dtos.order.OrderStatusUpdateDTO;
@@ -38,6 +40,11 @@ import java.util.Map;
 @Slf4j
 @Service
 public class OrderService {
+
+    // Lấy tất cả đơn hàng chưa hoàn thành, sort id giảm dần
+    public List<Order> getAllNotCompletedOrdersSortedByIdDesc() {
+        return orderRepository.findAllNotCompletedOrdersSortedByIdDesc();
+    }
 
     @Autowired
     private OrderRepository orderRepository;
@@ -97,6 +104,10 @@ public class OrderService {
             throw new HttpException("Failed to create order: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    // Lấy các đơn hàng chưa hoàn thành (status_id != 2) có phân trang
+    public Page<Order> getNotCompletedOrdersPaginated(Pageable pageable) {
+        return orderRepository.findNotCompletedOrders(pageable);
+    }
 
     public Order getOrderById(Long id) {
         try {
@@ -125,7 +136,11 @@ public class OrderService {
     public Page<Order> getAllOrders(Pageable pageable) {
         return orderRepository.findAll(pageable);
     }
-
+    // Lấy đơn hàng theo status_id có phân trang
+    public Page<Order> getOrdersByStatusIdPaginated(short statusId, org.springframework.data.domain.Pageable pageable) {
+        return orderRepository.findByStatus_Id(statusId, pageable);
+    }
+    
     public List<Order> getAllOrdersSorted() {
         try {
             return getAllOrders(); // Tránh code trùng lặp

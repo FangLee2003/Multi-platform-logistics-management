@@ -51,4 +51,5 @@ export interface Order {
   vehicle?: Vehicle;
   delivery?: Delivery;
   // Thêm các trường khác nếu cần
+  status_id?: number;
 }

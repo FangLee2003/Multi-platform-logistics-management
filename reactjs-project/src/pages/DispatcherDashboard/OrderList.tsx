@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
-import { fetchOrders, fetchOrderById } from "../../services/OrderAPI";
+import { fetchOrders, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
 import { useQuery } from "@tanstack/react-query";
@@ -20,23 +20,27 @@ export default function OrderList() {
   const [searchResults, setSearchResults] = useState<Order[]>([]);
   const [error, setError] = useState("");
 
-  // Sử dụng React Query để fetch orders với pagination
+  // Sử dụng React Query để fetch orders chưa completed với phân trang
   const {
     data: ordersResponse,
     isLoading: loading,
     error: fetchError
-  } = useQuery({
-    queryKey: ['ordersForList', page, PAGE_SIZE],
+  } = useQuery<FetchNotCompletedOrdersResponse>({
+    queryKey: ['ordersForList', 'not-completed', page],
     queryFn: async () => {
       const token = localStorage.getItem("token") || "";
-      return await fetchOrders(page, PAGE_SIZE, token);
+      return await fetchNotCompletedOrders(page, PAGE_SIZE, token);
     },
-    enabled: !isSearchMode, // Chỉ fetch khi không ở chế độ tìm kiếm
-    staleTime: 30 * 1000, // Cache 30 giây
+    enabled: !isSearchMode,
+    staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
   });
 
-  const orders = isSearchMode ? searchResults : (ordersResponse?.data || []);
+  // Nếu đang search theo ID thì chỉ hiển thị searchResults, không phân trang
+  // Sắp xếp theo orderId giảm dần (cao -> thấp)
+  const paginatedOrders: Order[] = isSearchMode
+    ? searchResults
+    : (ordersResponse?.content || []).slice().sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
   const totalPages = isSearchMode ? 1 : (ordersResponse?.totalPages || 1);
 
   // Hàm chọn đơn hàng để hiển thị route
@@ -142,7 +146,7 @@ export default function OrderList() {
         <div className="relative">
           {/* Order list */}
           <div className="flex flex-col gap-4">
-            {orders.map((order) => (
+            {paginatedOrders.map((order: Order) => (
               <div
                 key={order.id}
                 onClick={() => handleOrderClick(order)}
@@ -161,7 +165,7 @@ export default function OrderList() {
                         ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
                         : order.status?.name === 'Processing'
                         ? 'bg-purple-100 text-purple-800 border-purple-300'
-                        : order.status?.name === 'Shipped'
+                        : order.status?.name === 'Shipping'
                         ? 'bg-blue-100 text-blue-800 border-blue-300'
                         : order.status?.name === 'Delivered'
                         ? 'bg-green-100 text-green-800 border-green-300'

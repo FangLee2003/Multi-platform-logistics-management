@@ -85,7 +85,7 @@ public class OrderItemController {
     public ResponseEntity<?> getOrderItemsByOrderIdPagedDefault(
             @PathVariable Long orderId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size
+            @RequestParam(defaultValue = "10") int size
     ) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         org.springframework.data.domain.Page<OrderItem> pageResult = orderItemService.findByOrderIdPaged(orderId, pageable);
