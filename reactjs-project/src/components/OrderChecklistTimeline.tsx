@@ -124,11 +124,6 @@ const OrderChecklistTimeline: React.FC<Props> = ({ orderId }) => {
   return (
     <div className="relative py-6 px-6 bg-gradient-to-r from-blue-50/30 to-indigo-50/30 rounded-2xl border border-blue-100/50">
       <div className="relative max-w-5xl w-full mx-auto">
-        {/* Timeline Header */}
-        <div className="text-center mb-8">
-          <h3 className="text-xl font-bold text-gray-800 mb-2">🚚 Trạng thái đơn hàng</h3>
-          <p className="text-sm text-gray-600">Theo dõi tiến trình giao hàng từ lúc tạo đơn đến hoàn thành</p>
-        </div>
         
         {/* Horizontal timeline container */}
         <div className="relative flex justify-center">
