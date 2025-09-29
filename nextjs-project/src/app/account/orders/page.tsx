@@ -50,11 +50,11 @@ interface Order {
 const getStatusId = (status: string): number => {
   const statusMap: { [key: string]: number } = {
     PENDING: 1,
-    PROCESSING: 2,
-    SHIPPED: 3,
-    DELIVERED: 4,
-    COMPLETED: 5,
-    CANCELLED: 6,
+    COMPLETED: 2,
+    CANCELLED: 3,
+    PROCESSING: 4,
+    SHIPPING: 5,
+    DELIVERED: 6,
   };
   return statusMap[status] || 1;
 };
@@ -62,11 +62,11 @@ const getStatusId = (status: string): number => {
 const getStatusColor = (status: string): string => {
   const colorMap: { [key: string]: string } = {
     PENDING: "default",
-    PROCESSING: "processing",
-    SHIPPED: "warning",
-    DELIVERED: "success",
     COMPLETED: "success",
     CANCELLED: "error",
+    PROCESSING: "processing",
+    SHIPPING: "warning",
+    DELIVERED: "success",
     FAILED: "error",
   };
   return colorMap[status] || "default";
@@ -175,11 +175,11 @@ export default function OrdersPage() {
         if (statusFilter.length > 0) {
           const statusMap: { [key: number]: string } = {
             1: "PENDING",
-            2: "PROCESSING",
-            3: "SHIPPED",
-            4: "DELIVERED",
-            5: "COMPLETED",
-            6: "CANCELLED",
+            2: "COMPLETED",
+            3: "CANCELLED",
+            4: "PROCESSING",
+            5: "SHIPPING",
+            6: "DELIVERED",
           };
           statusList = statusFilter
             .map((id) => statusMap[id])
@@ -280,10 +280,15 @@ export default function OrdersPage() {
       title: "Order ID",
       dataIndex: "id",
       key: "id",
+      width: 100,
+      fixed: "left" as const,
       render: (text: string) => (
         <a
           onClick={() => handleCopyOrderId(text)}
-          style={{ cursor: "pointer" }}
+          style={{
+            cursor: "pointer",
+            color: "#15803d",
+          }}
           title="Click to copy Order ID"
         >
           {text}
@@ -294,35 +299,47 @@ export default function OrdersPage() {
       title: "Created Date",
       dataIndex: "created_at",
       key: "created_at",
+      width: 120,
       render: (date: string) => new Date(date).toLocaleDateString("en-US"),
     },
     {
       title: "Shipping Address",
       dataIndex: "shipping_address",
       key: "shipping_address",
-      ellipsis: true,
+      width: 200,
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (address: string) => (
+        <Tooltip placement="topLeft" title={address}>
+          {address}
+        </Tooltip>
+      ),
     },
     {
       title: "Total Items",
       dataIndex: "total_items",
       key: "total_items",
+      width: 100,
       align: "center" as const,
     },
     {
       title: "Shipping Fee",
       dataIndex: "shipping_fee",
       key: "shipping_fee",
+      width: 120,
       align: "right" as const,
       render: (amount: number | null) =>
-        (amount || 0).toLocaleString("en-US", {
+        (amount || 0).toLocaleString("vi-VN", {
           style: "currency",
-          currency: "USD",
+          currency: "VND",
         }),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
+      width: 100,
       render: (status: { name: string; color: string }) => (
         <Tag color={status.color}>{status.name}</Tag>
       ),
@@ -330,6 +347,8 @@ export default function OrdersPage() {
     {
       title: "Actions",
       key: "action",
+      width: 150,
+      fixed: "right" as const,
       render: (_: unknown, record: Order) => (
         <Space size="middle">
           <Tooltip title="View Details">
@@ -374,7 +393,7 @@ export default function OrdersPage() {
           style={{ marginBottom: 24 }}
           wrap
         >
-          <Col xs={24} sm="auto">
+          <Col xs={24} sm={12} md={16} lg={18}>
             <Title
               level={2}
               style={{
@@ -386,7 +405,7 @@ export default function OrdersPage() {
               Order Management
             </Title>
           </Col>
-          <Col xs={24} sm="auto">
+          <Col xs={24} sm={12} md={8} lg={6} style={{ textAlign: "right" }}>
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -415,27 +434,41 @@ export default function OrdersPage() {
         />
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={orders}
-        loading={loading}
-        rowKey="id"
-        scroll={{ x: "max-content" }}
-        pagination={{
-          current: currentPage,
-          pageSize: pageSize,
-          total: totalRecords,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} orders`,
-          position: ["bottomCenter"],
-          onChange: (page, size) => {
-            setCurrentPage(page);
-            setPageSize(size || 10);
-          },
-          showSizeChanger: true,
-          pageSizeOptions: ["10", "20", "50"],
+      <div
+        style={{
+          width: "100%",
+          overflowX: "auto",
+          border: "1px solid #f0f0f0",
+          borderRadius: 8,
+          backgroundColor: "#fff",
         }}
-      />
+      >
+        <Table
+          columns={columns}
+          dataSource={orders}
+          loading={loading}
+          rowKey="id"
+          scroll={{ x: 890 }}
+          style={{
+            minWidth: 890,
+          }}
+          size="middle"
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: totalRecords,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} orders`,
+            position: ["bottomCenter"],
+            onChange: (page, size) => {
+              setCurrentPage(page);
+              setPageSize(size || 10);
+            },
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50"],
+          }}
+        />
+      </div>
 
       {isDetailModalVisible && detailOrderId && (
         <OrderDetailModal
