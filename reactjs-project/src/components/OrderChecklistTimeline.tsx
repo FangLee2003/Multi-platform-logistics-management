@@ -26,34 +26,58 @@ const OrderChecklistTimeline: React.FC<Props> = ({ orderId }) => {
         console.log('🔍 [DEBUG] Standard steps:', standardSteps);
         console.log('🔍 [DEBUG] Progress steps:', progressSteps);
 
+        // Định nghĩa thứ tự mong muốn
+        const stepOrderMap = [
+          'CUSTOMER_CREATE_ORDER', // Pending
+          'DISPATCHER_ASSIGN_DRIVER', // Processing
+          'DRIVER_RECEIVE_ORDER', // Shipping
+          'DRIVER_COMPLETE_DELIVERY', // Delivered
+          'COMPLETED' // Nếu có
+        ];
+
         // Merge dữ liệu: lấy cấu trúc từ standardSteps, cập nhật completedAt từ progressSteps
-        const merged = standardSteps.map(standardStep => {
+        // Sửa logic: chỉ cho phép completed nếu các bước trước đã completed
+        let merged = [];
+        let allPrevCompleted = true;
+        for (const standardStep of standardSteps) {
           const progressStep = progressSteps.find(p => p.stepCode === standardStep.stepCode);
-          const mergedStep = {
+          let stepName = standardStep.stepName;
+          switch (standardStep.stepCode) {
+            case 'CUSTOMER_CREATE_ORDER':
+              stepName = 'Order pending';
+              break;
+            case 'DISPATCHER_ASSIGN_DRIVER':
+              stepName = 'Order processing';
+              break;
+            case 'DRIVER_RECEIVE_ORDER':
+              stepName = 'Shipping';
+              break;
+            case 'DRIVER_COMPLETE_DELIVERY':
+            case 'COMPLETED':
+              stepName = 'Delivery successful';
+              break;
+            default:
+              break;
+          }
+          // completed chỉ true nếu các bước trước đã completed
+          const completed = !!progressStep?.completedAt && allPrevCompleted;
+          if (!completed) allPrevCompleted = false;
+          merged.push({
             ...standardStep,
-            completedAt: progressStep?.completedAt || undefined,
-            completed: !!progressStep?.completedAt,
+            stepName,
+            completedAt: completed ? progressStep?.completedAt : undefined,
+            completed,
             actor: progressStep?.actor || undefined,
             details: progressStep?.details || undefined,
             status: progressStep?.status || undefined
-          };
-          
-          // DEBUG: Log từng bước merge
-          if (progressStep) {
-            console.log(`🔍 [DEBUG] Merged step ${standardStep.stepCode}:`, {
-              stepCode: mergedStep.stepCode,
-              stepName: mergedStep.stepName,
-              completed: mergedStep.completed,
-              completedAt: mergedStep.completedAt
-            });
-          }
-          
-          return mergedStep;
-        });
+          });
+        }
 
-        // Sắp xếp theo stepOrder
-        merged.sort((a, b) => (a.stepOrder || 0) - (b.stepOrder || 0));
-        
+        // Sắp xếp lại theo thứ tự mong muốn
+        merged = merged
+          .filter(step => stepOrderMap.includes(step.stepCode))
+          .sort((a, b) => stepOrderMap.indexOf(a.stepCode) - stepOrderMap.indexOf(b.stepCode));
+
         console.log('🔍 [DEBUG] Final merged steps:', merged);
         setMergedSteps(merged);
       } catch (error) {
