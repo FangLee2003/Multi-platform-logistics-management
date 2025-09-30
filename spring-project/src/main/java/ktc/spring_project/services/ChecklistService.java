@@ -293,6 +293,8 @@ public class ChecklistService {
     /**
      * Đánh dấu một bước đã hoàn thành
      */
+
+     
     public void markStepCompleted(Long userId, Long orderId, String stepCode, String details) {
         checklistLogger.info("[CHECKLIST] markStepCompleted called | userId={} | orderId={} | stepCode={} | details={}", userId, orderId, stepCode, details);
         checklistLogger.info("[CHECKLIST] DEBUG | userId={} | orderId={} | stepCode={} | details={} | Thread={}", userId, orderId, stepCode, details, Thread.currentThread().getName());

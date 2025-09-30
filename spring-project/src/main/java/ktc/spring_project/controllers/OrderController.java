@@ -458,19 +458,7 @@ public ResponseEntity<Order> putOrder(
         }
     }
 
-    @GetMapping("/{id}/tracking")
-    public ResponseEntity<?> getOrderTracking(@PathVariable Long id) {
-        try {
-            // Giả sử bạn có service lấy tracking info
-            Object trackingInfo = orderService.getOrderTrackingInfo(id);
-            if (trackingInfo == null) {
-                return ResponseEntity.notFound().build();
-            }
-            return ResponseEntity.ok(trackingInfo);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
-        }
-    }
+
 
     /**
      * Lấy danh sách đơn hàng theo store ID
@@ -935,6 +923,128 @@ public ResponseEntity<Order> putOrder(
             
         } catch (Exception e) {
             System.err.println("Error getting order stats: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get order tracking information for public tracking page
+     * API: GET /api/orders/{orderId}/tracking
+     * Returns basic tracking information including coordinates and status
+     */
+    @GetMapping("/{orderId}/tracking")
+    public ResponseEntity<Map<String, Object>> getOrderTracking(@PathVariable String orderId) {
+        try {
+            // Parse orderId - could be numeric or alphanumeric
+            Long orderIdLong = null;
+            try {
+                orderIdLong = Long.parseLong(orderId);
+            } catch (NumberFormatException e) {
+                // Try to find by order code/reference
+                Optional<Order> orderOpt = orderService.findByOrderId(orderId);
+                if (orderOpt.isPresent()) {
+                    orderIdLong = orderOpt.get().getId();
+                } else {
+                    return ResponseEntity.notFound().build();
+                }
+            }
+
+            Order order = orderService.getOrderById(orderIdLong);
+            if (order == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Map<String, Object> trackingInfo = new HashMap<>();
+            trackingInfo.put("orderId", orderId);
+            trackingInfo.put("status", order.getStatus() != null ? order.getStatus().getName() : "Unknown");
+            
+            // Try to get estimated delivery from delivery record
+            String estimatedDelivery = null;
+            try {
+                List<Delivery> deliveries = deliveryService.findByOrderId(orderIdLong);
+                if (!deliveries.isEmpty()) {
+                    Delivery delivery = deliveries.get(0);
+                    if (delivery.getOrderDate() != null) {
+                        estimatedDelivery = delivery.getOrderDate().toString();
+                    }
+                }
+            } catch (Exception e) {
+                // If delivery lookup fails, continue without estimated delivery
+            }
+            trackingInfo.put("estimatedDelivery", estimatedDelivery);
+            
+            // Store information
+            if (order.getStore() != null) {
+                trackingInfo.put("storeAddress", order.getStore().getAddress());
+                trackingInfo.put("storeLatitude", order.getStore().getLatitude());
+                trackingInfo.put("storeLongitude", order.getStore().getLongitude());
+            }
+            
+            // Delivery address information
+            if (order.getAddress() != null) {
+                trackingInfo.put("address", order.getAddress().getAddress());
+                trackingInfo.put("destinationLatitude", order.getAddress().getLatitude());
+                trackingInfo.put("destinationLongitude", order.getAddress().getLongitude());
+            }
+
+            // Try to get current tracking location
+            try {
+                List<Delivery> deliveries = deliveryService.findByOrderId(orderIdLong);
+                if (!deliveries.isEmpty()) {
+                    Delivery delivery = deliveries.get(0);
+                    List<DeliveryTracking> trackings = deliveryTrackingService.findByDeliveryId(delivery.getId());
+                    if (!trackings.isEmpty()) {
+                        DeliveryTracking latestTracking = trackings.stream()
+                            .max((t1, t2) -> t1.getTimestamp() != null && t2.getTimestamp() != null ? 
+                                t1.getTimestamp().compareTo(t2.getTimestamp()) : 0)
+                            .orElse(trackings.get(trackings.size() - 1));
+                        
+                        trackingInfo.put("latitude", latestTracking.getLatitude());
+                        trackingInfo.put("longitude", latestTracking.getLongitude());
+                    }
+                }
+            } catch (Exception e) {
+                // If tracking fails, just continue without coordinates
+                System.err.println("Failed to get tracking coordinates: " + e.getMessage());
+            }
+
+            return ResponseEntity.ok(trackingInfo);
+            
+        } catch (Exception e) {
+            System.err.println("Error getting order tracking: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get order checklist progress for public tracking
+     * API: GET /api/orders/{orderId}/checklist
+     * Returns checklist progress for the order
+     */
+    @GetMapping("/{orderId}/checklist")
+    public ResponseEntity<ChecklistProgressResponse> getOrderChecklist(@PathVariable String orderId) {
+        try {
+            // Parse orderId
+            Long orderIdLong = null;
+            try {
+                orderIdLong = Long.parseLong(orderId);
+            } catch (NumberFormatException e) {
+                Optional<Order> orderOpt = orderService.findByOrderId(orderId);
+                if (orderOpt.isPresent()) {
+                    orderIdLong = orderOpt.get().getId();
+                } else {
+                    return ResponseEntity.notFound().build();
+                }
+            }
+
+            // Get checklist progress for this order
+            ChecklistProgressResponse progress = checklistService.getProgressByOrder(orderIdLong);
+            return ResponseEntity.ok(progress);
+            
+        } catch (Exception e) {
+            System.err.println("Error getting order checklist: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

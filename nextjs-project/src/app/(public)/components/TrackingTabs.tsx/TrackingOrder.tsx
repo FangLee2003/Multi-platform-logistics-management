@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { getOrderTrackingApi } from "../../../../server/order.api";
+import ComprehensiveTracking from "../../../../components/ComprehensiveTracking";
+import { TrackingResult } from "../../../../types/tracking";
 
 const formatDate = (isoString: string) =>
   isoString
@@ -13,14 +15,6 @@ const formatDate = (isoString: string) =>
         minute: "2-digit",
       })
     : "";
-
-interface TrackingResult {
-  code: string;
-  status: string;
-  from: string;
-  to: string;
-  estimatedDelivery: string;
-}
 
 interface TrackingOrderProps {
   initialTrackingCode?: string;
@@ -50,13 +44,31 @@ export default function TrackingOrder({
         alert("Order not found!");
       } else {
         const order = await res.json();
-        setTrackingResult({
+        console.log('🔍 API Response Debug:', order);
+        
+        const trackingData = {
           code: order.orderId,
           status: order.status || "Unknown",
           from: order.storeAddress || "",
           to: order.address || "",
           estimatedDelivery: order.estimatedDelivery || "",
+          latitude: order.latitude,
+          longitude: order.longitude,
+          storeLatitude: order.storeLatitude,
+          storeLongitude: order.storeLongitude,
+          destinationLatitude: order.destinationLatitude,
+          destinationLongitude: order.destinationLongitude,
+        };
+        
+        console.log('🗺️ Tracking Data to Map:', {
+          orderId: order.orderId,
+          storeCoords: `${order.storeLatitude}, ${order.storeLongitude}`,
+          destCoords: `${order.destinationLatitude}, ${order.destinationLongitude}`,
+          currentCoords: `${order.latitude}, ${order.longitude}`,
+          trackingData
         });
+        
+        setTrackingResult(trackingData);
       }
     } catch (error) {
       console.error("Error tracking order:", error);
@@ -94,19 +106,8 @@ export default function TrackingOrder({
         </form>
 
         {trackingResult && (
-          <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg text-sm sm:text-base">
-            <h3 className="text-lg font-semibold text-green-800 mb-4">
-              Order Information: {trackingResult.code}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoItem label="Status" value={trackingResult.status} />
-              <InfoItem
-                label="Estimated Delivery"
-                value={formatDate(trackingResult.estimatedDelivery)}
-              />
-              <InfoItem label="From" value={trackingResult.from} />
-              <InfoItem label="To" value={trackingResult.to} />
-            </div>
+          <div className="mt-8">
+            <ComprehensiveTracking trackingResult={trackingResult} />
           </div>
         )}
       </div>
@@ -114,10 +115,4 @@ export default function TrackingOrder({
   );
 }
 
-// Small component to display information
-const InfoItem = ({ label, value }: { label: string; value: string }) => (
-  <div>
-    <p className="text-xs sm:text-sm text-gray-700 font-medium">{label}:</p>
-    <p className="font-semibold text-green-700 mt-1">{value}</p>
-  </div>
-);
+

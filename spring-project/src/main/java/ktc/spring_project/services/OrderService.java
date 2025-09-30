@@ -951,4 +951,27 @@ public class OrderService {
             return 12500.0; // Fallback in case of error
         }
     }
+
+    /**
+     * Find order by order ID (string format, could be tracking code)
+     * This method handles both numeric IDs and order tracking codes
+     */
+    public Optional<Order> findByOrderId(String orderId) {
+        try {
+            // First try to parse as numeric ID
+            try {
+                Long numericId = Long.parseLong(orderId);
+                return orderRepository.findById(numericId);
+            } catch (NumberFormatException e) {
+                // If not numeric, search by other identifiers
+                // You might need to add custom repository methods here
+                // For now, return empty since we don't have order code field
+                log.warn("Non-numeric order ID '{}' provided, but no order code field available", orderId);
+                return Optional.empty();
+            }
+        } catch (Exception e) {
+            log.error("Error finding order by ID: " + orderId, e);
+            return Optional.empty();
+        }
+    }
 }
