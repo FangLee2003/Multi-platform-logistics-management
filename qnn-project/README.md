@@ -2,7 +2,7 @@
 
 The quantum supply chain manager is a quantum solution for logistics problems. We use the power of quantum machine learning for product [backorder](https://www.investopedia.com/terms/b/backorder.asp) prediction and quantum optimization for finding the best route to pick those products with high demand to store them in strategic warehouses. With the first technique, our clients can be prepared for increasing the production of their products when they are in high demand. Once we have established a set of products needed during a period of time, we use our second solution, the vehicle routing problem (VRP) solution to find the optimal route for picking these products. This reduces considerably costs associated with logistics, transportation, backorders, and overstocking for our clients. In summary, these solutions will improve business in terms of client satisfaction, backorder and shipping transportation costs.
 
-<img src="./Images/QSCM.png" width=900>
+<img src="./images/QSCM.png" width=900>
 
 ### But, why this is important?
 
@@ -84,7 +84,7 @@ This is about an order that cannot be fulfilled at a given time because there is
 
 For the quantum computing case, the following scheme is generated for each experiment and it has 3 different ansatz based on 3 tensor networks (TN) MERA, TTN, and MPS. With  only 16 variables was designed the **amplitud embedding** an one layer for each TN. The figure below shows the different ansatz choosed for the prediction of backorder.
 
-<img src="./Images/tensor.png" width=800>
+<img src="./images/tensor.png" width=800>
 
 ## 1.3 Different ansatz solutions
 
@@ -92,7 +92,7 @@ Using pthe templates designed in pennylane for the three different ansatzes pres
 
 The metrics the **MERA's architecture with only 10 parameters** outperforms the best result with a **classical neural network with 684 parameters** in almost all the different metrics presented in the table below. Most important, MERA 1 layer is able to reduce false positives which can result in overstocking. Another good point is that even with some noise the 1 layer model is able to give good results in terms of prediction as is shown in the confusion matrices shown below.
 
-<img src="./Images/Results-Ansatz.png" width=800>
+<img src="./images/Results-Ansatz.png" width=800>
 
 
 
@@ -108,13 +108,13 @@ Once we have the solution of the backorders predictions, we select some of them 
 - 3 trucks are chosen to collect the products. 
 - Connections between companies are selected if the Euclidian distance is less than a threshold
 
-<img src="./Images/SettingTheProblem.png" width=800>
+<img src="./images/SettingTheProblem.png" width=800>
 
 ## 2.2 The QUBO representation of the vehicle routing problem 
 
 To encode a problem as the Vehicle Routing Problem on a quantum computer it is needed to represent it as a quadratic unconstrained binary optimization ([QUBO](https://en.wikipedia.org/wiki/Quadratic_unconstrained_binary_optimization)) problem. In the QUBO representation, the cost function has linear and cuadratic terms and the constrains of the objective function are added as penalization to the cost function. The following function. In the Figure below, we are showing the objective function of the VRP:
 
-<img src="./Images/CostFunc.png" width=800>
+<img src="./images/CostFunc.png" width=800>
 
 The terms of the above equations are:
 <div class="alert alert-block alert-success">
@@ -128,7 +128,7 @@ The terms of the above equations are:
 
 Using docplex, the python version of the optimization solver **cplex**, we obtain the result of the problem explained above. The Figure below shows the graph representation of the solution, where the edges observed are the connections between companies that minimize the cost function and satisfy all the constraints. This solution will be used in the rest of the notebook as the optimal solution.
 
-<img src="./Images/OptimalSolution.png" width=400>
+<img src="./images/OptimalSolution.png" width=400>
 
 ### 2.2.2 Quantum Solution of the QUBO model
 
@@ -142,19 +142,19 @@ Therefore, using the previous solution we can reduce the number of variables cho
 
 2) Using 15 variables and replace the others with the optimal solution. From the variables left 5 have a optimal solution equal to 1 and 10 equal to 0 (testing qasm_simulator **runtime**).
 
-<img src="./Images/ProblemSolutions.png" width=600>
+<img src="./images/ProblemSolutions.png" width=600>
 
 #### 7 Qubits Results
 
 We tested different models to see the applicability of the current model with ideal solutions using two classical optimizer ([SPSA](https://en.wikipedia.org/wiki/Simultaneous_perturbation_stochastic_approximation) and [COBYLA](https://qiskit.org/documentation/stubs/qiskit.algorithms.optimizers.COBYLA.html#:~:text=COBYLA%20is%20a%20numerical%20optimization,scipy.optimize.minimize%20COBYLA.)) for two quantum algorithms ([QAOA](https://qiskit.org/textbook/ch-applications/qaoa.html) with 2 layer repetitions and [VQE](https://pennylane.ai/qml/demos/tutorial_vqe.html) with ansatz [TwoLocal](https://qiskit.org/documentation/stubs/qiskit.circuit.library.TwoLocal.html), number of shots=1024 for both cases). Additionally, we run our model in *ibm_lagos* using [qiskit runtime](https://quantum-computing.ibm.com/lab/docs/iql/runtime/) with mitigated and unmitigated results with the same settings. The figure below shows the results for the different cases, we see that all the simulations reach the ideal solution shown in the graphs on the left, while the solution for the ibm_oslo and ibm_lagos experiments using COBYLA tries to go to the optimal solution, even though the noise is affecting them (Further experiments are needed to draw conclusion because at this point the max iterations were kept small).
 
-<img src="./Images/Sol7Qprint2.png" width=1000>
+<img src="./images/Sol7Qprint2.png" width=1000>
 
 #### 15 Qubits Results
 
 For the case of 15 qubits, the solution includes only QAOA (with 3 layers repetitions) and VQE (with [TwoLocal ansatz](https://qiskit.org/documentation/stubs/qiskit.circuit.library.TwoLocal.html)) with the classic optimizer COBYLA. The results were obtained from qiskit runtime and the ideal simulator ibmq_qasm_simulator. As it is shown in the figure below the QAOA algorithm does not reach the solution while VQE can reach the solution. 
 
-<img src="./Images/Sol15Q.png" width=1000>
+<img src="./images/Sol15Q.png" width=1000>
 
 # 3. Conclusion and Future Work
 
