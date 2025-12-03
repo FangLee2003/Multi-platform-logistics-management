@@ -104,6 +104,8 @@ Impact: 99.9% uptime; 10K+ orders / day baseline.
 
 ## 🔄 Business Workflows
 
+![KTC Logistics Workflow Diagram](docs/diagrams/phases_diagram.png)
+
 ### 📋 **Order-to-Delivery Process**
 Intake → Validate → Plan & Assign → Execute → Confirm → Bill.
 Key automation:
@@ -124,8 +126,6 @@ Collect → Aggregate → Expose → Act.
 - Variance & anomaly detection
 - Cost / SLA / productivity dashboards
 - Prescriptive optimization suggestions
-
-![KTC Logistics Workflow Diagram](docs/diagrams/phases_diagram.png)
 
 *Comprehensive workflow diagram showing interaction between all system components and user roles*
 
