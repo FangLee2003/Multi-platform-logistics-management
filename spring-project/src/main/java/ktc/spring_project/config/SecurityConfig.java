@@ -157,6 +157,9 @@ authProvider.setUserDetailsService(userDetailsService);
                         // Delivery endpoints
                         .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/**").permitAll()
                         
+                        // Analytics endpoints - allow all for dashboard
+                        .requestMatchers("/api/analytics/**").permitAll()
+                        
                         // Maintenance APIs require authentication
                         .requestMatchers("/api/drivers/*/maintenance-requests/**").hasAnyRole("ADMIN", "DRIVER")
                         .requestMatchers("/api/fleet/maintenance-requests/**").hasAnyRole("ADMIN", "FLEET")

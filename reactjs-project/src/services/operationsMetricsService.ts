@@ -134,6 +134,16 @@ export class OperationsMetricsService {
       
       clearTimeout(timeoutId);
       
+      // Handle 401 - token expired
+      if (response.status === 401) {
+        console.error('Token expired - forcing logout');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+        throw new Error('Session expired. Please log in again.');
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to fetch order count');
       }
@@ -257,6 +267,9 @@ export class OperationsMetricsService {
       const today = new Date().toISOString().split('T')[0];
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       
+      // Get auth token
+      const token = localStorage.getItem('token') || '';
+      
       // API call với timeout để tránh treo
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
@@ -264,9 +277,11 @@ export class OperationsMetricsService {
       // API call để lấy doanh thu theo ngày
       const [todayResponse, yesterdayResponse] = await Promise.all([
         fetch(`http://localhost:8080/api/deliveries/revenue-by-date?date=${today}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal
         }),
         fetch(`http://localhost:8080/api/deliveries/revenue-by-date?date=${yesterday}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal
         })
       ]);
@@ -335,35 +350,51 @@ export class OperationsMetricsService {
     trend: 'increase' | 'decrease' | 'stable';
   }> {
     try {
+      // Get auth token
+      const token = localStorage.getItem('token') || '';
+      
       // Gọi API để lấy số đơn hàng hoàn thành
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
       const response = await fetch('http://localhost:8080/api/deliveries/completed-today', {
+        headers: { 'Authorization': `Bearer ${token}` },
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch completed orders');
+        console.error(`Failed to fetch completed orders: ${response.status} ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
       
+      // Backend trả về array of deliveries, không phải aggregated count
+      // Cần đếm số lượng và tính toán locally
+      const count = Array.isArray(data) ? data.length : 0;
+      
+      console.log(`✅ Completed orders today: ${count}`);
+      
       return {
-        count: data.count,
-        changePercent: data.changePercent,
-        trend: data.trend
+        count,
+        changePercent: 0, // TODO: Backend chưa implement comparison với hôm qua
+        trend: 'stable'
       };
 
-    } catch (error) {
-      console.error('Error fetching completed orders:', error);
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Error fetching completed orders:', {
+        error: errorMsg,
+        url: 'http://localhost:8080/api/deliveries/completed-today'
+      });
+      
       // Fallback data khi API lỗi
       return {
-        count: 85,
-        changePercent: 2.3,
-        trend: 'increase'
+        count: 0, // Trả về 0 thay vì giá trị giả
+        changePercent: 0,
+        trend: 'stable'
       };
     }
   }
@@ -377,11 +408,15 @@ export class OperationsMetricsService {
     trend: 'increase' | 'decrease' | 'stable';
   }> {
     try {
+      // Get auth token
+      const token = localStorage.getItem('token') || '';
+      
       // Gọi API tối ưu chỉ trả về kết quả cuối cùng
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
       const response = await fetch('http://localhost:8080/api/deliveries/performance-stats', {
+        headers: { 'Authorization': `Bearer ${token}` },
         signal: controller.signal
       });
 
@@ -420,10 +455,14 @@ export class OperationsMetricsService {
     growthPercent: number;
   }> {
     try {
+      // Get auth token
+      const token = localStorage.getItem('token') || '';
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
       
       const response = await fetch('http://localhost:8080/api/deliveries/monthly-revenue', {
+        headers: { 'Authorization': `Bearer ${token}` },
         signal: controller.signal
       });
 

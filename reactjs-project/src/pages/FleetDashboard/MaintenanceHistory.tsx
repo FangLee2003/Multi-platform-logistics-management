@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from 'react-i18next';
 import { fetchVehicleMaintenanceHistory } from "../../services/VehicleMaintenanceAPI";
 import type { VehicleMaintenance } from "../../services/VehicleMaintenanceAPI";
 
@@ -9,7 +8,6 @@ import type { VehicleMaintenance } from "../../services/VehicleMaintenanceAPI";
 
 
 export default function MaintenanceHistory() {
-  const { t } = useTranslation();
   const [data, setData] = useState<VehicleMaintenance[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,13 +18,13 @@ export default function MaintenanceHistory() {
   const getStatusMap = (status: string) => {
     switch (status) {
       case "Completed":
-        return { label: t('dashboard.fleet.maintenanceStatus.completed', 'Completed'), color: "bg-green-100 text-green-700" };
+        return { label: 'Completed', color: "bg-green-100 text-green-700" };
       case "In Progress":
-        return { label: t('dashboard.fleet.maintenanceStatus.inProgress', 'In Progress'), color: "bg-yellow-100 text-yellow-700" };
+        return { label: 'In Progress', color: "bg-yellow-100 text-yellow-700" };
       case "Pending":
-        return { label: t('dashboard.fleet.maintenanceStatus.pending', 'Pending'), color: "bg-orange-100 text-orange-700" };
+        return { label: 'Pending', color: "bg-orange-100 text-orange-700" };
       default:
-        return { label: status || t('common.unknown'), color: "bg-gray-100 text-gray-700" };
+        return { label: status || 'Unknown Status', color: "bg-gray-100 text-gray-700" };
     }
   };
 
@@ -34,9 +32,9 @@ export default function MaintenanceHistory() {
     setLoading(true);
     fetchVehicleMaintenanceHistory()
       .then(setData)
-      .catch(() => setError(t('dashboard.fleet.errors.loadMaintenanceHistory', 'Cannot load maintenance data.')))
+      .catch(() => setError('Cannot load maintenance data.'))
       .finally(() => setLoading(false));
-  }, [t]);
+  }, []);
 
   // Pagination logic
   const totalPages = Math.ceil(data.length / PAGE_SIZE);
@@ -44,8 +42,8 @@ export default function MaintenanceHistory() {
 
   return (
     <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-xl">
-      <div className="text-xl font-bold mb-2">{t('dashboard.fleet.maintenanceHistory', 'Maintenance History')}</div>
-      {loading && <div>{t('common.loading')}</div>}
+      <div className="text-xl font-bold mb-2">{'Maintenance History'}</div>
+      {loading && <div>{'Loading'}</div>}
       {error && <div className="text-red-500">{error}</div>}
       <div className="flex flex-col gap-4">
         {paginatedData.map((item) => (
@@ -64,24 +62,24 @@ export default function MaintenanceHistory() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2 text-sm">
                 <div>
-                  <span className="font-semibold">{t('dashboard.fleet.type', 'Type')}:</span> {item.maintenanceType}
-                  <div><span className="font-semibold">{t('dashboard.fleet.maintenanceContent', 'Maintenance Content')}:</span> {item.description}</div>
+                  <span className="font-semibold">{'Type'}:</span> {item.maintenanceType}
+                  <div><span className="font-semibold">{'Maintenance Content'}:</span> {item.description}</div>
                 </div>
                 <div>
-                  <span className="font-semibold">{t('dashboard.fleet.cost', 'Cost')}:</span>
+                  <span className="font-semibold">{'Cost'}:</span>
                   <div className="font-bold">{item.cost?.toLocaleString()} VNĐ</div>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div>
-                    <span className="font-semibold">{t('dashboard.fleet.maintenanceDate', 'Maintenance Date')}:</span> {item.maintenanceDate?.slice(0, 10)}
+                    <span className="font-semibold">{'Maintenance Date'}:</span> {item.maintenanceDate?.slice(0, 10)}
                   </div>
                   <div>
-                    <span className="font-semibold">{t('dashboard.fleet.nextMaintenanceDate', 'Next Maintenance Date')}:</span> {item.nextDueDate?.slice(0, 10)}
+                    <span className="font-semibold">{'Next Maintenance Date'}:</span> {item.nextDueDate?.slice(0, 10)}
                   </div>
                 </div>
                 <div>
-                  <span className="font-semibold">{t('dashboard.fleet.notes', 'Notes')}: </span>
-                  <div>{item.notes || <span className="italic text-gray-400">{t('dashboard.fleet.noNotes', 'No notes')}</span>}</div>
+                  <span className="font-semibold">{'Notes'}: </span>
+                  <div>{item.notes || <span className="italic text-gray-400">{'No notes'}</span>}</div>
                 </div>
               </div>
             </div>
@@ -96,17 +94,17 @@ export default function MaintenanceHistory() {
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
-            {t('common.previous', 'Previous')}
+            {'Previous'}
           </button>
           <span className="mx-2">
-            {t('dashboard.fleet.page', 'Page')} {currentPage} / {totalPages}
+            {'Page'} {currentPage} / {totalPages}
           </span>
           <button
             className="px-3 py-1 rounded border bg-gray-100 disabled:opacity-50"
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >
-            {t('common.next', 'Next')}
+            {'Next'}
           </button>
         </div>
       )}

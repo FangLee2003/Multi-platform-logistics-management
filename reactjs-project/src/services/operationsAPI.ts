@@ -77,6 +77,31 @@ export const getAuthHeaders = () => {
   };
 };
 
+/**
+ * Centralized fetch with 401 handling
+ * Automatically logs out user if token is expired
+ */
+export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  const headers = {
+    ...getAuthHeaders(),
+    ...options.headers,
+  };
+
+  const response = await fetch(url, { ...options, headers });
+
+  // Handle 401 - token expired
+  if (response.status === 401) {
+    console.error('Token expired - forcing logout');
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+    throw new Error('Session expired. Please log in again.');
+  }
+
+  return response;
+}
+
 // API functions
 export const operationsAPI = {
   // Dashboard overview

@@ -1,7 +1,6 @@
 import { fetchEmergencyRequestsByVehicleId } from "../../services/VehicleMaintenanceAPI";
 import React, { useState } from "react";
-import { useTranslation } from 'react-i18next';
-import { Truck, CircleDot, Wrench, AlertTriangle } from "lucide-react";
+import { Truck, CircleDot, Wrench, AlertTriangle, RefreshCw } from "lucide-react";
 import { MdManageAccounts } from "react-icons/md";
 import { AiOutlineSetting } from "react-icons/ai";
 import { FiActivity } from "react-icons/fi";
@@ -56,7 +55,6 @@ export default function FleetDashboard({
   user,
   onLogout,
 }: FleetDashboardProps) {
-  const { t } = useTranslation();
   const {
     // State
     tab,
@@ -225,8 +223,8 @@ export default function FleetDashboard({
         <Navbar
           user={user}
           onLogout={onLogout}
-          title={t('dashboard.fleet.title', 'Fleet Management Dashboard')}
-          subtitle={t('dashboard.fleet.subtitle', 'Manage vehicles and maintenance')}
+          title={'Fleet Management Dashboard'}
+          subtitle={'Manage vehicles and maintenance'}
         />
         {/* Mobile Navigation - Tab bar at bottom for mobile */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-white/30 px-4 py-2 z-50">
@@ -257,37 +255,37 @@ export default function FleetDashboard({
         <div className="p-3 md:p-10 space-y-6 md:space-y-8 pb-16 md:pb-0">
           {tab === "vehicles" && (
             <>
-              <div className="relative mb-4">
+              <div className="flex justify-end mb-4">
                 <button
                   onClick={refreshVehicles}
-                  className="absolute right-0 top-0 flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-full font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
-                  title={t('dashboard.fleet.refreshVehicles', 'Refresh vehicle list')}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-full font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                  title={'Refresh vehicle list'}
                 >
-                  <svg className="animate-spin-slow" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4.93 4.93a10 10 0 1 1-1.32 2.09"/><path d="M4 4V8h4"/></svg>
-                  <span className="hidden md:inline">{t('common.refresh')}</span>
+                  <RefreshCw className={isLoading ? "animate-spin" : ""} size={20} />
+                  <span className="hidden md:inline">Refresh List</span>
                 </button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <StatsCard
-                  title={t('dashboard.fleet.stats.totalVehicles', 'Total Vehicles')}
+                  title={'Total Vehicles'}
                   value={fleetStats.total}
                   icon={<Truck size={32} className="text-blue-600" />}
                   color="border-blue-500"
                 />
                 <StatsCard
-                  title={t('dashboard.fleet.stats.inUse', 'In Use')}
+                  title={'In Use'}
                   value={fleetStats.inUse}
                   icon={<CircleDot size={32} className="text-green-600" />}
                   color="border-green-500"
                 />
                 <StatsCard
-                  title={t('dashboard.fleet.stats.maintenance', 'Under Maintenance')}
+                  title={'Under Maintenance'}
                   value={fleetStats.maintenance}
                   icon={<Wrench size={32} className="text-yellow-600" />}
                   color="border-yellow-500"
                 />
                 <StatsCard
-                  title={t('dashboard.fleet.stats.needMaintenance', 'Need Maintenance')}
+                  title={'Need Maintenance'}
                   value={fleetStats.needMaintenance}
                   icon={<AlertTriangle size={32} className="text-red-600" />}
                   color="border-red-500"
@@ -310,16 +308,16 @@ export default function FleetDashboard({
                   <div className="flex items-center justify-between mb-4 md:mb-6">
                     <div>
                       <h3 className="text-lg md:text-xl font-bold text-gray-900">
-                        {t('fleet.form.addVehicle', 'Thêm phương tiện mới')}
+                        {'Thêm phương tiện mới'}
                       </h3>
                       <p className="text-gray-600 mt-1 text-sm md:text-base">
-                        {t('fleet.form.addVehicleSubtitle', 'Đăng ký phương tiện mới vào hệ thống quản lý')}
+                        {'Đăng ký phương tiện mới vào hệ thống quản lý'}
                       </p>
                     </div>
                     {isLoading && (
                       <div className="flex items-center gap-2 text-violet-600">
                         <div className="w-4 h-4 border-2 border-violet-600 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-sm">{t('fleet.form.adding', 'Đang thêm...')}</span>
+                        <span className="text-sm">{'Đang thêm...'}</span>
                       </div>
                     )}
                   </div>
@@ -338,7 +336,7 @@ export default function FleetDashboard({
                 <div className="flex items-center justify-between mb-4 md:mb-6">
                   <div>
                     <h1 className="text-lg md:text-xl font-bold text-gray-900">
-                      {t('fleet.tabs.vehicles', 'Vehicle Management')}
+                      {'Vehicle Management'}
                     </h1>
                   </div>
                 </div>
@@ -347,13 +345,13 @@ export default function FleetDashboard({
                     <Truck size={48} className="mx-auto text-gray-400 mb-4" />
                     <h4 className="text-lg font-medium text-gray-900 mb-2">
                       {searchTerm || statusFilter !== "all"
-                        ? t('fleet.emptyState.noResults', 'No vehicles found')
-                        : t('fleet.emptyState.noVehicles', 'No vehicles yet')}
+                        ? 'No vehicles found'
+                        : 'No vehicles yet'}
                     </h4>
                     <p className="text-gray-600">
                       {searchTerm || statusFilter !== "all"
-                        ? t('fleet.emptyState.tryFilters', 'Try changing filters or search terms')
-                        : t('fleet.emptyState.addFirst', 'Add your first vehicle to the system')}
+                        ? 'Try changing filters or search terms'
+                        : 'Add your first vehicle to the system'}
                     </p>
                   </div>
                 ) : (

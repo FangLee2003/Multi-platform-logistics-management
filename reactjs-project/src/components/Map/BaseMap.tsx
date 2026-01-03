@@ -1,5 +1,4 @@
 import React from "react";
-import { useTranslation } from 'react-i18next';
 import { useMapbox } from "../../hooks/useMapbox";
 import useSimpleTracking from "../../hooks/useSimpleTracking";
 import { useMapMarkers } from "../../utils/mapUtils";
@@ -26,7 +25,6 @@ export const BaseMap: React.FC<BaseMapProps> = ({
   className = "",
   mapStyle
 }) => {
-  const { t } = useTranslation();
   const { mapContainer, map, error: mapError } = useMapbox({
     accessToken,
     center,
@@ -44,7 +42,7 @@ export const BaseMap: React.FC<BaseMapProps> = ({
   if (loading && tracking.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow p-4 h-full min-h-[300px] flex items-center justify-center">
-        <span className="text-gray-400">{t('common.loading', 'Loading')}...</span>
+        <span className="text-gray-400">{'Loading'}...</span>
       </div>
     );
   }

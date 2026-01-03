@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { useTranslation } from 'react-i18next';
 import { editUser, updateUserStatus } from "../../services/adminAPI";
 import type { User } from "../../types/User";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 
 export default function DriverList() {
-  const { t } = useTranslation();
   const { drivers, driversLoading, driversError, refreshDrivers } = useDispatcherContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
@@ -45,7 +43,7 @@ export default function DriverList() {
         // Nếu endpoint status không có, fallback về editUser
         const currentDriver = drivers.find(d => d.id === driverId);
         if (!currentDriver) {
-          throw new Error(t('dashboard.dispatcher.drivers.driverNotFound', 'Driver not found'));
+          throw new Error("Không tìm thấy tài xế");
         }
 
         console.log("[DriverList] Current driver found:", currentDriver);
@@ -82,7 +80,7 @@ export default function DriverList() {
     } catch (err: any) {
       console.error("Failed to update driver status:", err);
       // Thông báo lỗi cho user
-      alert(`Error updating driver status: ${err.message}`);
+      alert(`Lỗi cập nhật trạng thái tài xế: ${err.message}`);
     } finally {
       setUpdatingStatus(null);
     }
@@ -128,13 +126,17 @@ export default function DriverList() {
   return (
     <div className="space-y-6">
       {/* Header Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">{t('dashboard.dispatcher.drivers.title', 'Driver Management')}</h2>
+            <h2 className="text-2xl font-bold mb-2">Quản lý tài xế</h2>
+            
           </div>
+          
         </div>
-      </div>      {/* Search and Filter Section */}
+      </div>
+
+      {/* Search and Filter Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-md border border-white/50">
         <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1">
@@ -145,7 +147,7 @@ export default function DriverList() {
             </div>
             <input
               type="text"
-              placeholder={t('dashboard.dispatcher.drivers.searchPlaceholder', 'Search by name, email or phone...')}
+              placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
@@ -161,7 +163,7 @@ export default function DriverList() {
           <div className="flex items-center justify-center p-12">
             <div className="flex items-center gap-3">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="text-gray-600 font-medium">{t('common.loading', 'Loading data...')}</span>
+              <span className="text-gray-600 font-medium">Đang tải dữ liệu...</span>
             </div>
           </div>
         ) : driversError ? (
@@ -172,7 +174,7 @@ export default function DriverList() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">An error occurred</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Có lỗi xảy ra</h3>
               <p className="text-red-600">{driversError}</p>
             </div>
           </div>
@@ -184,9 +186,9 @@ export default function DriverList() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('dashboard.dispatcher.drivers.noDriversFound', 'No drivers found')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy tài xế</h3>
               <p className="text-gray-500">
-                {searchTerm ? t('dashboard.dispatcher.drivers.noSearchResults', 'No drivers match your search criteria') : t('dashboard.dispatcher.drivers.noDriversInSystem', 'No drivers in the system yet')}
+                {searchTerm ? "Không có tài xế nào phù hợp với từ khóa tìm kiếm" : "Chưa có tài xế nào trong hệ thống"}
               </p>
             </div>
           </div>
@@ -198,13 +200,13 @@ export default function DriverList() {
                 <thead className="bg-gray-50/80 backdrop-blur-sm">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('dashboard.dispatcher.drivers.name', 'Driver')}
+                      Tài xế
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('dashboard.dispatcher.drivers.contactInfo', 'Contact Information')}
+                      Thông tin liên hệ
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('dashboard.dispatcher.drivers.status', 'Status')}
+                      Trạng thái
                     </th>
                   </tr>
                 </thead>
@@ -220,7 +222,7 @@ export default function DriverList() {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
-                              {driver.fullName ?? driver.name ?? t('common.noName', '(No name)')}
+                              {driver.fullName ?? driver.name ?? "(Không tên)"}
                             </div>
                             <div className="text-sm text-gray-500">ID: {driver.id}</div>
                           </div>
@@ -228,7 +230,7 @@ export default function DriverList() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{driver.email}</div>
-                        <div className="text-sm text-gray-500">{driver.phone || t('common.notUpdated', 'Not updated')}</div>
+                        <div className="text-sm text-gray-500">{driver.phone || "Chưa cập nhật"}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(driver.status, driver.id ?? "")}
@@ -259,7 +261,7 @@ export default function DriverList() {
                       </div>
                       <div className="mt-2 space-y-1">
                         <p className="text-sm text-gray-600">{driver.email}</p>
-                        <p className="text-sm text-gray-600">{driver.phone || t('common.noPhone', 'No phone number')}</p>
+                        <p className="text-sm text-gray-600">{driver.phone || "Chưa cập nhật SĐT"}</p>
                       </div>
                     </div>
                   </div>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from 'react-i18next';
 import AdminDashboard from "./AdminDashboard/AdminDashboard";
 import DispatcherDashboard from "./DispatcherDashboard/DispatcherDashboard";
 import FleetDashboard from "./FleetDashboard/FleetDashboard";
@@ -16,7 +15,6 @@ export default function Dashboard({
   user: userProp,
   onLogout,
 }: DashboardProps) {
-  const { t } = useTranslation();
   // Lấy user từ localStorage nếu chưa truyền qua props
   const [user, setUser] = useState<User | null>(
     userProp || JSON.parse(localStorage.getItem("user") || "null")
@@ -36,7 +34,7 @@ export default function Dashboard({
     })
       .then((res) => {
         if (!res.ok)
-          throw new Error(t('dashboard.errors.noPermission'));
+          throw new Error('You do not have permission to access this dashboard');
         return res.json();
       })
       .then(setProtectedData)
@@ -48,8 +46,8 @@ export default function Dashboard({
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100">
         <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-xl text-center">
-          <div className="text-2xl font-bold text-gray-800 mb-2">⚠️ {t('dashboard.errors.notLoggedIn')}</div>
-          <div className="text-gray-600">{t('dashboard.errors.needLogin')}</div>
+          <div className="text-2xl font-bold text-gray-800 mb-2">⚠️ {'Not Logged In'}</div>
+          <div className="text-gray-600">{'Please log in to continue'}</div>
         </div>
       </div>
     );
@@ -94,8 +92,8 @@ export default function Dashboard({
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100">
       <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-8 border border-white/30 shadow-xl text-center">
-        <div className="text-2xl font-bold text-gray-800 mb-2">❌ {t('dashboard.errors.invalidRole')}</div>
-        <div className="text-gray-600">{t('dashboard.errors.cannotDetermineAccess')}</div>
+        <div className="text-2xl font-bold text-gray-800 mb-2">❌ {'Invalid Role'}</div>
+        <div className="text-gray-600">{'Cannot determine dashboard access for this role'}</div>
       </div>
     </div>
   );

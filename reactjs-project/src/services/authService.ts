@@ -29,18 +29,31 @@ export class AuthService {
       });
 
       if (!response.ok) {
-        throw new Error(`Login failed: ${response.status}`);
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || `Login failed: ${response.status}`);
       }
 
-      const result: LoginResponse = await response.json();
+      // Backend returns: {token, refreshToken, user}
+      const result = await response.json();
       
-      if (result.success && result.user) {
-        // Store token in localStorage
-        localStorage.setItem('token', result.user.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
-        return result.user;
+      if (result.token && result.user) {
+        // Store both tokens
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('refreshToken', result.refreshToken || '');
+        
+        // Create AuthUser with token embedded
+        const authUser: AuthUser = {
+          ...result.user,
+          id: result.user.id?.toString() || '',
+          email: result.user.email,
+          role: result.user.role,
+          name: result.user.username || result.user.email,
+          token: result.token
+        };
+        localStorage.setItem('user', JSON.stringify(authUser));
+        return authUser;
       } else {
-        throw new Error(result.message || 'Login failed');
+        throw new Error('Invalid login response format');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -149,18 +162,18 @@ export class AuthService {
 
   async refreshToken(): Promise<string | null> {
     try {
-      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
       
-      if (!token) {
+      if (!refreshToken) {
         return null;
       }
 
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ refreshToken }),
       });
 
       if (!response.ok) {
@@ -168,10 +181,14 @@ export class AuthService {
         return null;
       }
 
-      const result: { token: string } = await response.json();
+      // Backend returns: {token, refreshToken}
+      const result = await response.json();
       
       if (result.token) {
         localStorage.setItem('token', result.token);
+        if (result.refreshToken) {
+          localStorage.setItem('refreshToken', result.refreshToken);
+        }
         return result.token;
       }
       

@@ -754,6 +754,13 @@ private DeliveryDetailResponseDTO mapToDeliveryDetailResponseDTO(Delivery delive
     }
 
     /**
+     * Get completed deliveries for a specific date
+     */
+    public List<Delivery> getCompletedDeliveriesByDate(String date) {
+        return deliveryRepository.findCompletedDeliveriesByDate(date);
+    }
+
+    /**
      * Tính tổng doanh thu cho ngày cụ thể từ các delivery đã hoàn thành
      * @param date Ngày theo định dạng YYYY-MM-DD
      * @return Tổng doanh thu (VND)

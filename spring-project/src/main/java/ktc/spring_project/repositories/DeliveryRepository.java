@@ -55,19 +55,19 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
      * @param date Ngày theo định dạng YYYY-MM-DD
      * @return Danh sách delivery đã hoàn thành
      */
-    @Query("SELECT d FROM Delivery d WHERE DATE(d.actualDeliveryTime) = :date AND d.actualDeliveryTime IS NOT NULL")
+    @Query(value = "SELECT * FROM deliveries WHERE DATE(actual_delivery_time) = :date AND actual_delivery_time IS NOT NULL", nativeQuery = true)
     List<Delivery> findCompletedDeliveriesByDate(@Param("date") String date);
 
     /**
      * Đếm tổng số deliveries trong khoảng thời gian (tối ưu cho performance stats)
      */
-    @Query("SELECT COUNT(d) FROM Delivery d WHERE DATE(d.createdAt) BETWEEN :startDate AND :endDate")
+    @Query(value = "SELECT COUNT(*) FROM deliveries WHERE DATE(created_at) BETWEEN :startDate AND :endDate", nativeQuery = true)
     long countDeliveriesByDateRange(@Param("startDate") String startDate, @Param("endDate") String endDate);
 
     /**
      * Đếm số deliveries đã hoàn thành trong khoảng thời gian (tối ưu cho performance stats)
      */
-    @Query("SELECT COUNT(d) FROM Delivery d WHERE DATE(d.createdAt) BETWEEN :startDate AND :endDate AND d.actualDeliveryTime IS NOT NULL")
+    @Query(value = "SELECT COUNT(*) FROM deliveries WHERE DATE(created_at) BETWEEN :startDate AND :endDate AND actual_delivery_time IS NOT NULL", nativeQuery = true)
     long countCompletedDeliveriesByDateRange(@Param("startDate") String startDate, @Param("endDate") String endDate);
 
     /**
@@ -122,5 +122,15 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
         WHERE r.estimated_distance_km IS NOT NULL AND r.estimated_distance_km > 0
         """, nativeQuery = true)
     Double getTotalDistanceKm();
+    
+    @Query(value = """
+        SELECT COALESCE(SUM(shipping_cost), 0.0)
+        FROM deliveries
+        WHERE shipping_cost IS NOT NULL AND shipping_cost > 0
+        """, nativeQuery = true)
+    Double getTotalShippingCost();
+    
+    @Query(value = "SELECT COUNT(*) FROM deliveries WHERE status = :status", nativeQuery = true)
+    long countByStatus(@Param("status") String status);
 
 }

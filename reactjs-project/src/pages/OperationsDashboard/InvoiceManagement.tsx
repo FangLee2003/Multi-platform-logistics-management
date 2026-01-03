@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { 
   FiDownload, 
   FiMail, 
@@ -18,7 +17,6 @@ interface InvoiceManagementProps {
 }
 
 const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
-  const { t } = useTranslation();
   
   // State management
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -116,7 +114,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex items-center space-x-2">
           <FiRefreshCw className="animate-spin text-blue-500" />
-          <span className="text-gray-600">{t('dashboard.operations.invoices.list.loading')}</span>
+          <span className="text-gray-600">Loading invoices...</span>
         </div>
       </div>
     );
@@ -128,10 +126,10 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            {t('dashboard.operations.invoices.title')}
+            Invoice Management
           </h2>
           <p className="text-gray-600">
-            {t('dashboard.operations.invoices.subtitle')}
+            View and manage all invoices for completed deliveries
           </p>
         </div>
         <button
@@ -139,7 +137,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
           className="mt-4 sm:mt-0 flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
         >
           <FiRefreshCw className={loading ? 'animate-spin' : ''} />
-          <span>{t('common.refresh')}</span>
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -150,7 +148,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
           <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder={t('dashboard.operations.invoices.list.search')}
+            placeholder="Search by invoice number, order ID, or customer name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -165,22 +163,18 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
             onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | '')}
             className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
           >
-            <option value="">{t('common.all')}</option>
-            <option value="CREATED">{t('dashboard.operations.invoices.status.created')}</option>
-            <option value="SENT">{t('dashboard.operations.invoices.status.sent')}</option>
-            <option value="DELIVERED">{t('dashboard.operations.invoices.status.delivered')}</option>
-            <option value="CANCELLED">{t('dashboard.operations.invoices.status.cancelled')}</option>
+            <option value="">All Statuses</option>
+            <option value="CREATED">Created</option>
+            <option value="SENT">Sent</option>
+            <option value="DELIVERED">Delivered</option>
+            <option value="CANCELLED">Cancelled</option>
           </select>
         </div>
       </div>
 
       {/* Results Count */}
       <div className="text-sm text-gray-600 mb-4">
-        {t('dashboard.operations.pagination.showing', { 
-          start: 1, 
-          end: filteredInvoices.length, 
-          total: invoices.length 
-        })}
+        {}
       </div>
 
       {/* Invoice Table */}
@@ -189,25 +183,25 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('dashboard.operations.invoices.table.headers.invoiceNumber')}
+                Invoice Number
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('dashboard.operations.invoices.table.headers.orderId')}
+                Order ID
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('dashboard.operations.invoices.table.headers.customer')}
+                Customer
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('dashboard.operations.invoices.table.headers.amount')}
+                Amount
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('dashboard.operations.invoices.table.headers.status')}
+                Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('dashboard.operations.invoices.table.headers.issuedDate')}
+                Issued Date
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('dashboard.operations.invoices.table.headers.actions')}
+                Actions
               </th>
             </tr>
           </thead>
@@ -217,7 +211,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
                 <td colSpan={7} className="px-6 py-12 text-center">
                   <FiFileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <p className="text-gray-500">
-                    {t('dashboard.operations.invoices.list.emptyState')}
+                    No invoices found
                   </p>
                 </td>
               </tr>
@@ -251,7 +245,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={getStatusBadgeClass(invoice.invoiceStatus)}>
-                      {t(`dashboard.operations.invoices.status.${invoice.invoiceStatus.toLowerCase()}`)}
+                      {invoice.invoiceStatus}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -263,7 +257,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
                       <button
                         onClick={() => handleViewDetails(invoice)}
                         className="text-blue-600 hover:text-blue-900 p-1 rounded"
-                        title={t('dashboard.operations.invoices.actions.viewDetails')}
+                        title="View Details"
                       >
                         <FiEye className="w-4 h-4" />
                       </button>
@@ -274,7 +268,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
                           onClick={() => handleDownloadPdf(invoice)}
                           disabled={downloadingId === invoice.id}
                           className="text-green-600 hover:text-green-900 p-1 rounded disabled:opacity-50"
-                          title={t('dashboard.operations.invoices.actions.downloadPdf')}
+                          title="Download PDF"
                         >
                           {downloadingId === invoice.id ? (
                             <FiRefreshCw className="w-4 h-4 animate-spin" />
@@ -294,7 +288,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
                           onClick={() => handleSendEmail(invoice)}
                           disabled={sendingEmailId === invoice.id}
                           className="text-purple-600 hover:text-purple-900 p-1 rounded disabled:opacity-50"
-                          title={t('dashboard.operations.invoices.actions.sendEmail')}
+                          title="Send Email"
                         >
                           {sendingEmailId === invoice.id ? (
                             <FiRefreshCw className="w-4 h-4 animate-spin" />

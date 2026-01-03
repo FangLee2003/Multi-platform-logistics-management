@@ -1,23 +1,20 @@
 import { useState } from "react";
-import { useTranslation } from 'react-i18next';
 import type { User } from "../types/User";
-import LanguageSwitcher from './LanguageSwitcher';
 
-// Validation functions - sử dụng i18n
-const validateEmail = (email: string, t: any) => {
-  if (!email.trim()) return t('validation.required');
+// Validation functions
+const validateEmail = (email: string) => {
+  if (!email.trim()) return "This field is required";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) return t('validation.invalidEmail');
+  if (!emailRegex.test(email)) return "Invalid email address";
   return "";
 };
 
-const validatePassword = (password: string, t: any) => {
-  if (!password.trim()) return t('validation.required');
+const validatePassword = (password: string) => {
+  if (!password.trim()) return "This field is required";
   return "";
 };
 
 export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }) {
-  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,8 +30,8 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
     setPasswordError("");
     
     // Validate form
-    const emailErr = validateEmail(email, t);
-    const passwordErr = validatePassword(password, t);
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
     
     if (emailErr) {
       setEmailError(emailErr);
@@ -54,7 +51,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
         body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
-        setError(t('auth.login.invalidCredentials'));
+        setError("Invalid email or password");
         setLoading(false);
         return;
       }
@@ -65,7 +62,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
       onLogin(data.user);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      setError(t('notifications.networkError'));
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -80,11 +77,6 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
     >
       {/* Animated Background Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/30 via-purple-900/20 to-indigo-900/30 backdrop-blur-sm z-0"></div>
-      
-      {/* Language Switcher - positioned at top right of screen */}
-      <div className="absolute top-6 right-6 z-20 drop-shadow-lg">
-        <LanguageSwitcher />
-      </div>
 
       {/* Floating Animation Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -101,7 +93,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
             Fast Route
           </h1>
           <p className="text-white/70 text-sm mt-2">
-            {t('common.welcome')}
+            Welcome to the Logistics Management System
           </p>
         </div>
 
@@ -111,16 +103,16 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
         >
           <div className="text-center mb-8">
             <h2 className="text-2xl font-semibold text-white drop-shadow-lg">
-              {t('auth.login.title')}
+              Login to Your Account
             </h2>
             <p className="text-white/70 text-sm mt-2">
-              {t('auth.login.subtitle')}
+              Enter your credentials to continue
             </p>
           </div>
           {/* Email Input */}
           <div className="space-y-2">
             <label htmlFor="email" className="block text-white/90 text-sm font-medium drop-shadow">
-              {t('auth.login.email')}
+              Email Address
             </label>
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -133,11 +125,11 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
                   if (emailError) setEmailError("");
                 }}
                 onBlur={e => {
-                  const err = validateEmail(e.target.value, t);
+                  const err = validateEmail(e.target.value);
                   setEmailError(err);
                 }}
                 className={`relative w-full bg-white/10 backdrop-blur-sm border ${emailError ? 'border-red-400' : 'border-white/30'} rounded-xl px-4 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 ${emailError ? 'focus:ring-red-400/50 focus:border-red-400/50' : 'focus:ring-blue-400/50 focus:border-blue-400/50'} transition-all duration-300 hover:bg-white/15`}
-                placeholder={t('auth.login.emailPlaceholder', 'Enter your email address')}
+                placeholder="Enter your email address"
                 required
                 autoComplete="username"
               />
@@ -156,7 +148,7 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
           {/* Password Input */}
           <div className="space-y-2">
             <label htmlFor="password" className="block text-white/90 text-sm font-medium drop-shadow">
-              {t('auth.login.password')}
+              Password
             </label>
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -169,11 +161,11 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
                   if (passwordError) setPasswordError("");
                 }}
                 onBlur={e => {
-                  const err = validatePassword(e.target.value, t);
+                  const err = validatePassword(e.target.value);
                   setPasswordError(err);
                 }}
                 className={`relative w-full bg-white/10 backdrop-blur-sm border ${passwordError ? 'border-red-400' : 'border-white/30'} rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 ${passwordError ? 'focus:ring-red-400/50 focus:border-red-400/50' : 'focus:ring-blue-400/50 focus:border-blue-400/50'} transition-all duration-300 hover:bg-white/15`}
-                placeholder={t('auth.login.passwordPlaceholder', 'Enter your password')}
+                placeholder="Enter your password"
                 required
                 autoComplete="current-password"
               />
@@ -213,11 +205,11 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  {t('common.loading')}
+                  Loading...
                 </>
               ) : (
                 <>
-                  {t('auth.login.loginButton')}
+                  Login
                 </>
               )}
             </span>
@@ -226,13 +218,13 @@ export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }
           {/* Additional Links */}
           <div className="text-center space-y-2 pt-4">
             <p className="text-white/60 text-sm">
-              {t('auth.login.needHelp', 'Need help accessing your account?')}
+              Need help accessing your account?
             </p>
             <button
               type="button"
               className="text-blue-300 hover:text-blue-200 text-sm font-medium transition-colors duration-200 underline decoration-dotted"
             >
-              {t('auth.login.contactAdmin', 'Contact Administrator')}
+              Contact Administrator
             </button>
           </div>
         </form>

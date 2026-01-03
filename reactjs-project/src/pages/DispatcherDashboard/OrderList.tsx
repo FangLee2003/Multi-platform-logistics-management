@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import OrderChecklistTimeline from "../../components/OrderChecklistTimeline";
-import { useTranslation } from 'react-i18next';
 import { fetchOrders, fetchOrderById, fetchNotCompletedOrders, type FetchNotCompletedOrdersResponse } from "../../services/orderAPI";
 import { useDispatcherContext } from "../../contexts/DispatcherContext";
 import type { Order } from "../../types/Order";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function OrderList() {
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
@@ -78,10 +76,10 @@ export default function OrderList() {
         setSearchResults([]);
         setIsSearchMode(true);
         setPage(1);
-        setError(t('dashboard.dispatcher.orders.orderNotFound'));
+        setError('Failed to load orders');
       }
     } catch (err) {
-      setError(t('dashboard.dispatcher.orders.searchError'));
+      setError('Failed to load orders');
     } finally {
       setSearching(false);
     }
@@ -111,16 +109,16 @@ export default function OrderList() {
     <div className="bg-gradient-to-br from-blue-50/80 via-white/90 to-blue-100/80 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl max-w-full overflow-x-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
-          <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">{t('dashboard.dispatcher.orders.title')}</div>
-          <div className="text-gray-500 text-base">{t('dashboard.dispatcher.subtitle')}</div>
-          <div className="text-sm text-blue-600 mt-1">💡 {t('dashboard.dispatcher.orders.clickToViewMap', 'Click on order to view route on map')}</div>
+          <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">Order Management</div>
+          <div className="text-gray-500 text-base">Manage and track all delivery orders</div>
+          <div className="text-sm text-blue-600 mt-1">💡 {'Click on order to view route on map'}</div>
         </div>
         
         {/* Search order by ID and Refresh button */}
         <div className="flex items-center gap-2 bg-white/80 border border-blue-100 rounded-xl px-3 py-2 shadow">
           <input
             type="text"
-            placeholder={t('dashboard.dispatcher.orders.enterOrderId')}
+            placeholder='Search by order ID, customer name, or address'
             className="px-2 py-1 rounded border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
             value={searchId}
             onChange={e => setSearchId(e.target.value)}
@@ -132,14 +130,14 @@ export default function OrderList() {
             disabled={!searchId.trim() || loading || searching}
             className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded transition-colors duration-200 font-semibold"
           >
-            {searching ? t('common.loading') : t('dashboard.dispatcher.orders.search')}
+            {searching ? 'Loading' : 'Search'}
           </button>
         </div>
       </div>
       
       {error || fetchError ? (
         <div className="text-center py-8 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
-          {error || (fetchError as Error)?.message || t('common.error')}
+          {error || (fetchError as Error)?.message || 'No orders found'}
         </div>
       ) : (
         <div className="relative">
@@ -197,19 +195,19 @@ export default function OrderList() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs">
-                          🏪 {t('dashboard.dispatcher.orders.customer')}:
+                          🏪 Customer:
                         </span>
                         <span className="text-gray-800 font-medium">{order.store?.storeName}</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <span className="font-semibold text-green-700 bg-green-50 px-2 py-1 rounded-md text-xs">
-                          📍 {t('common.from')}:
+                          📍 From:
                         </span>
                         <span className="text-gray-700 flex-1">{order.store?.address}</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <span className="font-semibold text-orange-700 bg-orange-50 px-2 py-1 rounded-md text-xs">
-                          🎯 {t('common.to')}:
+                          🎯 To:
                         </span>
                         <span className="text-gray-700 flex-1">
                           {order.address?.address}{order.address?.city ? ", " + order.address.city : ""}
@@ -225,14 +223,14 @@ export default function OrderList() {
                     </div>
                     <div className="text-sm text-gray-700 text-right space-y-1 w-full">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-gray-600 text-xs">👤 {t('dashboard.dispatcher.orders.driver')}:</span> 
+                        <span className="font-semibold text-gray-600 text-xs">👤 Driver:</span> 
                         <span className="font-bold text-blue-800 bg-blue-50 px-2 py-1 rounded-md text-xs">
-                          {order.vehicle?.currentDriver?.fullName || t('dashboard.dispatcher.orders.notAssigned')}
+                          {order.vehicle?.currentDriver?.fullName || 'Not Assigned'}
                         </span>
                       </div>
                       {order.vehicle?.licensePlate && (
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-gray-600 text-xs">🚛 {t('dashboard.dispatcher.orders.vehicle')}:</span>
+                          <span className="font-semibold text-gray-600 text-xs">🚛 Vehicle:</span>
                           <span className="font-bold text-indigo-800 bg-indigo-50 px-2 py-1 rounded-md text-xs">
                             {order.vehicle.licensePlate}
                           </span>
@@ -259,11 +257,11 @@ export default function OrderList() {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
             >
-              ← {t('common.previous')}
+              ← Previous
             </button>
             <div className="bg-white/90 backdrop-blur-sm rounded-xl px-4 py-2 border border-gray-200 shadow-sm">
               <span className="text-blue-900 font-semibold text-base">
-                {t('common.page', 'Page')} {page} / {totalPages}
+                {'Page'} {page} / {totalPages}
               </span>
             </div>
             <button
@@ -271,7 +269,7 @@ export default function OrderList() {
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || loading}
             >
-              {t('common.next')} →
+              Next →
             </button>
           </div>
         </div>

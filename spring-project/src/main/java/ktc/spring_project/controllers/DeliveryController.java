@@ -500,6 +500,35 @@ public ResponseEntity<Map<String, Object>> deleteDelivery(@PathVariable Long id)
     }
 
     /**
+     * Get completed deliveries for today
+     */
+    @GetMapping("/completed-today")
+    public ResponseEntity<List<Map<String, Object>>> getCompletedDeliveriesToday() {
+        try {
+            String today = java.time.LocalDate.now().toString();
+            List<Delivery> completedDeliveries = deliveryService.getCompletedDeliveriesByDate(today);
+            
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Delivery delivery : completedDeliveries) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", delivery.getId());
+                map.put("orderId", delivery.getOrder() != null ? delivery.getOrder().getId() : null);
+                map.put("deliveryFee", delivery.getDeliveryFee());
+                map.put("actualDeliveryTime", delivery.getActualDeliveryTime());
+                map.put("status", "COMPLETED");
+                if (delivery.getDriver() != null) {
+                    map.put("driverName", delivery.getDriver().getFullName());
+                }
+                result.add(map);
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error fetching completed deliveries for today", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
      * Tính tổng doanh thu cho ngày cụ thể từ các delivery đã hoàn thành
      * GET /api/deliveries/revenue-by-date?date=2025-09-15
      */

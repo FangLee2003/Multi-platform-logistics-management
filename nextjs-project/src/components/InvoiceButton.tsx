@@ -46,6 +46,12 @@ export default function InvoiceButton({
 
 	// Handle button click - Auto create and download invoice
 	const handleClick = async () => {
+		// Validate orderId
+		if (!orderId || orderId <= 0) {
+			messageApi.error('Mã đơn hàng không hợp lệ')
+			return
+		}
+
 		// Prevent rapid clicks (debounce for 2 seconds)
 		const currentTime = Date.now()
 		if (currentTime - lastClickTime < 2000) {
@@ -56,10 +62,11 @@ export default function InvoiceButton({
 
 		setLoading(true)
 		try {
-			// Always check for existing invoice first
+			// Step 1: Check for existing invoice first
 			messageApi.loading('Đang kiểm tra hóa đơn...', 0)
 			
 			const existingInvoice = await invoiceService.getInvoiceByOrderId(orderId)
+			
 			if (existingInvoice) {
 				// Invoice exists, download directly
 				setInvoice(existingInvoice)
@@ -77,17 +84,37 @@ export default function InvoiceButton({
 				return
 			}
 
-			// No existing invoice, check eligibility and create new one
-			messageApi.loading('Đang kiểm tra điều kiện...', 0)
-			const eligibility = await invoiceService.checkEligibility(orderId)
+			// Step 2: No existing invoice, check eligibility
+			messageApi.loading('Đang kiểm tra điều kiện xuất hóa đơn...', 0)
+			
+			let eligibility
+			try {
+				eligibility = await invoiceService.checkEligibility(orderId)
+			} catch (error: unknown) {
+				messageApi.destroy()
+				const axiosError = error as { response?: { status?: number; data?: { message?: string } } }
+				
+				if (axiosError.response?.status === 500) {
+					messageApi.error('Lỗi hệ thống khi kiểm tra điều kiện. Vui lòng thử lại sau.')
+				} else if (!axiosError.response) {
+					messageApi.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.')
+				} else {
+					const errMsg = axiosError.response?.data?.message || 'Lỗi không xác định'
+					messageApi.error(`Lỗi: ${errMsg}`)
+				}
+				return
+			}
 			
 			if (!eligibility.eligible) {
 				messageApi.destroy()
-				messageApi.warning('Đơn hàng chưa đủ điều kiện để xuất hóa đơn')
+				messageApi.warning({
+					content: eligibility.message || 'Đơn hàng chưa đủ điều kiện để xuất hóa đơn',
+					duration: 4,
+				})
 				return
 			}
 
-			// Create new invoice
+			// Step 3: Create new invoice
 			messageApi.loading('Đang tạo hóa đơn...', 0)
 			const newInvoice = await invoiceService.createInvoice({
 				orderId,
@@ -115,33 +142,49 @@ export default function InvoiceButton({
 		} catch (error: unknown) {
 			messageApi.destroy()
 			console.error('Error in handleClick:', error)
-			const errorMessage = (error as { response?: { data?: { message?: string } } })
-				.response?.data?.message || 'Không thể xử lý yêu cầu'
 			
-			// Handle specific case where invoice was created by another process
-			if (errorMessage.includes('đã có hóa đơn') || errorMessage.includes('already has')) {
-				try {
-					const existingInvoice = await invoiceService.getInvoiceByOrderId(orderId)
-					if (existingInvoice) {
-						setInvoice(existingInvoice)
-						messageApi.success(`Đã tìm thấy hóa đơn ${existingInvoice.invoiceNumber}!`)
-						
-						// Download the existing invoice
-						try {
-							await invoiceService.downloadInvoicePdf(existingInvoice.id, existingInvoice.invoiceNumber)
-							messageApi.success('Đang tải xuống hóa đơn PDF...')
-						} catch (downloadError: unknown) {
-							console.error('Error downloading PDF:', downloadError)
-							messageApi.error('Không thể tải xuống hóa đơn PDF')
-						}
-						return
-					}
-				} catch (fetchError: unknown) {
-					console.error('Error fetching existing invoice:', fetchError)
+			const axiosError = error as { 
+				response?: { 
+					status?: number
+					data?: { message?: string; code?: string } 
 				}
+				message?: string
 			}
 			
-			messageApi.error(`Lỗi hệ thống: ${errorMessage}`)
+			const errorMessage = axiosError.response?.data?.message || axiosError.message || 'Không thể xử lý yêu cầu'
+			const statusCode = axiosError.response?.status
+			
+			// Handle specific HTTP errors
+			if (statusCode === 400) {
+				messageApi.error(`Dữ liệu không hợp lệ: ${errorMessage}`)
+			} else if (statusCode === 401 || statusCode === 403) {
+				messageApi.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.')
+			} else if (statusCode === 500) {
+				messageApi.error('Lỗi hệ thống. Vui lòng thử lại sau hoặc liên hệ quản trị viên.')
+			} else if (!axiosError.response) {
+				messageApi.error('Không thể kết nối đến InvoiceService. Kiểm tra backend hoặc kết nối mạng.')
+			} else {
+				messageApi.error(`Lỗi: ${errorMessage}`)
+			}
+			
+			// Handle race condition: invoice was created by another process
+			if (errorMessage.includes('đã có hóa đơn') || errorMessage.includes('already has')) {
+				setTimeout(async () => {
+					try {
+						const existingInvoice = await invoiceService.getInvoiceByOrderId(orderId)
+						if (existingInvoice) {
+							setInvoice(existingInvoice)
+							messageApi.success(`Đã tìm thấy hóa đơn ${existingInvoice.invoiceNumber}!`)
+							
+							// Download the existing invoice
+							await invoiceService.downloadInvoicePdf(existingInvoice.id, existingInvoice.invoiceNumber)
+							messageApi.success('Đang tải xuống hóa đơn PDF...')
+						}
+					} catch (fetchError: unknown) {
+						console.error('Error fetching existing invoice:', fetchError)
+					}
+				}, 500)
+			}
 		} finally {
 			setLoading(false)
 		}
@@ -283,16 +326,21 @@ export default function InvoiceButton({
 
 	// Don't show button if order is not in appropriate status
 	const shouldShowButton = () => {
+		// Always hide if explicitly disabled
 		if (disabled) return false
+		
+		// Invalid orderId
+		if (!orderId || orderId <= 0) return false
+		
 		// Show button for completed/delivered/shipped orders or if invoice already exists
-		return invoice || 
-			   orderStatus === 'DELIVERED' || 
-			   orderStatus === 'COMPLETED' || 
-			   orderStatus === 'Completed' ||  // Database có trạng thái 'Completed' 
-			   orderStatus === 'SHIPPED' ||
-			   orderStatus === 'Shipped' ||
-			   orderStatus === 'PROCESSED' ||
-			   orderStatus === 'Processed'
+		// Match backend validation: Delivered, Completed, Shipped
+		const validStatuses = [
+			'DELIVERED', 'COMPLETED', 'SHIPPED',
+			'Delivered', 'Completed', 'Shipped',
+			'PROCESSED', 'Processed'  // Some systems use PROCESSED for completed orders
+		]
+		
+		return invoice || (orderStatus && validStatuses.includes(orderStatus))
 	}
 
 	if (!shouldShowButton()) {

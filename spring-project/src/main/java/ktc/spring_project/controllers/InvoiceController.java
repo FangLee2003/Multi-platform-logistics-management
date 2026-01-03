@@ -219,8 +219,16 @@ public class InvoiceController {
                 InvoiceResponseDTO responseDTO = new InvoiceResponseDTO(invoiceOpt.get());
                 return ResponseEntity.ok(ApiResponse.success(responseDTO, "Lấy hóa đơn thành công"));
             } else {
+                // Return structured 404 response for frontend to distinguish from errors
+                Map<String, Object> notFoundData = new HashMap<>();
+                notFoundData.put("orderId", orderId);
+                notFoundData.put("hasInvoice", false);
+                notFoundData.put("code", "INVOICE_NOT_FOUND");
+                
+                log.debug("Không tìm thấy hóa đơn cho order ID: {} (trạng thái bình thường)", orderId);
+                
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Đơn hàng chưa có hóa đơn thanh toán"));
+                    .body(ApiResponse.error("Đơn hàng #" + orderId + " chưa có hóa đơn thanh toán"));
             }
             
         } catch (Exception e) {

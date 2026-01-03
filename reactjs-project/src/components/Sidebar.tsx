@@ -4,13 +4,13 @@ import { AiOutlineSetting, AiOutlineSafetyCertificate } from "react-icons/ai";
 import { FiActivity, FiBarChart2, FiHome, FiUsers } from "react-icons/fi";
 import { HiOutlineDocumentReport } from "react-icons/hi";
 import { BsFileEarmarkText } from "react-icons/bs";
-import { useTranslation } from 'react-i18next';
+import { BiData } from "react-icons/bi";
 // Logo từ public folder
 
 
 
 export type DispatcherTab = "orders" | "resources" | "assignment" | "completedOrders";
-export type OperationsTab = "overview" | "performance" | "monitoring" | "staff" | "invoices";
+export type OperationsTab = "overview" | "performance" | "monitoring" | "staff" | "invoices" | "analytics";
 export type AdminTab = "users" | "roles" | "settings" | "logs";
 export type FleetTab = "vehicles" | "maintenance" | "schedule";
 export type TabType = DispatcherTab | OperationsTab | AdminTab | FleetTab;
@@ -44,6 +44,7 @@ const ALL_MENUS: Record<UserRole, MenuItem<any>[]> = {
     { key: "monitoring", icon: <FiActivity /> },
     { key: "staff", icon: <FiUsers /> },
     { key: "invoices", icon: <BsFileEarmarkText /> },
+    { key: "analytics", icon: <BiData /> },
   ],
   fleet: [
     { key: "vehicles", icon: <MdManageAccounts /> },
@@ -68,23 +69,39 @@ export default function Sidebar<T extends TabType>({
   onTabChange,
   role,
 }: SidebarProps<T>) {
-  const { t } = useTranslation();
   const MENU = getMenu<T>(role);
 
-  // Hàm để get label từ i18n
-  const getMenuLabel = (key: string) => {
-    switch(role) {
-      case 'dispatcher':
-        return t(`dashboard.dispatcher.tabs.${key}`, key);
-      case 'operations':
-        return t(`dashboard.operations.tabs.${key}`, key);
-      case 'fleet':
-        return t(`dashboard.fleet.tabs.${key}`, key);
-      case 'admin':
-        return t(`dashboard.admin.tabs.${key}`, key);
-      default:
-        return key;
+  // English labels mapping
+  const ENGLISH_LABELS: Record<UserRole, Record<string, string>> = {
+    dispatcher: {
+      orders: "Orders",
+      completedOrders: "Completed Orders",
+      resources: "Resources",
+      assignment: "Assignment"
+    },
+    operations: {
+      overview: "Overview",
+      performance: "Performance",
+      monitoring: "Monitoring",
+      staff: "Staff",
+      invoices: "Invoices",
+      analytics: "Data Analytics"
+    },
+    fleet: {
+      vehicles: "Vehicles",
+      maintenance: "Maintenance",
+      schedule: "Schedule"
+    },
+    admin: {
+      users: "Users",
+      roles: "Roles",
+      settings: "Settings",
+      logs: "Logs"
     }
+  };
+
+  const getMenuLabel = (key: string) => {
+    return ENGLISH_LABELS[role]?.[key] || key;
   };
 
   return (

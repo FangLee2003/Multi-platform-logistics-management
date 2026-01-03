@@ -1,7 +1,6 @@
 
 
 import { useEffect, useState } from "react";
-import { useTranslation } from 'react-i18next';
 import { fetchOrderStats } from "../../services/orderAPI";
 import { fetchVehicleStats } from "../../services/VehicleListAPI";
 import type { Vehicle } from "../../types";
@@ -15,7 +14,6 @@ interface StatsCardsProps {
 
 
 export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
-  const { t } = useTranslation();
   const [totalOrders, setTotalOrders] = useState(0);
   const [sampleOrders, setSampleOrders] = useState<Order[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -64,7 +62,7 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
           totalVehicles: vehicleStats.totalRecords || 0,
         }));
       } catch (err: any) {
-        setError(err.message || t('common.error', 'An error occurred'));
+        setError(err.message || 'An error occurred');
       } finally {
         setLoading(false);
       }
@@ -101,7 +99,7 @@ export default function StatsCards({ refreshTrigger }: StatsCardsProps) {
   ];
 
   if (loading) {
-    return <div className="mb-6">{t('common.loading')}</div>;
+    return <div className="mb-6">{'Loading'}</div>;
   }
   if (error) {
     return <div className="mb-6 text-red-500">{error}</div>;

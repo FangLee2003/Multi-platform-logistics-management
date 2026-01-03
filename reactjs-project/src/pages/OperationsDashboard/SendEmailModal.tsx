@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { FiX, FiMail, FiAlertCircle, FiLoader } from 'react-icons/fi';
 import { type Invoice } from '../../services/invoiceAPI';
 import { invoiceAPI } from '../../services/invoiceAPI';
@@ -17,7 +16,6 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
   onEmailSent,
   setSendingId 
 }) => {
-  const { t } = useTranslation();
   
   const [email, setEmail] = useState('');
   const [isValidEmail, setIsValidEmail] = useState(false);
@@ -43,7 +41,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
   // Handle send email
   const handleSendEmail = async () => {
     if (!isValidEmail) {
-      setError(t('validation.invalidEmail'));
+      setError("");
       return;
     }
 
@@ -94,7 +92,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
           <div className="flex items-center space-x-2">
             <FiMail className="text-purple-500 w-5 h-5" />
             <h2 className="text-xl font-bold text-gray-800">
-              {t('dashboard.operations.invoices.modal.sendEmail.title')}
+              {"Send Invoice Email"}
             </h2>
           </div>
           {!isLoading && (
@@ -110,22 +108,22 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
         {/* Content */}
         <div className="p-6">
           <p className="text-gray-600 mb-4">
-            {t('dashboard.operations.invoices.modal.sendEmail.subtitle')}
+            {"Send this invoice to the customer via email."}
           </p>
 
           {/* Invoice Info */}
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <div className="text-sm text-gray-600">Hóa đơn:</div>
+            <div className="text-sm text-gray-600">Invoice:</div>
             <div className="font-medium text-gray-800">{invoice.invoiceNumber}</div>
             <div className="text-sm text-gray-600 mt-1">
-              Đơn hàng #{invoice.orderId} - {invoiceAPI.formatCurrency(invoice.totalAmount)}
+              Order #{invoice.orderId} - {invoiceAPI.formatCurrency(invoice.totalAmount)}
             </div>
           </div>
 
           {/* Email Input */}
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              {t('dashboard.operations.invoices.modal.sendEmail.emailLabel')}
+              {"Recipient Email"}
             </label>
             <input
               id="email"
@@ -133,7 +131,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={t('dashboard.operations.invoices.modal.sendEmail.emailPlaceholder')}
+              placeholder={"Enter email address"}
               disabled={isLoading}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${
                 email && !isValidEmail ? 'border-red-500' : 'border-gray-300'
@@ -141,7 +139,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
             />
             {email && !isValidEmail && (
               <p className="text-red-500 text-sm mt-1">
-                {t('validation.invalidEmail')}
+                {"Please enter a valid email address"}
               </p>
             )}
           </div>
@@ -149,7 +147,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
           {/* Message */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
             <p className="text-blue-800 text-sm">
-              {t('dashboard.operations.invoices.modal.sendEmail.message')}
+              {"A PDF copy of the invoice will be attached to the email."}
             </p>
           </div>
 
@@ -171,7 +169,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
             disabled={isLoading}
             className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
-            {t('dashboard.operations.invoices.modal.sendEmail.cancelButton')}
+            {"Cancel"}
           </button>
           <button
             onClick={handleSendEmail}
@@ -181,12 +179,12 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
             {isLoading ? (
               <>
                 <FiLoader className="w-4 h-4 animate-spin" />
-                <span>{t('dashboard.operations.invoices.actions.sending')}</span>
+                <span>{"Sending..."}</span>
               </>
             ) : (
               <>
                 <FiMail className="w-4 h-4" />
-                <span>{t('dashboard.operations.invoices.modal.sendEmail.confirmButton')}</span>
+                <span>{"Send Email"}</span>
               </>
             )}
           </button>

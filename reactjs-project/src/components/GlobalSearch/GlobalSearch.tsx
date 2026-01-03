@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useTranslation } from 'react-i18next';
 import { Search, X, Clock, ArrowRight, Filter } from "lucide-react";
 import { globalSearch, quickSearch, getSearchSuggestions } from "../../services/globalSearchAPI";
 import type { SearchResult, SearchSuggestion, SearchItemType } from "../../types/GlobalSearch";
@@ -29,13 +28,12 @@ export default function GlobalSearch({
   placeholder,
   showFilters = true 
 }: GlobalSearchProps) {
-  const { t } = useTranslation();
   
   const searchTypeLabels: Record<SearchItemType, string> = {
-    vehicle: t('search.types.vehicle', 'Phương tiện'),
-    order: t('search.types.order', 'Đơn hàng'), 
-    user: t('search.types.user', 'Người dùng'),
-    driver: t('search.types.driver', 'Tài xế')
+    vehicle: "Vehicle",
+    order: "Order", 
+    user: "User",
+    driver: "Driver"
   };
   
   const [query, setQuery] = useState("");
@@ -198,7 +196,7 @@ export default function GlobalSearch({
             setSelectedIndex(-1);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder={placeholder || t('search.placeholder', 'Tìm kiếm tất cả...')}
+          placeholder={placeholder || "Search all..."}
           className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors bg-white shadow-sm"
         />
         <Search size={20} className="absolute left-3 top-3.5 text-gray-400" />
@@ -221,7 +219,7 @@ export default function GlobalSearch({
         <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-50">
           <div className="flex items-center gap-2 mb-2">
             <Filter size={16} className="text-gray-500" />
-            <span className="text-sm text-gray-600 font-medium">Lọc theo:</span>
+            <span className="text-sm text-gray-600 font-medium">Filter by:</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(searchTypeLabels).map(([type, label]) => (
@@ -243,7 +241,7 @@ export default function GlobalSearch({
               onClick={handleAdvancedSearch}
               className="mt-2 w-full bg-violet-600 hover:bg-violet-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
             >
-{t('search.advancedSearch', 'Tìm kiếm nâng cao')}
+              {"Advanced Search"}
             </button>
           )}
         </div>
@@ -255,16 +253,16 @@ export default function GlobalSearch({
           {isLoading && (
             <div className="p-4 text-center text-gray-500">
               <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-violet-600"></div>
-              <p className="mt-2 text-sm">Đang tìm kiếm...</p>
+              <p className="mt-2 text-sm">Searching...</p>
             </div>
           )}
           
           {!isLoading && results.length === 0 && query.trim() && (
             <div className="p-4 text-center text-gray-500">
-              <p className="text-sm">{t('search.noResults', 'Không tìm thấy kết quả nào cho "{{query}}"', { query })}</p>
+              <p className="text-sm">{""}</p>
               {suggestions.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-xs text-gray-400 mb-1">{t('search.suggestions', 'Gợi ý:')}</p>
+                  <p className="text-xs text-gray-400 mb-1">{"Suggestions:"}</p>
                   <div className="flex flex-wrap gap-1">
                     {suggestions.map((suggestion, index) => (
                       <button
@@ -284,7 +282,7 @@ export default function GlobalSearch({
           {!isLoading && results.length > 0 && (
             <>
               <div className="p-2 border-b border-gray-100 text-xs text-gray-500">
-                {results.length} kết quả {searchTime > 0 && `(${searchTime}ms)`}
+                {results.length} results {searchTime > 0 && `(${searchTime}ms)`}
               </div>
               {results.map((result, index) => (
                 <div

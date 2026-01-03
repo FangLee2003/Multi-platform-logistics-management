@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { FiX, FiFileText, FiUser, FiShoppingBag, FiDollarSign } from 'react-icons/fi';
 import { type Invoice } from '../../services/invoiceAPI';
 import { invoiceAPI } from '../../services/invoiceAPI';
@@ -10,7 +9,6 @@ interface InvoiceDetailModalProps {
 }
 
 const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClose }) => {
-  const { t } = useTranslation();
 
   // Handle click outside modal
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -29,7 +27,7 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
-              {t('dashboard.operations.invoices.detail.title')}
+              Invoice Details
             </h2>
             <p className="text-gray-600 mt-1">
               {invoice.invoiceNumber}
@@ -52,25 +50,25 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
               <div className="flex items-center space-x-2 mb-4">
                 <FiFileText className="text-blue-500" />
                 <h3 className="text-lg font-semibold text-gray-800">
-                  {t('dashboard.operations.invoices.detail.invoiceInfo')}
+                  Invoice Details
                 </h3>
               </div>
               
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('dashboard.operations.invoices.table.headers.invoiceNumber')}:</span>
+                  <span className="text-gray-600">Invoice Details:</span>
                   <span className="font-medium">{invoice.invoiceNumber}</span>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('dashboard.operations.invoices.table.headers.status')}:</span>
+                  <span className="text-gray-600">Status:</span>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${invoiceAPI.getStatusColor(invoice.invoiceStatus)}`}>
-                    {t(`dashboard.operations.invoices.status.${invoice.invoiceStatus.toLowerCase()}`)}
+                    {invoice.invoiceStatus}
                   </span>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t('dashboard.operations.invoices.table.headers.issuedDate')}:</span>
+                  <span className="text-gray-600">Invoice Details:</span>
                   <span className="font-medium">{invoiceAPI.formatDate(invoice.issuedAt)}</span>
                 </div>
                 
@@ -102,7 +100,7 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
               <div className="flex items-center space-x-2 mb-4">
                 <FiUser className="text-green-500" />
                 <h3 className="text-lg font-semibold text-gray-800">
-                  {t('dashboard.operations.invoices.table.headers.customer')}
+                  Invoice Details
                 </h3>
               </div>
               
@@ -125,13 +123,13 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
                 <div className="flex items-center space-x-2 mb-4">
                   <FiShoppingBag className="text-purple-500" />
                   <h3 className="text-lg font-semibold text-gray-800">
-                    {t('dashboard.operations.invoices.detail.orderInfo')}
+                    Invoice Details
                   </h3>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">{t('dashboard.operations.invoices.table.headers.orderId')}:</span>
+                    <span className="text-gray-600">Invoice Details:</span>
                     <span className="font-medium">#{invoice.order.id}</span>
                   </div>
                   
@@ -175,7 +173,7 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
                 <div className="flex items-center space-x-2 mb-4">
                   <FiShoppingBag className="text-orange-500" />
                   <h3 className="text-lg font-semibold text-gray-800">
-                    {t('dashboard.operations.invoices.detail.storeInfo')}
+                    Invoice Details
                   </h3>
                 </div>
                 
@@ -217,7 +215,7 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
               <div className="flex items-center space-x-2 mb-4">
                 <FiDollarSign className="text-blue-500" />
                 <h3 className="text-lg font-semibold text-gray-800">
-                  {t('dashboard.operations.invoices.detail.summary')}
+                  Invoice Details
                 </h3>
               </div>
               
@@ -253,7 +251,7 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
             onClick={onClose}
             className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            {t('common.close')}
+            Invoice Details
           </button>
         </div>
       </div>

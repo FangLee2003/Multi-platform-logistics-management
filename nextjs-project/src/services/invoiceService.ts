@@ -11,9 +11,13 @@ import type {
 	OrderNeedingInvoice,
 } from '@/types/invoice'
 
+// Base URL configuration with environment variable support
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api'
+const IS_DEV = process.env.NODE_ENV === 'development'
+
 // Create axios instance with base configuration
 const api = axios.create({
-	baseURL: 'http://localhost:8080/api',
+	baseURL: API_BASE_URL,
 	timeout: 30000, // 30 seconds for PDF generation
 })
 
@@ -84,18 +88,55 @@ export const invoiceService = {
 
 	/**
 	 * Get invoice by order ID
+	 * Returns null if no invoice exists (404 is expected behavior)
+	 * Throws error for other failures (network, auth, server errors)
 	 */
 	getInvoiceByOrderId: async (orderId: number): Promise<InvoiceResponse | null> => {
+		// Validate input
+		if (!orderId || orderId <= 0) {
+			throw new Error('Invalid orderId: must be a positive number')
+		}
+
 		try {
+			if (IS_DEV) {
+				console.log(`[InvoiceService] Fetching invoice for order #${orderId}`)
+			}
+
 			const { data } = await api.get<ApiResponse<InvoiceResponse>>(
 				`/invoices/by-order/${orderId}`
 			)
+			
+			if (IS_DEV) {
+				console.log(`[InvoiceService] Found invoice: ${data.data.invoiceNumber}`)
+			}
+
 			return data.data
 		} catch (error: unknown) {
-			const axiosError = error as { response?: { status?: number } }
-			if (axiosError.response?.status === 404) {
-				return null // No invoice exists for this order
+			const axiosError = error as { 
+				response?: { 
+					status?: number
+					data?: { message?: string; code?: string }
+				}
+				message?: string
 			}
+
+			// 404 = No invoice exists yet (valid state, not an error)
+			if (axiosError.response?.status === 404) {
+				if (IS_DEV) {
+					console.log(`[InvoiceService] No invoice found for order #${orderId} (expected)`)
+				}
+				return null
+			}
+
+			// Log and throw for actual errors
+			const errorMsg = axiosError.response?.data?.message || axiosError.message || 'Unknown error'
+			const statusCode = axiosError.response?.status || 'NETWORK_ERROR'
+			
+			console.error(`[InvoiceService] Error fetching invoice for order #${orderId}:`, {
+				status: statusCode,
+				message: errorMsg
+			})
+
 			throw error
 		}
 	},

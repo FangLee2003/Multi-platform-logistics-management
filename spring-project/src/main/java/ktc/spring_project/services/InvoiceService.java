@@ -395,12 +395,16 @@ public class InvoiceService {
 
     /**
      * Kiểm tra trạng thái đơn hàng có hợp lệ để xuất hóa đơn không
+     * Chấp nhận các trạng thái: Delivered, Completed, Shipped (đã giao hàng thành công)
      */
     private boolean isValidOrderStatus(String statusName) {
-        return "COMPLETED".equalsIgnoreCase(statusName);
-        // "DELIVERED".equalsIgnoreCase(statusName) || 
-        //        "COMPLETED".equalsIgnoreCase(statusName) ||
-        //        "SHIPPED".equalsIgnoreCase(statusName);  // Chỉ chấp nhận DELIVERED, COMPLETED, SHIPPED £201
+        // Chấp nhận cả chữ hoa và chữ thường, cũng như cả viết tắt và viết đầy đủ
+        return "DELIVERED".equalsIgnoreCase(statusName) || 
+               "COMPLETED".equalsIgnoreCase(statusName) ||
+               "SHIPPED".equalsIgnoreCase(statusName) ||
+               "Delivered".equals(statusName) ||
+               "Completed".equals(statusName) ||
+               "Shipped".equals(statusName);
     }
 
     /**

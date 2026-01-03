@@ -1,5 +1,4 @@
 import React from "react";
-import { useTranslation } from 'react-i18next';
 
 interface PaginationProps {
   page: number;
@@ -8,7 +7,6 @@ interface PaginationProps {
 }
 
 const Pagination: React.FC<PaginationProps> = ({ page, totalPages, onPageChange }) => {
-  const { t } = useTranslation();
   if (totalPages <= 1) return null;
   return (
     <div className="flex justify-center items-center gap-2 mt-6">
@@ -20,7 +18,7 @@ const Pagination: React.FC<PaginationProps> = ({ page, totalPages, onPageChange 
         &lt;
       </button>
       <span className="px-2 text-gray-700 font-medium">
-{t('common.page')} {page} / {totalPages}
+Page {page} / {totalPages}
       </span>
       <button
         className="px-3 py-1 rounded border bg-white text-gray-700 disabled:opacity-50"

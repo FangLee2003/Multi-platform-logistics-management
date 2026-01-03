@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import GlassCard from '../../components/GlassCard';
 import StatCard from '../../components/StatCard';
 import DataTable, { TableRow, TableCell } from '../../components/DataTable';
@@ -14,7 +13,6 @@ import { LiaClipboardListSolid } from 'react-icons/lia';
 import { HiOutlineWrenchScrewdriver } from 'react-icons/hi2';
 
 export default function ResourceMonitoring() {
-  const { t } = useTranslation();
   const [timeFilter, setTimeFilter] = useState('24h');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehicleMetrics, setVehicleMetrics] = useState({
@@ -39,11 +37,11 @@ export default function ResourceMonitoring() {
   // Test translation keys on component mount
   useEffect(() => {
     console.log('🧪 Testing translation keys on ResourceMonitoring mount:');
-    console.log('fleet.status.available:', t('fleet.status.available'));
-    console.log('fleet.status.inUse:', t('fleet.status.inUse'));
-    console.log('fleet.status.underMaintenance:', t('fleet.status.underMaintenance'));
-    console.log('fleet.notAssigned:', t('fleet.notAssigned'));
-  }, [t]);
+    console.log('fleet.status.available:', 'Available');
+    console.log('fleet.status.inUse:', 'In Use');
+    console.log('fleet.status.underMaintenance:', 'Under Maintenance');
+    console.log('fleet.notAssigned:', 'Not Assigned');
+  });
 
   // Reset to first page when vehicles data changes
   useEffect(() => {
@@ -146,13 +144,13 @@ export default function ResourceMonitoring() {
         console.log('📋 Transformed vehicles:', transformedVehicles);
       } catch (error) {
         console.error('❌ Failed to fetch vehicles from API:', error);
-        setError(t('errors.loadingData', 'Unable to load data'));
+        setError('Unable to load data');
         setVehicles([]); // Clear vehicles instead of using mock data
       }
       
       setError('');
     } catch (globalError) {
-      setError(t('errors.loadingData', 'Unable to load data. Please try again later.'));
+      setError('Unable to load data. Please try again later.');
       console.error('Global error in fetchVehicles:', globalError);
       
       // Clear all data on global error
@@ -193,7 +191,7 @@ export default function ResourceMonitoring() {
     
     if (!status) {
       console.log('❌ ResourceMonitoring - Empty status, returning unknown');
-      return t('common.unknown');
+      return 'Unknown';
     }
     
     // FORCE OVERRIDE for Vietnamese text from backend
@@ -217,16 +215,16 @@ export default function ResourceMonitoring() {
       // Map translation keys to actual translations
       switch (status) {
         case 'fleet.status.available':
-          return t('fleet.status.available', 'Available');
+          return 'Available';
         case 'fleet.status.inUse':
-          return t('fleet.status.inUse', 'In Use');
+          return 'In Use';
         case 'fleet.status.underMaintenance':
-          return t('fleet.status.underMaintenance', 'Under Maintenance');
+          return 'Under Maintenance';
         case 'fleet.status.needMaintenance':
-          return t('fleet.status.needMaintenance', 'Need Maintenance');
+          return 'Need Maintenance';
         default:
           console.log('🎯 Unknown fleet.status key:', status);
-          return t('common.unknown', 'Unknown');
+          return 'Unknown';
       }
     }
     
@@ -238,23 +236,23 @@ export default function ResourceMonitoring() {
     switch (normalizedStatus) {
       case 'AVAILABLE': 
       case 'SẴN SÀNG':  // Backend returns this exact format
-        return t('fleet.status.available');
+        return 'Available';
       case 'IN_USE': 
       case 'INUSE':
       case 'IN USE':
       case 'ĐANG SỬ DỤNG':  // Backend returns this exact format
-        return t('fleet.status.inUse');
+        return 'In Use';
       case 'MAINTENANCE': 
       case 'UNDER_MAINTENANCE':
       case 'UNDERMAINTENANCE':
       case 'BẢO TRÌ':  // Backend returns this exact format
       case 'ĐANG BẢO TRÌ': 
-        return t('fleet.status.underMaintenance');
+        return 'Under Maintenance';
       case 'MAINTENANCE_PENDING': 
       case 'MAINTENANCEPENDING':
       case 'NEED_MAINTENANCE':
       case 'CHỜ BẢO TRÌ': 
-        return t('fleet.status.needMaintenance');
+        return 'Maintenance Pending';
       default: 
         console.log('ResourceMonitoring - No match for status:', status, 'normalized:', normalizedStatus);
         
@@ -262,7 +260,7 @@ export default function ResourceMonitoring() {
         if (typeof status === 'string' && (status.includes('status.') || status.includes('fleet.'))) {
           console.log('ResourceMonitoring - Attempting to translate as key:', status);
           try {
-            const translated = t(status);
+            const translated = status; // Just return the status as-is
             if (translated !== status) {
               return translated;
             }
@@ -282,10 +280,10 @@ export default function ResourceMonitoring() {
     // Handle cases where backend returns translation keys
     if (typeof type === 'string' && type.startsWith('fleet.vehicleTypes.')) {
       console.log('ResourceMonitoring - Found translation key in type, using t() directly');
-      const translatedText = t(type);
+      const translatedText = type; // Just return the type as-is
       // If translation returns the key itself (translation not found), fall back to mapping
       if (translatedText === type) {
-        console.log('ResourceMonitoring - Translation not found for key:', type, 'using fallback mapping');
+        console.log('ResourceMonitoring - Translation key not found:', type, 'using fallback mapping');
         // Extract the vehicle type from the key (e.g., 'fleet.vehicleTypes.truck' -> 'truck')
         const vehicleType = type.split('.').pop()?.toUpperCase();
         return getTypeText(vehicleType as Vehicle['type']);
@@ -294,10 +292,10 @@ export default function ResourceMonitoring() {
     }
     
     switch (type) {
-      case 'TRUCK': return t('fleet.vehicleTypes.truck', 'Truck');
-      case 'VAN': return t('fleet.vehicleTypes.van', 'Van');
-      case 'MOTORCYCLE': return t('fleet.vehicleTypes.motorcycle', 'Motorcycle');
-      case 'CAR': return t('fleet.vehicleTypes.car', 'Car');
+      case 'TRUCK': return 'Truck';
+      case 'VAN': return 'Van';
+      case 'MOTORCYCLE': return 'Motorcycle';
+      case 'CAR': return 'Car';
       default: 
         console.log('ResourceMonitoring - No match for type:', type, 'returning as-is');
         return type || 'Unknown Type';
@@ -322,7 +320,7 @@ export default function ResourceMonitoring() {
   if (loading) {
     return (
       <GlassCard className="flex items-center justify-center h-64">
-        <div className="text-gray-800 text-lg">{t('common.loading')}...</div>
+        <div className="text-gray-800 text-lg">{'Loading'}...</div>
       </GlassCard>
     );
   }
@@ -336,13 +334,13 @@ export default function ResourceMonitoring() {
       )}
       
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800">{t('dashboard.operations.tabs.monitoring')}</h2>
+        <h2 className="text-xl font-semibold text-gray-800">Resource Monitoring</h2>
         <div className="flex gap-2">
           {['24h', '7d', '1m'].map((period) => {
             const periodLabels = {
-              '24h': t('common.timeFilters.24h', '24h'),
-              '7d': t('common.timeFilters.7d', '7d'), 
-              '1m': t('common.timeFilters.1month', '1 month')
+              '24h': '24h',
+              '7d': '7d', 
+              '1m': '1 month'
             };
             return (
               <GlassButton
@@ -359,40 +357,40 @@ export default function ResourceMonitoring() {
             fetchVehicles(timeFilter);
             fetchMaintenanceRequestsCount();
           }}>
-🔄 {t('common.refresh')}
+            🔄 Refresh
           </GlassButton>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
-title={t('dashboard.operations.monitoring.totalVehicles', 'Total Vehicles')}
+title={'Total Vehicles'}
           value={totalVehicles.toString()}
           icon={<Truck size={24} color="#f59e0b" />}
           trend={{ value: 8.2, isPositive: true }}
         />
         <StatCard
-          title={t('common.active', 'Active')}
+          title={'Active'}
           value={activeVehicles.toString()}
           icon={<FaRegPlayCircle size={24} color="#10b981" />}
-          subtitle={`${vehicleMetrics.percentage}% ${t('common.ofTotal', 'of total')}`}
+          subtitle={`${vehicleMetrics.percentage}% ${'of total'}`}
         />
         <StatCard
-          title={t('fleet.status.underMaintenance', 'Under Maintenance')}
+          title={'Under Maintenance'}
           value={maintenanceVehicles.toString()}
           icon={<HiOutlineWrenchScrewdriver size={24} color="#6B7280" />}
-          subtitle={`${totalVehicles > 0 ? Math.round((maintenanceVehicles / totalVehicles) * 100) : 0}% ${t('common.ofTotal', 'of total')}`}
+          subtitle={`${totalVehicles > 0 ? Math.round((maintenanceVehicles / totalVehicles) * 100) : 0}% ${'of total'}`}
         />
         <StatCard
-title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Requests')}
+title={'Maintenance Requests'}
           value={maintenanceRequestsCount.toString()}
           icon={<LiaClipboardListSolid size={24} color="#3B82F6" />}
         />
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-800">{t('dashboard.operations.monitoring.resourceDetails', 'Resource Details')}</h3>
-        <DataTable headers={[t('dashboard.operations.monitoring.headers.vehicleName', 'Vehicle Name'), t('dashboard.operations.monitoring.headers.type', 'Type'), t('dashboard.operations.monitoring.headers.driver', 'Driver'), t('dashboard.operations.monitoring.headers.status', 'Status'), t('dashboard.operations.monitoring.headers.createdDate', 'Created Date')]}>
+        <h3 className="text-lg font-medium text-gray-800">{'Resource Details'}</h3>
+        <DataTable headers={['Vehicle Name', 'Type', 'Driver', 'Status', 'Created Date']}>
           {getPaginatedVehicles().map((vehicle) => (
             <TableRow key={vehicle.id}>
               <TableCell>
@@ -408,7 +406,7 @@ title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Req
                   </div>
                 ) : (
                   <span className="text-gray-600">
-                    {t('fleet.notAssigned', 'Not Assigned')}
+                    {'Not Assigned'}
                   </span>
                 )}
               </TableCell>
@@ -435,11 +433,7 @@ title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Req
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200/30">
             <div className="text-sm text-gray-600 font-medium">
-{t('operations.monitoring.pagination.showing', 'Showing {{start}}-{{end}} of {{total}} vehicles', {
-                start: startIndex + 1,
-                end: Math.min(endIndex, vehicles.length),
-                total: vehicles.length
-              })}
+              Showing {((currentPage - 1) * 10) + 1} - {Math.min(currentPage * 10, vehicles.length)} of {vehicles.length} results
             </div>
             <div className="flex items-center gap-1">
               <GlassButton
@@ -449,7 +443,7 @@ title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Req
                 disabled={currentPage === 1}
                 className={`px-3 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/30'}`}
               >
-← {t('common.previous', 'Previous')}
+← {'Previous'}
               </GlassButton>
               
               <div className="flex items-center gap-1 mx-2">
@@ -490,7 +484,7 @@ title={t('dashboard.operations.monitoring.maintenanceRequests', 'Maintenance Req
                 disabled={currentPage === totalPages}
                 className={`px-3 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/30'}`}
               >
-{t('common.next', 'Next')} →
+{'Next'} →
               </GlassButton>
             </div>
           </div>

@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { useTranslation } from 'react-i18next';
 
 export default function SystemConfigForm() {
-  const { t } = useTranslation();
   const [config, setConfig] = useState({
     systemName: "KTC Logistics 2025",
     timezone: "Asia/Ho_Chi_Minh",
@@ -70,7 +68,7 @@ export default function SystemConfigForm() {
             <label className="block font-semibold mb-1">Google Maps API Key</label>
             <input
               className="w-full border rounded-lg px-4 py-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-200"
-              placeholder={t('admin.settings.apiKeyPlaceholder', 'Enter API key')}
+              placeholder={'Enter API key'}
               value={config.googleApiKey}
               onChange={e => handleChange("googleApiKey", e.target.value)}
             />
@@ -79,7 +77,7 @@ export default function SystemConfigForm() {
             <label className="block font-semibold mb-1">SMS Gateway</label>
             <input
               className="w-full border rounded-lg px-4 py-3 bg-gray-50"
-              placeholder={t('admin.settings.urlPlaceholder', 'URL endpoint')}
+              placeholder={'URL endpoint'}
               value={config.smsGateway}
               onChange={e => handleChange("smsGateway", e.target.value)}
             />

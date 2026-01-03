@@ -7,7 +7,6 @@ import {
   Wrench,
   FileText,
 } from "lucide-react";
-import { useTranslation } from 'react-i18next';
 import type { Vehicle } from "../../types/Operations";
 import { useEffect, useState } from "react";
 import { fetchVehicleMaintenanceByVehicleId } from "../../services/VehicleMaintenanceAPI";
@@ -25,7 +24,6 @@ export default function VehicleDetailModal({
   onClose,
   onScheduleMaintenance,
 }: VehicleDetailModalProps) {
-  const { t } = useTranslation();
   const [maintenances, setMaintenances] = useState<any[]>([]);
   const [emergencyRequests, setEmergencyRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,30 +64,30 @@ export default function VehicleDetailModal({
   if (!isOpen) return null;
 
   const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return t('common.notAvailable', 'Not available');
+    if (!dateString) return 'Not available';
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
   const getStatusText = (status: any) => {
     if (typeof status === "string") {
       return status === "MAINTENANCE_PENDING"
-        ? t('fleet.status.needMaintenance', 'Need Maintenance')
+        ? 'Need Maintenance'
         : status === "MAINTENANCE"
-        ? t('fleet.status.underMaintenance', 'Under Maintenance')
+        ? 'Under Maintenance'
         : status === "IN_USE"
-        ? t('fleet.status.inUse', 'In Use')
-        : t('fleet.status.available', 'Available');
+        ? 'In Use'
+        : 'Available';
     }
     if (typeof status === "object" && status?.name) {
       return status.name === "MAINTENANCE_PENDING"
-        ? t('fleet.status.needMaintenance', 'Need Maintenance')
+        ? 'Need Maintenance'
         : status.name === "MAINTENANCE"
-        ? t('fleet.status.underMaintenance', 'Under Maintenance')
+        ? 'Under Maintenance'
         : status.name === "IN_USE"
-        ? t('fleet.status.inUse', 'In Use')
-        : t('fleet.status.available', 'Available');
+        ? 'In Use'
+        : 'Available';
     }
-    return t('common.unknown', 'Unknown');
+    return 'Unknown';
   };
 
   const getStatusColor = (status: any) => {

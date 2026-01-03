@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import LoginForm from "./components/LoginForm";
 import Dashboard from "./pages/Dashboard";
-import I18nDemo from "./pages/I18nDemo";
 import type { User } from "./types/User";
 
 // Tạo QueryClient instance
@@ -20,20 +18,19 @@ const queryClient = new QueryClient({
 
 
 function App() {
-  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem("user");
     return storedUser ? JSON.parse(storedUser) : null;
   });
 
   const handleLogin = (user: User) => {
-    console.log(t('auth.login.loginSuccess'), user);
+    console.log('Login successful', user);
     setUser(user);
     localStorage.setItem("user", JSON.stringify(user));
   };
 
   const handleLogout = () => {
-    console.log(t('navigation.logout'));
+    console.log('Logout');
     setUser(null);
     localStorage.removeItem("user");
   };
@@ -63,10 +60,6 @@ function App() {
                 <Navigate to="/" replace />
               )
             }
-          />
-          <Route
-            path="/demo"
-            element={<I18nDemo />}
           />
         </Routes>
       </BrowserRouter>

@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import { useState, useMemo, useEffect } from "react";
 import OrderDetailModal from "./OrderDetailModal";
 import { fetchOrderItemsByOrderIdPaged, fetchOrdersTotalQuantityBatch } from "../../services/OrderItemAPI";
@@ -59,7 +58,6 @@ type OrderType = {
 // }
 
 export default function OrdersAssignment(_props: any) {
-  const { t } = useTranslation();
   const { selectedOrder, setSelectedOrder } = useDispatcherContext();
   const [detailOrder, setDetailOrder] = useState<OrderType | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -441,14 +439,11 @@ export default function OrdersAssignment(_props: any) {
 
       const isEditing = editingOrders[orderId];
       const messageKey = isEditing ? 'dashboard.dispatcher.assignment.vehicleUpdated' : 'dashboard.dispatcher.assignment.vehicleAssigned';
-      setSuccessMessage(t(messageKey, `Vehicle ${selectedVehicle.licensePlate} ${isEditing ? 'updated' : 'assigned'} successfully to order ${orderId}! Delivery tracking auto-updated.`, { 
-        vehicle: selectedVehicle.licensePlate, 
-        orderId: orderId 
-      }));
+      setSuccessMessage("");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Failed to assign vehicle:", error);
-      alert(t('dashboard.dispatcher.assignment.assignError', 'Failed to assign vehicle: ') + (error as Error).message);
+      alert("Failed to assign vehicle: " + (error as Error).message);
     } finally {
       setAssigningOrders(prev => ({ ...prev, [orderId]: false }));
     }
@@ -489,11 +484,11 @@ export default function OrdersAssignment(_props: any) {
         queryClient.invalidateQueries({ queryKey: ['ordersTotalQuantity'] })
       ]);
       
-      setSuccessMessage(t('dashboard.dispatcher.assignment.vehicleUnassigned', `Vehicle unassigned successfully from order ${orderId}!`, { orderId: orderId }));
+      setSuccessMessage("");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Failed to unassign vehicle:", error);
-      alert(t('dashboard.dispatcher.assignment.unassignError', 'Failed to unassign vehicle: ') + (error as Error).message);
+      alert("Failed to unassign vehicle: " + (error as Error).message);
     } finally {
       setAssigningOrders(prev => ({ ...prev, [orderId]: false }));
     }
@@ -638,18 +633,18 @@ export default function OrdersAssignment(_props: any) {
             <FaUserCog className="text-3xl text-blue-600" />
           </span>
           <div>
-            <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t('dashboard.dispatcher.assignment.title', 'Order Assignment Management')}</h3>
-            <p className="text-gray-600 mt-1">{t('common.total')} {totalOrders} {t('navigation.orders', 'orders')}</p>
+            <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight">{"Order Assignment Management"}</h3>
+            <p className="text-gray-600 mt-1">{""} {totalOrders} {"orders"}</p>
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-gray-500 text-lg animate-pulse">{t('common.loading')}...</div>
+        <div className="text-center py-16 text-gray-500 text-lg animate-pulse">{""}...</div>
       ) : error ? (
         <div className="text-center py-12 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
           <FaTimes className="text-xl text-red-500" />
-          {(error as Error)?.message || t('common.error')}
+          {(error as Error)?.message || ""}
         </div>
       ) : (
         <>
@@ -665,14 +660,14 @@ export default function OrdersAssignment(_props: any) {
               <table className="w-full min-w-[900px]">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gradient-to-r from-blue-100/80 via-white/80 to-blue-50/80 border-b border-blue-200/60 shadow-sm">
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.orderId', 'Mã đơn')}</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.products', 'Sản phẩm')}</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.customer', 'Khách hàng')}</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.route', 'Lộ trình')}</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.orderDetails', 'Chi tiết đơn hàng')}</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.createdDate', 'Ngày tạo')}</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.vehicleDriver', 'Xe & Tài xế')}</th>
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{t('dashboard.dispatcher.assignment.headers.actions', 'Thao tác')}</th>
+                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Order Code"}</th>
+                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Products"}</th>
+                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Customer"}</th>
+                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Route"}</th>
+                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Order Details"}</th>
+                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Created Date"}</th>
+                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Vehicle & Driver"}</th>
+                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Actions"}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -713,8 +708,8 @@ export default function OrdersAssignment(_props: any) {
                         {/* Chỉ hiển thị tổng số lượng sản phẩm */}
                         <div className="max-w-xs font-bold text-blue-900 text-lg">
                           {typeof productCounts[order.id] === "number"
-                            ? `${productCounts[order.id]} ${t('dashboard.dispatcher.assignment.products', 'products')}`
-                            : t('common.loading')}
+                            ? `${productCounts[order.id]} ${"products"}`
+                            : ""}
                         </div>
                       </td>
                       <td className="p-5 align-top min-w-[160px]">
@@ -723,9 +718,9 @@ export default function OrdersAssignment(_props: any) {
                       </td>
                       <td className="p-5 align-top min-w-[180px]">
                         <div className="text-sm text-gray-700">
-                          <div><span className="font-semibold text-blue-700">{t('common.from', 'From')}:</span> {order.from}</div>
+                          <div><span className="font-semibold text-blue-700">{"From"}:</span> {order.from}</div>
                           <div>
-                            <span className="font-semibold text-blue-700">{t('common.to', 'To')}:</span> {order.to}
+                            <span className="font-semibold text-blue-700">{"To"}:</span> {order.to}
                             {typeof order.address === 'object' && (order.address as any)?.city ? `, ${(order.address as any).city}` : ""}
                           </div>
                         </div>
@@ -735,7 +730,7 @@ export default function OrdersAssignment(_props: any) {
                           className="px-3 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold text-sm border border-blue-200 shadow transition-all duration-150"
                           onClick={() => handleOpenDetail(order)}
                         >
-                          {t('dashboard.dispatcher.assignment.viewDetails', 'View details')}
+                          {"View details"}
                         </button>
                       </td>
                       <td className="p-5 align-top">
@@ -761,7 +756,7 @@ export default function OrdersAssignment(_props: any) {
                                     👤 {order.assignedVehicle.currentDriver.fullName || order.assignedVehicle.currentDriver.username}
                                   </div>
                                   <div className="text-xs text-gray-600">
-                                    📞 {order.assignedVehicle.currentDriver?.phone || t('dashboard.dispatcher.assignment.noPhone', 'Chưa có SĐT')}
+                                    📞 {order.assignedVehicle.currentDriver?.phone || "No phone"}
                                   </div>
                                 </>
                               )}
@@ -769,7 +764,7 @@ export default function OrdersAssignment(_props: any) {
                                 className="mt-2 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200 transition-all duration-150"
                                 onClick={() => setEditingOrders(prev => ({ ...prev, [order.id]: true }))}
                               >
-                                {t('dashboard.dispatcher.assignment.edit', 'Chỉnh sửa')}
+                                {"Edit"}
                               </button>
                             </div>
                           ) : order.currentDriver && !editingOrders[order.id] ? (
@@ -792,7 +787,7 @@ export default function OrdersAssignment(_props: any) {
                                       👤 {order.currentDriver.fullName || order.currentDriver.username}
                                     </div>
                                     <div className="text-xs text-gray-600">
-                                      📞 {order.currentDriver?.phone || t('dashboard.dispatcher.assignment.noPhone', 'Chưa có SĐT')}
+                                      📞 {order.currentDriver?.phone || "No phone"}
                                     </div>
                                   </div>
                                 ) : (
@@ -801,10 +796,10 @@ export default function OrdersAssignment(_props: any) {
                                       👤 {order.currentDriver.fullName || order.currentDriver.username}
                                     </div>
                                     <div className="text-xs text-gray-600">
-                                      📞 {order.currentDriver?.phone || t('dashboard.dispatcher.assignment.noPhone', 'Chưa có SĐT')}
+                                      📞 {order.currentDriver?.phone || "No phone"}
                                     </div>
                                     <div className="text-xs text-orange-600 mt-1 font-bold">
-                                      ⚠️ Chưa có xe được gán
+                                      ⚠️ No vehicle assigned
                                     </div>
                                   </div>
                                 );
@@ -833,7 +828,7 @@ export default function OrdersAssignment(_props: any) {
                                           👤 {selectedVehicle.currentDriver.fullName}
                                         </div>
                                         <div className="text-xs text-blue-700">
-                                          📞 {((selectedVehicle.currentDriver as { phone?: string })?.phone) || t('dashboard.dispatcher.assignment.noPhone', 'Chưa có SĐT')}
+                                          📞 {((selectedVehicle.currentDriver as { phone?: string })?.phone) || "No phone"}
                                         </div>
                                       </div>
                                     ) : null;
@@ -846,7 +841,7 @@ export default function OrdersAssignment(_props: any) {
                                   value={selectedVehicles[order.id] || ""}
                                   onChange={(e) => handleVehicleSelect(order.id.toString(), e.target.value)}
                                 >
-                                  <option value="">{t('dashboard.dispatcher.assignment.selectVehicle', 'Select vehicle...')}</option>
+                                  <option value="">{"Select vehicle..."}</option>
                                   {vehicles
                                     .filter(vehicle => {
                                       // Luôn giữ lại xe đã chọn cho đơn này
@@ -858,7 +853,7 @@ export default function OrdersAssignment(_props: any) {
                                     })
                                     .map(vehicle => (
                                       <option key={vehicle.id} value={vehicle.id}>
-                                        {vehicle.licensePlate} - {vehicle.currentDriver?.fullName || t('dashboard.dispatcher.assignment.unknownDriver', 'Không rõ tài xế')}
+                                        {vehicle.licensePlate} - {vehicle.currentDriver?.fullName || "Unknown Driver"}
                                       </option>
                                     ))}
                                 </select>
@@ -876,7 +871,7 @@ export default function OrdersAssignment(_props: any) {
                               onClick={() => handleAssignVehicle(order.id.toString())}
                               disabled={assigningOrders[order.id]}
                               className="flex items-center justify-center w-10 h-10 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white rounded-full shadow-lg transition-all duration-200 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-green-400"
-                              title={editingOrders[order.id] ? t('dashboard.dispatcher.assignment.updateVehicle', 'Update vehicle') : t('dashboard.dispatcher.assignment.assignVehicle', 'Assign vehicle')}
+                              title={editingOrders[order.id] ? "Update vehicle" : "Assign vehicle"}
                             >
                               {assigningOrders[order.id] ? (
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -887,7 +882,7 @@ export default function OrdersAssignment(_props: any) {
                             <button
                               onClick={() => editingOrders[order.id] ? handleCancelEdit(order.id.toString()) : handleCancelVehicleAssignment(order.id.toString())}
                               className="flex items-center justify-center w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all duration-200 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-red-400"
-                              title={t('common.cancel', 'Cancel')}
+                              title={"Cancel"}
                             >
                               <FaTimes className="text-lg" />
                             </button>
@@ -898,13 +893,13 @@ export default function OrdersAssignment(_props: any) {
                           <div className="flex items-center gap-3">
                             <div className="flex items-center text-green-700 font-bold">
                               <FaCheck className="text-xl" />
-                              <span className="ml-2 text-base">{t('dashboard.dispatcher.assignment.assigned', 'Đã gán')}</span>
+                              <span className="ml-2 text-base">{"Assigned"}</span>
                             </div>
                             <button
                               onClick={() => handleUnassignVehicle(order.id.toString())}
                               disabled={assigningOrders[order.id]}
                               className="flex items-center justify-center w-9 h-9 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-full shadow-lg transition-all duration-200 text-base font-bold focus:outline-none focus:ring-2 focus:ring-red-400"
-                              title={t('dashboard.dispatcher.assignment.unassignVehicle', 'Gỡ gán xe')}
+                              title={"Unassign vehicle"}
                             >
                               {assigningOrders[order.id] ? (
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -930,7 +925,7 @@ export default function OrdersAssignment(_props: any) {
                 disabled={currentPage === 1}
                 className="px-4 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed text-blue-700 font-bold shadow transition-all duration-150"
               >
-                &lt; {t('common.previous')}
+                &lt; {""}
               </button>
               
               {/* Desktop pagination - hiển thị nhiều trang hơn */}
@@ -998,26 +993,26 @@ export default function OrdersAssignment(_props: any) {
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed text-blue-700 font-bold shadow transition-all duration-150"
               >
-                {t('common.next')} &gt;
+                {""} &gt;
               </button>
             </div>
           )}
 
           {/* Thông tin trang hiện tại */}
           <div className="text-center mt-4 text-gray-600">
-            {t('dashboard.dispatcher.pagination.showing', 'Showing')} {paginatedData.length > 0 ? ((currentPage - 1) * PAGE_SIZE + 1) : 0}
+            {"Showing"} {paginatedData.length > 0 ? ((currentPage - 1) * PAGE_SIZE + 1) : 0}
             -
             {paginatedData.length > 0 ? ((currentPage - 1) * PAGE_SIZE + paginatedData.length) : 0}
-            {t('dashboard.dispatcher.pagination.of')} {totalOrders} {t('navigation.orders', 'orders')}
+            {""} {totalOrders} {"orders"}
             {totalPages > 1 && (
-              <span className="ml-2">| {t('dashboard.dispatcher.pagination.page', 'Page {{current}} / {{total}}', { current: currentPage, total: totalPages })}</span>
+              <span className="ml-2">| {""}</span>
             )}
           </div>
 
           {paginatedData.length === 0 && (
             <div className="text-center py-16 text-gray-500">
               <FaUserCog className="text-5xl mx-auto mb-4 opacity-40" />
-              <p className="text-xl font-semibold">{t('dashboard.dispatcher.assignment.noOrders', 'No orders waiting for assignment')}</p>
+              <p className="text-xl font-semibold">{"No orders waiting for assignment"}</p>
             </div>
           )}
         </>
