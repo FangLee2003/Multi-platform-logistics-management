@@ -8,6 +8,7 @@ import ktc.spring_project.entities.ElectronicInvoice;
 import ktc.spring_project.entities.Order;
 import ktc.spring_project.entities.User;
 import ktc.spring_project.enums.InvoiceStatus;
+import ktc.spring_project.exceptions.HttpException;
 import ktc.spring_project.services.InvoiceService;
 import ktc.spring_project.services.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +65,7 @@ public class InvoiceController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkInvoiceEligibility(
             @PathVariable Long orderId) {
         try {
-            log.info("Kiểm tra điều kiện xuất hóa đơn cho order {}", orderId);
+            log.info("===== API: GET /api/invoices/check-eligibility/{} =====", orderId);
             
             InvoiceService.ValidationResult result = invoiceService.validateInvoiceEligibility(orderId);
             
@@ -73,10 +74,13 @@ public class InvoiceController {
             responseData.put("eligible", result.isValid());
             responseData.put("message", result.getMessage());
             
+            log.info("[orderId={}] API Response: eligible={}, message={}", 
+                orderId, result.isValid(), result.getMessage());
+            
             return ResponseEntity.ok(ApiResponse.success(responseData, "Kiểm tra điều kiện thành công"));
             
         } catch (Exception e) {
-            log.error("Lỗi khi kiểm tra điều kiện xuất hóa đơn: ", e);
+            log.error("[orderId={}] API Error when checking eligibility: ", orderId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Lỗi hệ thống: " + e.getMessage()));
         }
@@ -92,7 +96,7 @@ public class InvoiceController {
             @Valid @RequestBody CreateInvoiceRequestDTO request,
             Authentication authentication) {
         try {
-            log.info("Tạo hóa đơn thanh toán cho order {}", request.getOrderId());
+            log.info("===== API: POST /api/invoices for order {} =====", request.getOrderId());
             
             // Làm sạch dữ liệu đầu vào
             request.sanitize();
@@ -117,8 +121,17 @@ public class InvoiceController {
             
             InvoiceResponseDTO responseDTO = new InvoiceResponseDTO(invoice);
             
+            log.info("[orderId={}] Invoice created successfully. invoiceId={}", 
+                request.getOrderId(), invoice.getId());
+            
             return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(responseDTO, "Tạo hóa đơn thanh toán thành công"));
+                
+        } catch (HttpException e) {
+            // Validation failed during invoice eligibility check
+            log.warn("[orderId={}] Eligibility check failed: {}", request.getOrderId(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getMessage()));
                 
         } catch (IllegalArgumentException e) {
             log.warn("Dữ liệu không hợp lệ khi tạo hóa đơn: {}", e.getMessage());
@@ -126,7 +139,7 @@ public class InvoiceController {
                 .body(ApiResponse.error(e.getMessage()));
                 
         } catch (Exception e) {
-            log.error("Lỗi khi tạo hóa đơn thanh toán: ", e);
+            log.error("[orderId={}] Error creating invoice: ", request.getOrderId(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Lỗi hệ thống: " + e.getMessage()));
         }

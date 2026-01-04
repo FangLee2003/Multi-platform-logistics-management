@@ -74,7 +74,7 @@ export default function AccountHeader({
                 fontSize: "12px",
               }}
             >
-              Customer Portal
+              Branch Manager Portal
             </Button>
           )}
         </div>

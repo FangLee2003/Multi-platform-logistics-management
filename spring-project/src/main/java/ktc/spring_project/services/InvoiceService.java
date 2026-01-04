@@ -72,56 +72,49 @@ public class InvoiceService {
      * @return ValidationResult chứa kết quả kiểm tra
      */
     public ValidationResult validateInvoiceEligibility(Long orderId) {
-        log.info("Kiểm tra điều kiện xuất hóa đơn cho order ID: {}", orderId);
+        log.info("===== START: Kiểm tra điều kiện xuất hóa đơn cho order ID: {} =====", orderId);
 
         // 1. Kiểm tra đơn hàng tồn tại
         Optional<Order> orderOpt = orderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
+            log.warn("[orderId={}] RULE_FAILED: Order not found", orderId);
             return new ValidationResult(false, "Đơn hàng không tồn tại");
         }
 
         Order order = orderOpt.get();
+        log.debug("[orderId={}] RULE_PASSED: Order exists. status={}", orderId, order.getStatus());
 
         // 2. Kiểm tra đơn hàng đã có hóa đơn chưa
         if (invoiceRepository.existsByOrderId(orderId)) {
+            log.warn("[orderId={}] RULE_FAILED: Invoice already exists for this order", orderId);
             return new ValidationResult(false, "Đơn hàng đã có hóa đơn thanh toán");
         }
+        log.debug("[orderId={}] RULE_PASSED: No existing invoice", orderId);
 
         // 3. Kiểm tra trạng thái đơn hàng hợp lệ
         if (order.getStatus() == null) {
+            log.warn("[orderId={}] RULE_FAILED: Order status is NULL", orderId);
             return new ValidationResult(false, "Đơn hàng chưa có trạng thái");
         }
 
-        // Giả sử trạng thái hợp lệ là PROCESSED hoặc COMPLETED
         String statusName = order.getStatus().getName();
+        log.debug("[orderId={}] Order status: {}", orderId, statusName);
         if (!isValidOrderStatus(statusName)) {
+            log.warn("[orderId={}] RULE_FAILED: Invalid order status. statusName={} (valid: DELIVERED/COMPLETED/SHIPPED)", orderId, statusName);
             return new ValidationResult(false, 
                 "Trạng thái đơn hàng không hợp lệ để xuất hóa đơn: " + statusName);
         }
+        log.debug("[orderId={}] RULE_PASSED: Order status is valid ({})", orderId, statusName);
 
-        // 4. Kiểm tra có bản ghi giao hàng và đã hoàn thành
+        // 4. Kiểm tra có bản ghi giao hàng (không bắt buộc phải hoàn thành)
         List<Delivery> deliveries = deliveryRepository.findByOrderId(orderId);
         if (deliveries.isEmpty()) {
+            log.warn("[orderId={}] RULE_FAILED: No delivery records found", orderId);
             return new ValidationResult(false, "Đơn hàng chưa có thông tin giao hàng");
         }
+        log.debug("[orderId={}] RULE_PASSED: Found {} delivery record(s)", orderId, deliveries.size());
 
-        Delivery delivery = deliveries.get(0); // Lấy delivery đầu tiên
-        if (delivery.getActualDeliveryTime() == null) {
-            return new ValidationResult(false, "Đơn hàng chưa hoàn thành giao hàng");
-        }
-
-        // 5. Kiểm tra thời gian xuất hóa đơn (theo cấu hình invoice.expiry.days)
-        Timestamp deliveryTime = delivery.getActualDeliveryTime();
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-        long daysDiff = ChronoUnit.DAYS.between(deliveryTime.toLocalDateTime(), now.toLocalDateTime());
-        
-        if (daysDiff > invoiceExpiryDays) {
-            return new ValidationResult(false, 
-                String.format("Đã quá hạn xuất hóa đơn (quá %d ngày từ khi hoàn thành giao hàng)", 
-                invoiceExpiryDays));
-        }
-
-        log.info("Đơn hàng {} đạt điều kiện xuất hóa đơn", orderId);
+        log.info("===== SUCCESS: Order {} passed all eligibility checks =====", orderId);
         return new ValidationResult(true, "Đơn hàng đạt điều kiện xuất hóa đơn");
     }
 
@@ -396,15 +389,25 @@ public class InvoiceService {
     /**
      * Kiểm tra trạng thái đơn hàng có hợp lệ để xuất hóa đơn không
      * Chấp nhận các trạng thái: Delivered, Completed, Shipped (đã giao hàng thành công)
+     * 
+     * Database statuses (from status table):
+     * - Pending (id=1) - NOT allowed
+     * - Completed (id=2) - ALLOWED
+     * - Cancelled (id=3) - NOT allowed
+     * - Processing (id=4) - NOT allowed
+     * - Shipped (id=5) - ALLOWED
+     * - Delivered (id=6) - ALLOWED
+     * - FAILED (id=50) - NOT allowed
      */
     private boolean isValidOrderStatus(String statusName) {
-        // Chấp nhận cả chữ hoa và chữ thường, cũng như cả viết tắt và viết đầy đủ
-        return "DELIVERED".equalsIgnoreCase(statusName) || 
-               "COMPLETED".equalsIgnoreCase(statusName) ||
-               "SHIPPED".equalsIgnoreCase(statusName) ||
-               "Delivered".equals(statusName) ||
-               "Completed".equals(statusName) ||
-               "Shipped".equals(statusName);
+        if (statusName == null) {
+            return false;
+        }
+        // Use equalsIgnoreCase to handle case variations from database
+        // Valid statuses: Delivered, Completed, Shipped (case-insensitive match)
+        return statusName.equalsIgnoreCase("DELIVERED") || 
+               statusName.equalsIgnoreCase("COMPLETED") ||
+               statusName.equalsIgnoreCase("SHIPPED");
     }
 
     /**

@@ -54,10 +54,17 @@ export const invoiceService = {
 	 * Check if an order is eligible for invoice creation
 	 */
 	checkEligibility: async (orderId: number): Promise<InvoiceEligibilityResponse> => {
-		const { data } = await api.get<ApiResponse<InvoiceEligibilityResponse>>(
-			`/invoices/check-eligibility/${orderId}`
-		)
-		return data.data
+		console.log(`[invoiceService] Calling GET /invoices/check-eligibility/${orderId}`)
+		try {
+			const { data } = await api.get<ApiResponse<InvoiceEligibilityResponse>>(
+				`/invoices/check-eligibility/${orderId}`
+			)
+			console.log('[invoiceService] checkEligibility response:', data)
+			return data.data
+		} catch (error) {
+			console.error('[invoiceService] checkEligibility error:', error)
+			throw error
+		}
 	},
 
 	/**

@@ -89,10 +89,21 @@ export default function InvoiceButton({
 			
 			let eligibility
 			try {
+				console.log('[InvoiceButton] Checking eligibility for orderId:', orderId)
 				eligibility = await invoiceService.checkEligibility(orderId)
+				console.log('[InvoiceButton] Eligibility response:', {
+					orderId: eligibility.orderId,
+					eligible: eligibility.eligible,
+					message: eligibility.message,
+				})
 			} catch (error: unknown) {
 				messageApi.destroy()
 				const axiosError = error as { response?: { status?: number; data?: { message?: string } } }
+				console.error('[InvoiceButton] Error checking eligibility:', {
+					status: axiosError.response?.status,
+					errorMsg: axiosError.response?.data?.message,
+					fullError: error,
+				})
 				
 				if (axiosError.response?.status === 500) {
 					messageApi.error('Lỗi hệ thống khi kiểm tra điều kiện. Vui lòng thử lại sau.')
@@ -107,6 +118,7 @@ export default function InvoiceButton({
 			
 			if (!eligibility.eligible) {
 				messageApi.destroy()
+				console.warn('[InvoiceButton] Order not eligible. Reason:', eligibility.message)
 				messageApi.warning({
 					content: eligibility.message || 'Đơn hàng chưa đủ điều kiện để xuất hóa đơn',
 					duration: 4,
