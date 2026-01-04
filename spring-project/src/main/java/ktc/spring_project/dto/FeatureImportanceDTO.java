@@ -16,6 +16,16 @@ public class FeatureImportanceDTO {
     private String description;
     private List<String> insights;
     
+    // Constructor matching the new package signature
+    public FeatureImportanceDTO(String featureName, Double importance, String description, List<String> insights) {
+        this.feature = featureName;
+        this.featureName = featureName;
+        this.importance = importance;
+        this.description = description;
+        this.insights = insights;
+    }
+    
+    // Legacy constructor
     public FeatureImportanceDTO(String feature, Double importance, String description) {
         this.feature = feature;
         this.featureName = feature;
@@ -24,4 +34,6 @@ public class FeatureImportanceDTO {
         this.insights = List.of();
     }
 }
+
+
 

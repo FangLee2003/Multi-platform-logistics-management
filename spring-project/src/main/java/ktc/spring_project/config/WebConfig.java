@@ -46,10 +46,11 @@ public class WebConfig implements WebMvcConfigurer {
                 // Cho phép frontend từ các domain này truy cập
                 // localhost:3000 - thường là React development server
                 // localhost:3001 - có thể là Next.js hoặc React app khác
-                .allowedOriginPatterns("http://localhost:3000", "http://localhost:3001", "http://localhost:5173")
+                // localhost:5173 - Vite dev server
+                .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*", "https://*")
 
                 // Cho phép các HTTP methods
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
 
                 // Cho phép tất cả headers trong request
                 .allowedHeaders("*")

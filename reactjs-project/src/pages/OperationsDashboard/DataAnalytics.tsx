@@ -75,7 +75,7 @@ const categorizeFeatures = (features: FeatureImportance[]) => {
   };
   
   features.forEach((feature) => {
-    const name = feature.featureName.toLowerCase();
+    const name = feature.featureName?.toLowerCase() || '';
     if (name.includes('inventory') || name.includes('stock') || name.includes('min_bank')) {
       categories['Inventory'].count++;
       categories['Inventory'].totalImportance += feature.importance;
@@ -162,17 +162,7 @@ export default function DataAnalytics() {
       
       setOverview(overviewData);
       setCorrelation(correlationData);
-      
-      // Map backend response to match frontend expectation
-      const mappedFeatures = featuresData.map(f => ({
-        ...f,
-        featureName: f.feature || f.featureName || 'Unknown',
-        importance: f.importance || 0,
-        description: f.description || '',
-        insights: f.insights || []
-      }));
-      
-      setFeatureImportance(mappedFeatures);
+      setFeatureImportance(featuresData);
       
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
@@ -185,6 +175,10 @@ export default function DataAnalytics() {
       
       // Set empty fallback data to prevent crash
       setOverview({
+        totalProducts: 0,
+        backorderProducts: 0,
+        nonBackorderProducts: 0,
+        backorderRate: 0,
         totalDistance: 0,
         totalDeliveries: 0,
         efficiencyScore: 0,
@@ -253,7 +247,7 @@ export default function DataAnalytics() {
   
   // Filtered features for table
   const filteredFeatures = featureImportance
-    .filter((f) => f.featureName.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((f) => f.featureName?.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => b.importance - a.importance);
 
   return (
@@ -273,33 +267,63 @@ export default function DataAnalytics() {
         {overview && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow p-5 border-l-4 border-blue-500 hover:shadow-md transition-shadow">
-              <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Total Deliveries</h3>
+              <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Total Products</h3>
               <p className="text-2xl md:text-3xl font-bold text-gray-800">
-                {overview.totalDeliveries?.toLocaleString() || '0'}
+                {overview.totalProducts?.toLocaleString() || '0'}
               </p>
             </div>
             <div className="bg-white rounded-lg shadow p-5 border-l-4 border-green-500 hover:shadow-md transition-shadow">
-              <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Total Distance (km)</h3>
-              <p className="text-2xl md:text-3xl font-bold text-green-600">
-                {overview.totalDistance?.toFixed(1) || '0'}
+              <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Backorder Products</h3>
+              <p className="text-2xl md:text-3xl font-bold text-red-600">
+                {overview.backorderProducts?.toLocaleString() || '0'}
               </p>
             </div>
             <div className="bg-white rounded-lg shadow p-5 border-l-4 border-purple-500 hover:shadow-md transition-shadow">
-              <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Efficiency Score</h3>
+              <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Backorder Rate</h3>
               <p className="text-2xl md:text-3xl font-bold text-purple-600">
-                {overview.efficiencyScore?.toFixed(1) || '0'}%
+                {overview.backorderRate?.toFixed(2) || '0'}%
               </p>
             </div>
             <div className="bg-white rounded-lg shadow p-5 border-l-4 border-orange-500 hover:shadow-md transition-shadow">
-              <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Avg Cost/km</h3>
-              <p className="text-2xl md:text-3xl font-bold text-orange-600">
-                {overview.avgCostPerKm?.toLocaleString() || '0'} VND
+              <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Non-Backorder</h3>
+              <p className="text-2xl md:text-3xl font-bold text-green-600">
+                {overview.nonBackorderProducts?.toLocaleString() || '0'}
               </p>
             </div>
           </div>
         )}
 
         {/* Feature Importance Section */}
+        {featureImportance.length === 0 && !loading && (
+          <div className="bg-white rounded-lg shadow p-8 mb-6">
+            <div className="text-center">
+              <svg
+                className="w-16 h-16 text-gray-400 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">No Feature Data Available</h3>
+              <p className="text-gray-600 mb-4">
+                Feature importance data is not available. Please check if the backend service is running and the database has data.
+              </p>
+              <button
+                onClick={loadAnalyticsData}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              >
+                Retry Load Data
+              </button>
+            </div>
+          </div>
+        )}
+
         {featureImportance.length > 0 && (
           <>
             {/* Row 1: Bar Chart + Pareto Chart */}
@@ -647,14 +671,16 @@ export default function DataAnalytics() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-600 mb-2">{feature.description}</p>
-                  <ul className="text-xs text-gray-500 space-y-1">
-                    {feature.insights.slice(0, 2).map((insight, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <span className="mr-2 text-blue-500">•</span>
-                        <span>{insight}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {feature.insights && feature.insights.length > 0 && (
+                    <ul className="text-xs text-gray-500 space-y-1">
+                      {feature.insights.slice(0, 2).map((insight, idx) => (
+                        <li key={idx} className="flex items-start">
+                          <span className="mr-2 text-blue-500">•</span>
+                          <span>{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
@@ -691,8 +717,14 @@ export default function DataAnalytics() {
           </>
         )}
 
-        {/* Legacy Correlation Analysis - Hidden until backend implements distribution data */}
-        {false && correlation && (
+        {/* Legacy Correlation Analysis - Only show when distribution data is available */}
+        {correlation && 
+         correlation.potentialIssueDistribution && 
+         correlation.deckRiskDistribution && 
+         correlation.oeConstraintDistribution && 
+         correlation.ppapRiskDistribution && 
+         correlation.leadTimeDistribution && 
+         correlation.inventoryLevelDistribution && (
           <>
             {/* Risk Factors Analysis */}
             <div className="bg-white rounded-lg shadow p-5 mb-4">
@@ -704,7 +736,7 @@ export default function DataAnalytics() {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">Potential Issue</h3>
                   <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={calculateBackorderRate(correlation.potentialIssueDistribution)}>
+                    <BarChart data={calculateBackorderRate(correlation.potentialIssueDistribution || [])}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis dataKey="category" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 10 }} />
@@ -719,7 +751,7 @@ export default function DataAnalytics() {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">Deck Risk</h3>
                   <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={calculateBackorderRate(correlation.deckRiskDistribution)}>
+                    <BarChart data={calculateBackorderRate(correlation.deckRiskDistribution || [])}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis dataKey="category" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 10 }} />
@@ -734,7 +766,7 @@ export default function DataAnalytics() {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">OE Constraint</h3>
                   <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={calculateBackorderRate(correlation.oeConstraintDistribution)}>
+                    <BarChart data={calculateBackorderRate(correlation.oeConstraintDistribution || [])}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis dataKey="category" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 10 }} />
@@ -749,7 +781,7 @@ export default function DataAnalytics() {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">PPAP Risk</h3>
                   <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={calculateBackorderRate(correlation.ppapRiskDistribution)}>
+                    <BarChart data={calculateBackorderRate(correlation.ppapRiskDistribution || [])}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis dataKey="category" tick={{ fontSize: 10 }} />
                       <YAxis tick={{ fontSize: 10 }} />
@@ -770,7 +802,7 @@ export default function DataAnalytics() {
                   Lead Time Impact
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={calculateBackorderRate(correlation.leadTimeDistribution)}>
+                  <LineChart data={calculateBackorderRate(correlation.leadTimeDistribution || [])}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="category" tick={{ fontSize: 10 }} />
                     <YAxis yAxisId="left" stroke="#3b82f6" tick={{ fontSize: 10 }} />
@@ -807,7 +839,7 @@ export default function DataAnalytics() {
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
-                      data={correlation.inventoryLevelDistribution as any[]}
+                      data={correlation.inventoryLevelDistribution as any[] || []}
                       cx="50%"
                       cy="50%"
                       labelLine={true}
@@ -818,7 +850,7 @@ export default function DataAnalytics() {
                       nameKey="category"
                       style={{ fontSize: '12px', fontWeight: 500 }}
                     >
-                      {correlation.inventoryLevelDistribution.map((entry, index) => (
+                      {(correlation.inventoryLevelDistribution || []).map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -845,12 +877,12 @@ export default function DataAnalytics() {
                       {
                         factor: 'Potential Issue',
                         backorderRate:
-                          (correlation.potentialIssueDistribution.reduce(
-                            (sum, item) => sum + item.backorderCount,
+                          ((correlation.potentialIssueDistribution || []).reduce(
+                            (sum: number, item: CategoryDistribution) => sum + item.backorderCount,
                             0
                           ) /
-                            correlation.potentialIssueDistribution.reduce(
-                              (sum, item) => sum + item.count,
+                            (correlation.potentialIssueDistribution || []).reduce(
+                              (sum: number, item: CategoryDistribution) => sum + item.count,
                               0
                             )) *
                           100,
@@ -858,12 +890,12 @@ export default function DataAnalytics() {
                       {
                         factor: 'Deck Risk',
                         backorderRate:
-                          (correlation.deckRiskDistribution.reduce(
-                            (sum, item) => sum + item.backorderCount,
+                          ((correlation.deckRiskDistribution || []).reduce(
+                            (sum: number, item: CategoryDistribution) => sum + item.backorderCount,
                             0
                           ) /
-                            correlation.deckRiskDistribution.reduce(
-                              (sum, item) => sum + item.count,
+                            (correlation.deckRiskDistribution || []).reduce(
+                              (sum: number, item: CategoryDistribution) => sum + item.count,
                               0
                             )) *
                           100,
@@ -871,12 +903,12 @@ export default function DataAnalytics() {
                       {
                         factor: 'OE Constraint',
                         backorderRate:
-                          (correlation.oeConstraintDistribution.reduce(
-                            (sum, item) => sum + item.backorderCount,
+                          ((correlation.oeConstraintDistribution || []).reduce(
+                            (sum: number, item: CategoryDistribution) => sum + item.backorderCount,
                             0
                           ) /
-                            correlation.oeConstraintDistribution.reduce(
-                              (sum, item) => sum + item.count,
+                            (correlation.oeConstraintDistribution || []).reduce(
+                              (sum: number, item: CategoryDistribution) => sum + item.count,
                               0
                             )) *
                           100,
@@ -884,12 +916,12 @@ export default function DataAnalytics() {
                       {
                         factor: 'PPAP Risk',
                         backorderRate:
-                          (correlation.ppapRiskDistribution.reduce(
-                            (sum, item) => sum + item.backorderCount,
+                          ((correlation.ppapRiskDistribution || []).reduce(
+                            (sum: number, item: CategoryDistribution) => sum + item.backorderCount,
                             0
                           ) /
-                            correlation.ppapRiskDistribution.reduce(
-                              (sum, item) => sum + item.count,
+                            (correlation.ppapRiskDistribution || []).reduce(
+                              (sum: number, item: CategoryDistribution) => sum + item.count,
                               0
                             )) *
                           100,

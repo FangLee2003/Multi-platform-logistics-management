@@ -194,9 +194,8 @@ authProvider.setUserDetailsService(userDetailsService);
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
 
-        // Cho phép tất cả các origin truy cập API (thích hợp cho môi trường
-        // development)
-        configuration.setAllowedOriginPatterns(java.util.List.of("*"));
+        // Cho phép tất cả các origin truy cập API
+        configuration.addAllowedOrigin("*");
 
         // Cho phép các HTTP methods
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
@@ -204,8 +203,8 @@ authProvider.setUserDetailsService(userDetailsService);
         // Cho phép tất cả headers
         configuration.setAllowedHeaders(java.util.List.of("*"));
 
-        // Cho phép gửi credentials (cookies, authorization headers)
-        configuration.setAllowCredentials(true);
+        // Do NOT allow credentials with wildcard origin
+        configuration.setAllowCredentials(false);
 
         // Apply configuration cho tất cả API endpoints
         org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();

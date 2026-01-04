@@ -1,8 +1,15 @@
 export interface AnalyticsOverview {
-  totalDistance: number;
-  totalDeliveries: number;
-  efficiencyScore: number;
-  avgCostPerKm: number;
+  totalProducts?: number;
+  backorderProducts?: number;
+  nonBackorderProducts?: number;
+  backorderRate?: number;
+  backorderAverages?: Record<string, any>;
+  nonBackorderAverages?: Record<string, any>;
+  // Legacy fields for backward compatibility
+  totalDistance?: number;
+  totalDeliveries?: number;
+  efficiencyScore?: number;
+  avgCostPerKm?: number;
 }
 
 export interface CategoryDistribution {
@@ -19,15 +26,20 @@ export interface CorrelationPoint {
 }
 
 export interface CorrelationAnalysis {
-  correlations?: CorrelationPoint[];
+  correlations: CorrelationPoint[];
+  potentialIssueDistribution?: CategoryDistribution[];
+  deckRiskDistribution?: CategoryDistribution[];
+  oeConstraintDistribution?: CategoryDistribution[];
+  ppapRiskDistribution?: CategoryDistribution[];
+  leadTimeDistribution?: CategoryDistribution[];
+  inventoryLevelDistribution?: CategoryDistribution[];
 }
 
 export interface FeatureImportance {
-  feature: string;
+  featureName: string;
   importance: number;
-  featureName?: string; // Alias for compatibility
-  description?: string;
-  insights?: string[];
+  description: string;
+  insights: string[];
 }
 
 export interface ApiResponse<T> {
@@ -35,8 +47,5 @@ export interface ApiResponse<T> {
   message: string;
   data: T;
 }
-
-
-
 
 

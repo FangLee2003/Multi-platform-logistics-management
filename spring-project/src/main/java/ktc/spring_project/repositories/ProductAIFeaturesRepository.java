@@ -159,3 +159,4 @@ public interface ProductAIFeaturesRepository extends JpaRepository<ProductAIFeat
     List<Map<String, Object>> getFeatureImportanceRanking();
 }
 
+

@@ -36,8 +36,12 @@ const analyticsAPI = {
         message: error.message,
         url: `${API_BASE_URL}/analytics/overview`
       });
-      // Return empty fallback data
+      // Return empty fallback data with correct format
       return {
+        totalProducts: 0,
+        backorderProducts: 0,
+        nonBackorderProducts: 0,
+        backorderRate: 0,
         totalDistance: 0,
         totalDeliveries: 0,
         efficiencyScore: 0,
