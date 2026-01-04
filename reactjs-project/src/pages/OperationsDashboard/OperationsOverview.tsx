@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle } from 'react';
 import MonthlyRevenueChart from '../../components/MonthlyRevenueChart';
+import GlassCard from '../../components/GlassCard';
 import { TfiPackage } from 'react-icons/tfi';
 import { Truck } from 'lucide-react';
 import { FiCheckSquare, FiDollarSign } from 'react-icons/fi';
@@ -51,12 +52,14 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
   }), [onRefresh]);
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <GlassCard className="space-y-6">
+      <h2 className="text-xl font-semibold text-gray-800">Operations Overview</h2>
+      
       {/* Overview Stats - Mobile optimized */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+        <div className="bg-white rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-2 md:mb-4">
-              <h3 className="text-gray-700 font-medium text-xs md:text-base">{""}</h3>
+              <h3 className="text-gray-700 font-medium text-xs md:text-base">{"Today's Orders"}</h3>
             <span className="text-xl md:text-2xl"><TfiPackage size={window.innerWidth < 768 ? 20 : 24} color="#3b82f6" /></span>
           </div>
           {isLoading ? (
@@ -77,7 +80,7 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
           )}
         </div>
         
-        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+        <div className="bg-white rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-2 md:mb-4">
               <h3 className="text-gray-700 font-medium text-xs md:text-base">{"Active Vehicles"}</h3>
             <span className="text-xl md:text-2xl"><Truck size={window.innerWidth < 768 ? 20 : 24} color="#f59e0b" /></span>
@@ -95,9 +98,9 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
           )}
         </div>
         
-        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+        <div className="bg-white rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-2 md:mb-4">
-              <h3 className="text-gray-700 font-medium text-xs md:text-base">{""}</h3>
+              <h3 className="text-gray-700 font-medium text-xs md:text-base">{"Today's Revenue"}</h3>
             <span className="text-xl md:text-2xl"><FiDollarSign size={window.innerWidth < 768 ? 20 : 24} color="#10b981" /></span>
           </div>
           {isLoading ? (
@@ -120,7 +123,7 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
           )}
         </div>
         
-        <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+        <div className="bg-white rounded-2xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-2 md:mb-4">
               <h3 className="text-gray-700 font-medium text-xs md:text-base">{"Completed Orders"}</h3>
             <span className="text-xl md:text-2xl"><FiCheckSquare size={window.innerWidth < 768 ? 20 : 24} color="#8b5cf6"/></span>
@@ -155,7 +158,7 @@ const OperationsOverview = forwardRef<OperationsOverviewRef, OperationsOverviewP
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
       </div>
-    </div>
+    </GlassCard>
   );
 });
 

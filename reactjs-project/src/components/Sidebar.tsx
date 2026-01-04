@@ -85,7 +85,7 @@ export default function Sidebar<T extends TabType>({
       monitoring: "Monitoring",
       staff: "Staff",
       invoices: "Invoices",
-      analytics: "Data Analytics"
+      analytics: "Analytics"
     },
     fleet: {
       vehicles: "Vehicles",

@@ -55,7 +55,7 @@ export default function AccountHeader({
 
           <Typography.Title level={4} style={{ margin: 0 }}>
             <Link
-              href="/account"
+              href="/"
               style={{ color: "#fff", textDecoration: "none" }}
             >
               FastRoute Logistics

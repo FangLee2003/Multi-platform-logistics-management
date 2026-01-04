@@ -118,12 +118,18 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
             <div className="text-sm text-gray-600 mt-1">
               Order #{invoice.orderId} - {invoiceAPI.formatCurrency(invoice.totalAmount)}
             </div>
+            {invoice.customerName && (
+              <div className="text-sm text-gray-600 mt-1">
+                Customer: <span className="font-medium text-gray-800">{invoice.customerName}</span>
+              </div>
+            )}
           </div>
 
           {/* Email Input */}
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               {"Recipient Email"}
+              <span className="text-gray-500 font-normal text-xs ml-1">(Default: Customer Email)</span>
             </label>
             <input
               id="email"
@@ -131,7 +137,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={"Enter email address"}
+              placeholder={invoice.customerEmail || "Enter email address"}
               disabled={isLoading}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${
                 email && !isValidEmail ? 'border-red-500' : 'border-gray-300'
@@ -140,6 +146,11 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({
             {email && !isValidEmail && (
               <p className="text-red-500 text-sm mt-1">
                 {"Please enter a valid email address"}
+              </p>
+            )}
+            {!email && invoice.customerEmail && (
+              <p className="text-blue-500 text-sm mt-1">
+                ✓ Will be sent to: <span className="font-medium">{invoice.customerEmail}</span>
               </p>
             )}
           </div>

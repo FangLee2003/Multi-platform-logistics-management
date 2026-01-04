@@ -195,7 +195,7 @@ export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChar
   };
 
   return (
-    <div className="bg-white/40 backdrop-blur-md rounded-xl p-6 border border-white/20 shadow-lg">
+    <div className="bg-white rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-800">{"Monthly Revenue"}</h3>
         <div className="flex gap-2">

@@ -35,3 +35,8 @@ NEXTJS_I18N_FIXES.md
 *.backup
 *.tsbuildinfo
 /spring-project/invoices/pdfs
+*.md
+*.local
+*.log
+*.sh
+verify_kpi_data.sql

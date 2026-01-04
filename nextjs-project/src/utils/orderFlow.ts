@@ -36,7 +36,7 @@ export interface ProductPayload {
   weight: number;
   volume?: number | null;
   fragile: boolean;
-  createdByUserId: number;
+  createdByUserId?: number; // Optional - can cause DB errors if user doesn't exist
   unitPrice: number;
   categoryId: number;
   productStatus: number;
@@ -160,7 +160,7 @@ export const createProductPayload = (
     weight: item.weight,
     volume: volume > 0 ? parseFloat(volume.toFixed(3)) : null,
     fragile: item.is_fragile || false,
-    createdByUserId: storeId,
+    // createdByUserId removed - causing database constraint errors
     unitPrice: item.unitPrice || 0,
     categoryId: 1,
     productStatus: 1, // ACTIVE

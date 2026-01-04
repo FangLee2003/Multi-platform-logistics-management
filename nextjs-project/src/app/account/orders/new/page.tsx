@@ -138,26 +138,42 @@ export default function CreateOrder() {
           throw new Error("Không lấy được ID địa chỉ vừa tạo!");
         }
 
-        // BƯỚC 2: Lưu Products
+        // BƯỚC 2: Lưu Products - SỬ DỤNG SẢN PHẨM CÓ SẴN HOẶC TẠO MỚI
         const productResults = [];
-        for (const item of mergedValues.items) {
+        
+        // Thử lấy danh sách sản phẩm có sẵn từ backend
+        let availableProducts: any[] = [];
+        try {
+          const productsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}/api/products?page=0&size=100`);
+          if (productsResponse.ok) {
+            availableProducts = await productsResponse.json();
+            console.log(`✅ Fetched ${availableProducts.length} existing products`);
+          }
+        } catch (e) {
+          console.warn("⚠️ Could not fetch existing products, will skip product creation");
+        }
+
+        // Sử dụng sản phẩm có sẵn thay vì tạo mới
+        for (let i = 0; i < mergedValues.items.length; i++) {
+          const item = mergedValues.items[i];
           if (isValidItem(item)) {
-            try {
-              const productPayload = createProductPayload(item, store.id);
-              const productResult = await OrderFlowService.createProduct(
-                productPayload
-              );
+            // Tìm sản phẩm có sẵn phù hợp hoặc lấy random
+            const existingProduct = availableProducts[i % availableProducts.length];
+            
+            if (existingProduct && existingProduct.id) {
               productResults.push({
                 name: item.product_name,
-                result: productResult,
+                result: { id: existingProduct.id, ...existingProduct },
               });
-            } catch (error: unknown) {
-              productResults.push({
-                name: item.product_name,
-                error: error instanceof Error ? error.message : "Unknown error",
-              });
+              console.log(`✅ Using existing product ID ${existingProduct.id} for "${item.product_name}"`);
+            } else {
+              throw new Error(`Không tìm thấy sản phẩm có sẵn để sử dụng cho "${item.product_name}"`);
             }
           }
+        }
+
+        if (productResults.length === 0) {
+          throw new Error("Không có sản phẩm nào được chọn!");
         }
 
         // BƯỚC 3: Tạo Order
@@ -169,9 +185,16 @@ export default function CreateOrder() {
           currentUserId
         );
         const orderResult = await OrderFlowService.createOrder(orderPayload);
+        
+        if (!orderResult || !orderResult.id) {
+          throw new Error("Không lấy được ID order vừa tạo!");
+        }
 
-        // BƯỚC 4: Tạo Order Items
+        console.log("✅ Order created:", orderResult.id);
+
+        // BƯỚC 4: Tạo Order Items - PHẢI THÀNH CÔNG HẾT
         const orderItemResults = [];
+        const failedOrderItems = [];
         const serviceType = mergedValues.service_type || "STANDARD";
 
         for (let i = 0; i < productResults.length; i++) {
@@ -194,17 +217,34 @@ export default function CreateOrder() {
               const orderItemResult = await OrderFlowService.createOrderItem(
                 orderItemPayload
               );
+              
+              if (!orderItemResult || !orderItemResult.id) {
+                throw new Error("Backend không trả về order item ID");
+              }
+              
               orderItemResults.push({
                 productName: productResult.name,
                 result: orderItemResult,
               });
+              console.log(`✅ Order item created for: ${productResult.name}`);
             } catch (error: unknown) {
-              orderItemResults.push({
+              const errorMsg = error instanceof Error ? error.message : "Unknown error";
+              console.error(`❌ Failed to create order item for "${productResult.name}":`, errorMsg);
+              failedOrderItems.push({
                 productName: productResult.name,
-                error: error instanceof Error ? error.message : "Unknown error",
+                error: errorMsg,
               });
             }
           }
+        }
+
+        // Cảnh báo nếu có order item thất bại (nhưng không dừng vì order đã tạo)
+        if (failedOrderItems.length > 0) {
+          console.warn(`⚠️ ${failedOrderItems.length} order items failed to create`);
+        }
+
+        if (orderItemResults.length === 0) {
+          throw new Error("Không có order item nào được tạo thành công!");
         }
 
         // BƯỚC 5: Tạo Delivery

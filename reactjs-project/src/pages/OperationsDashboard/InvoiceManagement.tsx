@@ -11,6 +11,7 @@ import {
 import { invoiceAPI, type Invoice, type InvoiceStatus } from '../../services/invoiceAPI';
 import InvoiceDetailModal from './InvoiceDetailModal';
 import SendEmailModal from './SendEmailModal';
+import GlassCard from '../../components/GlassCard';
 
 interface InvoiceManagementProps {
   // Props từ parent component nếu cần
@@ -121,7 +122,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-lg rounded-xl shadow-lg border border-white/30 p-6">
+    <GlassCard className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
@@ -192,6 +193,9 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
                 Customer
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Amount
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -232,10 +236,18 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
                     <div className="text-sm text-gray-900">
                       {invoice.customerName || '-'}
                     </div>
-                    {invoice.customerEmail && (
-                      <div className="text-sm text-gray-500">
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {invoice.customerEmail ? (
+                      <a 
+                        href={`mailto:${invoice.customerEmail}`}
+                        className="text-sm text-blue-600 hover:text-blue-900 hover:underline break-all"
+                        title={invoice.customerEmail}
+                      >
                         {invoice.customerEmail}
-                      </div>
+                      </a>
+                    ) : (
+                      <span className="text-sm text-gray-400">-</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -328,7 +340,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = () => {
           setSendingId={setSendingEmailId}
         />
       )}
-    </div>
+    </GlassCard>
   );
 };
 

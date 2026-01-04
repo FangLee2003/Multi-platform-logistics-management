@@ -359,7 +359,7 @@ export default function StepStoreInfo({ store }: Props) {
           <Form.Item
             name="addressType"
             label="Delivery Address Type"
-            initialValue="DELIVERY"
+            initialValue="HOME"
             rules={[{ required: true, message: "Please select address type!" }]}
           >
             <Select placeholder="Select address type">
