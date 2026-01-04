@@ -17,9 +17,8 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
-
-
+    @Column(name = "sku", length = 100, unique = true)
+    private String sku;  // SKU - Stock Keeping Unit (nullable, unique nếu có)
 
     @Column(nullable = false, length = 255)
     private String name;
@@ -84,7 +83,13 @@ public class Product {
         this.id = id;
     }
 
+    public String getSku() {
+        return sku;
+    }
 
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
 
     public String getName() {
         return name;

@@ -1,9 +1,10 @@
 import axios from 'axios';
-import { 
-  AnalyticsOverview, 
-  CorrelationAnalysis, 
-  FeatureImportance, 
-  ApiResponse 
+import {
+  AnalyticsOverview,
+  CorrelationAnalysis,
+  FeatureImportance,
+  BackorderPrediction,
+  ApiResponse
 } from '../types/Analytics';
 
 const API_BASE_URL = 'http://localhost:8080/api';
@@ -22,7 +23,7 @@ const analyticsAPI = {
     try {
       const response = await axios.get<AnalyticsOverview>(
         `${API_BASE_URL}/analytics/overview`,
-        { 
+        {
           headers: getAuthHeaders(),
           timeout: 10000 // 10 second timeout
         }
@@ -54,7 +55,7 @@ const analyticsAPI = {
     try {
       const response = await axios.get<CorrelationAnalysis>(
         `${API_BASE_URL}/analytics/correlation`,
-        { 
+        {
           headers: getAuthHeaders(),
           timeout: 10000
         }
@@ -73,7 +74,7 @@ const analyticsAPI = {
     try {
       const response = await axios.get<FeatureImportance[]>(
         `${API_BASE_URL}/analytics/feature-importance`,
-        { 
+        {
           headers: getAuthHeaders(),
           timeout: 10000
         }
@@ -87,7 +88,26 @@ const analyticsAPI = {
       return [];
     }
   },
+
+  getBackorderPredictions: async (limit: number = 20): Promise<BackorderPrediction[]> => {
+    try {
+      const response = await axios.get<BackorderPrediction[]>(
+        `${API_BASE_URL}/analytics/backorder-predictions`,
+        {
+          headers: getAuthHeaders(),
+          params: { limit },
+          timeout: 10000
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Error fetching backorder predictions:', {
+        status: error.response?.status,
+        message: error.message
+      });
+      return [];
+    }
+  },
 };
 
 export default analyticsAPI;
-

@@ -157,6 +157,31 @@ public interface ProductAIFeaturesRepository extends JpaRepository<ProductAIFeat
         ORDER BY importance DESC
         """, nativeQuery = true)
     List<Map<String, Object>> getFeatureImportanceRanking();
-}
-
-
+    
+    // Get high-risk backorder predictions
+    @Query(value = """
+        SELECT 
+            sku,
+            national_inv as currentStock,
+            lead_time as leadTime,
+            in_transit_qty as inTransitQty,
+            forecast_3_month as forecast3Month,
+            sales_3_month as sales3Month,
+            min_bank as minBank,
+            pieces_past_due as piecesPastDue,
+            perf_6_month_avg as perf6MonthAvg,
+            potential_issue as potentialIssue,
+            deck_risk as deckRisk,
+            stop_auto_buy as stopAutoBuy,
+            rev_stop as revStop,
+            went_on_backorder as wentOnBackorder
+        FROM product_ai_features
+        WHERE went_on_backorder = 'Yes'
+        ORDER BY 
+            CASE WHEN national_inv = 0 THEN 1 ELSE 0 END DESC,
+            pieces_past_due DESC,
+            national_inv ASC,
+            forecast_3_month DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getHighRiskBackorderPredictions(@Param("limit") int limit);}

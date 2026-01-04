@@ -1,14 +1,15 @@
-import { Form, Input, InputNumber, Button, Table, Checkbox } from "antd";
+import { Form, Input, InputNumber, Button, Table, Checkbox, Select, message } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
   DownloadOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { OrderItem } from "@/types/orders";
 import { FormInstance } from "antd";
 import ExcelUploadModal from "./ExcelUploadModal";
+import { Product } from "@/types/Product";
 
 interface Props {
   form: FormInstance;
@@ -16,6 +17,29 @@ interface Props {
 
 export default function StepOrderItems({ form }: Props) {
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  // Load danh sách sản phẩm có sẵn khi component mount
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoadingProducts(true);
+      try {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+        const response = await fetch(`${API_BASE_URL}/api/products?page=0&size=1000`);
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const data = await response.json();
+        setProducts(data);
+        console.log(`✅ Loaded ${data.length} products for selection`);
+      } catch (error) {
+        console.error('❌ Error loading products:', error);
+        message.error('Failed to load product list. Please refresh the page.');
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+    loadProducts();
+  }, []);
 
   const handleDownloadSample = () => {
     import("xlsx").then((XLSX) => {
@@ -55,6 +79,23 @@ export default function StepOrderItems({ form }: Props) {
     const currentItems: OrderItem[] = form.getFieldValue("items") || [];
     const updatedItems = [...currentItems, ...data];
     form.setFieldValue("items", updatedItems);
+  };
+
+  // Hàm xử lý khi chọn sản phẩm - tự động fill weight và fragile
+  const handleProductSelect = (productId: number, index: number) => {
+    const selectedProduct = products.find(p => p.id === productId);
+    if (selectedProduct) {
+      const items = form.getFieldValue("items") || [];
+      items[index] = {
+        ...items[index],
+        product_id: productId,
+        product_name: selectedProduct.name,
+        weight: selectedProduct.weight || items[index]?.weight,
+        is_fragile: selectedProduct.fragile ?? items[index]?.is_fragile,
+      };
+      form.setFieldValue("items", items);
+      console.log(`✅ Selected product: ${selectedProduct.name} (ID: ${productId})`);
+    }
   };
 
   return (
@@ -107,18 +148,38 @@ export default function StepOrderItems({ form }: Props) {
                 size="small"
                 columns={[
                   {
-                    title: "Product Name",
-                    key: "product_name",
+                    title: "Product",
+                    key: "product_id",
+                    width: 250,
                     render: (_, __, index) => (
-                      <Form.Item
-                        name={[index, "product_name"]}
-                        rules={[
-                          { required: true, message: "Enter product name" },
-                        ]}
-                        style={{ margin: 0 }}
-                      >
-                        <Input placeholder="Product Name" />
-                      </Form.Item>
+                      <>
+                        {/* Hidden field để lưu product_name */}
+                        <Form.Item name={[index, "product_name"]} hidden>
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={[index, "product_id"]}
+                          rules={[
+                            { required: true, message: "Select a product" },
+                          ]}
+                          style={{ margin: 0 }}
+                        >
+                          <Select
+                            showSearch
+                            placeholder="Select product..."
+                            loading={loadingProducts}
+                            optionFilterProp="children"
+                            filterOption={(input, option) =>
+                              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                            }
+                            onChange={(value) => handleProductSelect(value, index)}
+                            options={products.map(p => ({
+                              value: p.id,
+                              label: `${p.name} (Stock: ${p.stockQuantity || 0})`,
+                            }))}
+                          />
+                        </Form.Item>
+                      </>
                     ),
                   },
                   {

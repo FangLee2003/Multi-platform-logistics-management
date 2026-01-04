@@ -15,7 +15,8 @@ public class CreateProductRequestDTO {
 
     private Long categoryId;
     
-
+    @Size(max = 100, message = "SKU must not exceed 100 characters")
+    private String sku;  // SKU - optional, unique identifier
     
     @NotBlank(message = "Product name is required")
     @Size(max = 100, message = "Product name must not exceed 100 characters")
@@ -65,6 +66,9 @@ public class CreateProductRequestDTO {
 
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+    
+    public String getSku() { return sku; }
+    public void setSku(String sku) { this.sku = sku; }
     
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

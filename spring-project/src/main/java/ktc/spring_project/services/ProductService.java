@@ -171,6 +171,7 @@ public class ProductService {
     public Product createProductFromDto(ktc.spring_project.dtos.product.CreateProductRequestDTO dto, Authentication authentication) {
     // Không kiểm tra trùng id sản phẩm theo createdByUserId (id sản phẩm là tự sinh)
         Product product = new Product();
+        product.setSku(dto.getSku());  // Set SKU (nullable)
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());
         product.setUnitPrice(dto.getUnitPrice());

@@ -42,6 +42,24 @@ export interface FeatureImportance {
   insights: string[];
 }
 
+export interface BackorderPrediction {
+  sku: string;
+  productName: string;
+  currentStock: number;
+  backorderProbability: number;
+  recommendedQty: number;
+  priority: string;
+  leadTime?: number;
+  forecast3Month?: number;
+  minBank?: number;
+  inTransitQty?: number;
+  piecesPastDue?: number;
+  sales3Month?: number;
+  perf6MonthAvg?: number;
+  stopAutoBuy?: string;
+  revStop?: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message: string;

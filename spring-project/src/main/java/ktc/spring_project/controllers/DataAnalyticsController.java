@@ -3,6 +3,7 @@ package ktc.spring_project.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import ktc.spring_project.dto.AnalyticsOverviewDTO;
+import ktc.spring_project.dto.BackorderPredictionDTO;
 import ktc.spring_project.dto.CorrelationAnalysisDTO;
 import ktc.spring_project.dto.FeatureImportanceDTO;
 import ktc.spring_project.services.DataAnalyticsService;
@@ -54,6 +55,19 @@ public class DataAnalyticsController {
             return ResponseEntity.ok(features);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(null);
+        }
+    }
+    
+    @GetMapping("/backorder-predictions")
+    @Operation(summary = "Get backorder predictions", 
+               description = "Returns list of high-risk products predicted to backorder with actionable recommendations")
+    public ResponseEntity<List<BackorderPredictionDTO>> getBackorderPredictions(
+            @RequestParam(defaultValue = "20") int limit) {
+        try {
+            List<BackorderPredictionDTO> predictions = analyticsService.getBackorderPredictions(limit);
+            return ResponseEntity.ok(predictions);
+        } catch (Exception e) {
+            e.printStackTrace();            return ResponseEntity.status(500).body(null);
         }
     }
 }

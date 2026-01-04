@@ -21,6 +21,7 @@ export interface Order {
 }
 
 export interface OrderItem {
+  product_id?: number; // ID của sản phẩm được chọn từ database
   product_name: string;
   quantity: number;
   weight: number;

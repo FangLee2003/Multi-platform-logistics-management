@@ -138,43 +138,28 @@ export default function CreateOrder() {
           throw new Error("Không lấy được ID địa chỉ vừa tạo!");
         }
 
-        // BƯỚC 2: Lưu Products - SỬ DỤNG SẢN PHẨM CÓ SẴN HOẶC TẠO MỚI
-        const productResults = [];
+        // BƯỚC 2: Validate products - ĐÃ CHỌN TỪ DANH SÁCH CÓ SẴN
+        console.log("📦 Validating selected products...");
         
-        // Thử lấy danh sách sản phẩm có sẵn từ backend
-        let availableProducts: any[] = [];
-        try {
-          const productsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}/api/products?page=0&size=100`);
-          if (productsResponse.ok) {
-            availableProducts = await productsResponse.json();
-            console.log(`✅ Fetched ${availableProducts.length} existing products`);
-          }
-        } catch (e) {
-          console.warn("⚠️ Could not fetch existing products, will skip product creation");
+        // Kiểm tra tất cả items đều có product_id
+        const invalidItems = mergedValues.items.filter((item: any) => !item.product_id);
+        if (invalidItems.length > 0) {
+          throw new Error(`${invalidItems.length} items chưa chọn sản phẩm!`);
         }
 
-        // Sử dụng sản phẩm có sẵn thay vì tạo mới
-        for (let i = 0; i < mergedValues.items.length; i++) {
-          const item = mergedValues.items[i];
-          if (isValidItem(item)) {
-            // Tìm sản phẩm có sẵn phù hợp hoặc lấy random
-            const existingProduct = availableProducts[i % availableProducts.length];
-            
-            if (existingProduct && existingProduct.id) {
-              productResults.push({
-                name: item.product_name,
-                result: { id: existingProduct.id, ...existingProduct },
-              });
-              console.log(`✅ Using existing product ID ${existingProduct.id} for "${item.product_name}"`);
-            } else {
-              throw new Error(`Không tìm thấy sản phẩm có sẵn để sử dụng cho "${item.product_name}"`);
-            }
-          }
+        // Lấy danh sách product IDs đã chọn
+        const productIds = mergedValues.items
+          .filter((item: any) => item.product_id && isValidItem(item))
+          .map((item: any) => ({
+            productId: item.product_id,
+            productName: item.product_name || `Product ${item.product_id}`,
+          }));
+
+        if (productIds.length === 0) {
+          throw new Error("Không có sản phẩm nào hợp lệ!");
         }
 
-        if (productResults.length === 0) {
-          throw new Error("Không có sản phẩm nào được chọn!");
-        }
+        console.log(`✅ Using ${productIds.length} existing products:`, productIds);
 
         // BƯỚC 3: Tạo Order
         const currentUserId = getCurrentUserId();
@@ -192,25 +177,20 @@ export default function CreateOrder() {
 
         console.log("✅ Order created:", orderResult.id);
 
-        // BƯỚC 4: Tạo Order Items - PHẢI THÀNH CÔNG HẾT
+        // BƯỚC 4: Tạo Order Items - Sử dụng product_id đã chọn
         const orderItemResults = [];
         const failedOrderItems = [];
         const serviceType = mergedValues.service_type || "STANDARD";
 
-        for (let i = 0; i < productResults.length; i++) {
-          const productResult = productResults[i];
-          const originalItem = mergedValues.items[i];
+        for (let i = 0; i < mergedValues.items.length; i++) {
+          const item = mergedValues.items[i];
 
-          if (
-            productResult.result &&
-            originalItem &&
-            isValidItem(originalItem)
-          ) {
+          if (item && item.product_id && isValidItem(item)) {
             try {
               const orderItemPayload = createOrderItemPayload(
                 orderResult.id,
-                productResult.result.id,
-                originalItem,
+                item.product_id, // Sử dụng product_id đã chọn
+                item,
                 serviceType
               );
 
@@ -223,15 +203,15 @@ export default function CreateOrder() {
               }
               
               orderItemResults.push({
-                productName: productResult.name,
+                productName: item.product_name || `Product ${item.product_id}`,
                 result: orderItemResult,
               });
-              console.log(`✅ Order item created for: ${productResult.name}`);
+              console.log(`✅ Order item created for: ${item.product_name || item.product_id}`);
             } catch (error: unknown) {
               const errorMsg = error instanceof Error ? error.message : "Unknown error";
-              console.error(`❌ Failed to create order item for "${productResult.name}":`, errorMsg);
+              console.error(`❌ Failed to create order item for product ${item.product_id}:`, errorMsg);
               failedOrderItems.push({
-                productName: productResult.name,
+                productName: item.product_name || `Product ${item.product_id}`,
                 error: errorMsg,
               });
             }
@@ -266,9 +246,6 @@ export default function CreateOrder() {
 
         loadingMessage();
 
-        const successfulProducts = productResults.filter(
-          (p) => p.result
-        ).length;
         const successfulOrderItems = orderItemResults.filter(
           (oi) => oi.result
         ).length;
@@ -277,13 +254,13 @@ export default function CreateOrder() {
         // Log tổng kết chi tiết
         console.log("🎯 COMPLETE FLOW SUMMARY:");
         console.log("📍 Address:", addressResult);
-        console.log("📦 Products:", productResults);
+        console.log("📦 Products (selected):", productIds);
         console.log("📋 Order:", orderResult);
         console.log("📄 Order Items:", orderItemResults);
         console.log("🚚 Delivery:", deliveryResult);
 
         message.success(
-          `Tạo đơn hàng thành công!\n✅ Mã đơn hàng: ${orderResult.id}\n✅ ${successfulProducts} sản phẩm\n✅ ${successfulOrderItems} order items\n✅ Delivery: ${deliveryStatus}`
+          `Tạo đơn hàng thành công!\n✅ Mã đơn hàng: ${orderResult.id}\n✅ ${productIds.length} sản phẩm được chọn\n✅ ${successfulOrderItems} order items\n✅ Delivery: ${deliveryStatus}`
         );
 
         // Reset form sau khi tạo thành công

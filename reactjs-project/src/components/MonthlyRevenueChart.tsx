@@ -49,13 +49,22 @@ export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChar
 
   // Truyền dữ liệu chart theo VND gốc
   const processChartData = (data: MonthlyRevenueData[]) => {
-    // Map doanh thu đúng từng tháng 1-12, năm hiện tại
-    const currentYear = new Date().getFullYear();
+    console.log('🔍 Processing chart data, input:', data);
+    
+    // Lấy 12 tháng gần nhất, không phụ thuộc vào năm cụ thể
     const chartData = [];
     for (let month = 1; month <= 12; month++) {
-      const found = data.find(item => item.year === currentYear && item.month === month);
-      chartData.push(found ? Number(found.revenue) : 0);
+      // Tìm dữ liệu cho tháng này, ưu tiên năm gần nhất
+      const found = data.find(item => item.month === month);
+      const revenue = found ? Number(found.revenue) : 0;
+      chartData.push(revenue);
+      
+      if (found) {
+        console.log(`✅ Month ${month}: ${revenue} VND (year: ${found.year})`);
+      }
     }
+    
+    console.log('📊 Processed chart data:', chartData);
     return chartData;
   };
 
@@ -64,12 +73,15 @@ export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChar
       setLoading(true);
       const result = await OperationsMetricsService.getMonthlyRevenue();
       
+      console.log('📊 Monthly Revenue Data:', result);
+      console.log('📊 Monthly Revenue Array:', result.monthlyRevenue);
+      
       setMonthlyData(result.monthlyRevenue);
       setTotalRevenue(result.totalRevenue);
       setAverageRevenue(result.averageRevenue);
       setGrowthPercent(result.growthPercent);
     } catch (error) {
-      console.error('Error fetching monthly revenue:', error);
+      console.error('❌ Error fetching monthly revenue:', error);
     } finally {
       setLoading(false);
     }
@@ -97,6 +109,9 @@ export default function MonthlyRevenueChart({ onRefreshAll }: MonthlyRevenueChar
 
   const labels = generateLabels();
   const chartDataValues = processChartData(monthlyData);
+  
+  console.log('📈 Chart Data Values:', chartDataValues);
+  console.log('📈 Chart Labels:', labels);
 
   // Format số để hiển thị (VND -> tỷ/triệu, có dấu phân tách)
   // Hiển thị đầy đủ số, có dấu, có đơn vị VND

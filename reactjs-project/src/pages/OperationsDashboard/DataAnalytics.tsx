@@ -28,6 +28,7 @@ import {
   CorrelationAnalysis,
   FeatureImportance,
   CategoryDistribution,
+  BackorderPrediction,
 } from '../../types/Analytics';
 
 const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -140,6 +141,7 @@ export default function DataAnalytics() {
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [correlation, setCorrelation] = useState<CorrelationAnalysis | null>(null);
   const [featureImportance, setFeatureImportance] = useState<FeatureImportance[]>([]);
+  const [backorderPredictions, setBackorderPredictions] = useState<BackorderPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -153,17 +155,19 @@ export default function DataAnalytics() {
       setLoading(true);
       setError(null);
 
-      const [overviewData, correlationData, featuresData] = await Promise.all([
+      const [overviewData, correlationData, featuresData, predictionsData] = await Promise.all([
         analyticsAPI.getAnalyticsOverview(),
         analyticsAPI.getCorrelationAnalysis(),
         analyticsAPI.getFeatureImportance(),
+        analyticsAPI.getBackorderPredictions(20),
       ]);
 
-      console.log('✅ Analytics data loaded:', { overviewData, correlationData, featuresData });
+      console.log('✅ Analytics data loaded:', { overviewData, correlationData, featuresData, predictionsData });
 
       setOverview(overviewData);
       setCorrelation(correlationData);
       setFeatureImportance(featuresData);
+      setBackorderPredictions(predictionsData);
 
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
@@ -338,67 +342,160 @@ export default function DataAnalytics() {
                   <p className="text-xs text-gray-600 mt-1">Danh sách sản phẩm được dự đoán sẽ thiếu hàng - cần nhập thêm</p>
                 </div>
                 <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
-                  {Math.floor(overview?.backorderProducts! * 0.3)} items
+                  {backorderPredictions.length} items
                 </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="bg-gray-100 border-b-2 border-gray-300">
-                      <th className="text-left p-3 font-semibold text-gray-700">SKU</th>
-                      <th className="text-left p-3 font-semibold text-gray-700">Product Name</th>
-                      <th className="text-center p-3 font-semibold text-gray-700">Current Stock</th>
-                      <th className="text-center p-3 font-semibold text-gray-700">Backorder Prob.</th>
-                      <th className="text-center p-3 font-semibold text-gray-700">Recommended Qty</th>
-                      <th className="text-center p-3 font-semibold text-gray-700">Priority</th>
-                      <th className="text-center p-3 font-semibold text-gray-700">Action</th>
+                      <th className="text-left p-3 font-semibold text-gray-700 whitespace-nowrap">SKU</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Stock</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Min Bank</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">In Transit</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Past Due</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Prob. %</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Rec. Qty</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Sales 3M</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Perf 6M</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Priority</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Flags</th>
+                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Sample data - sẽ thay bằng API thực tế */}
-                    {[
-                      { sku: 'SKU-001', name: 'Product A', stock: 12, prob: 95, rec: 500, priority: 'High' },
-                      { sku: 'SKU-045', name: 'Product B', stock: 8, prob: 92, rec: 300, priority: 'High' },
-                      { sku: 'SKU-123', name: 'Product C', stock: 25, prob: 88, rec: 250, priority: 'High' },
-                      { sku: 'SKU-078', name: 'Product D', stock: 35, prob: 78, rec: 200, priority: 'Medium' },
-                      { sku: 'SKU-234', name: 'Product E', stock: 50, prob: 72, rec: 150, priority: 'Medium' },
-                    ].map((item, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-                        <td className="p-3 font-mono text-xs text-gray-700">{item.sku}</td>
-                        <td className="p-3 font-semibold text-gray-800">{item.name}</td>
-                        <td className="p-3 text-center">
-                          <span className="text-orange-600 font-semibold">{item.stock}</span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[60px]">
-                              <div
-                                className={`h-2 rounded-full ${
-                                  item.prob >= 90 ? 'bg-red-600' : item.prob >= 75 ? 'bg-orange-500' : 'bg-yellow-500'
-                                }`}
-                                style={{ width: `${item.prob}%` }}
-                              />
+                    {backorderPredictions.length > 0 ? (
+                      backorderPredictions.map((item, idx) => (
+                        <tr key={idx} className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
+                          <td className="p-2 font-mono text-xs text-gray-700">{item.sku}</td>
+                          
+                          {/* Current Stock */}
+                          <td className="p-2 text-center">
+                            <span className={`font-semibold ${
+                              item.currentStock === 0 ? 'text-red-600' : 
+                              item.currentStock < (item.minBank || 0) ? 'text-orange-600' : 'text-green-600'
+                            }`}>
+                              {Math.round(item.currentStock)}
+                            </span>
+                          </td>
+                          
+                          {/* Min Bank */}
+                          <td className="p-2 text-center">
+                            <span className="text-gray-600 text-xs">{Math.round(item.minBank || 0)}</span>
+                          </td>
+                          
+                          {/* In Transit */}
+                          <td className="p-2 text-center">
+                            {item.inTransitQty && item.inTransitQty > 0 ? (
+                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">
+                                {Math.round(item.inTransitQty)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">-</span>
+                            )}
+                          </td>
+                          
+                          {/* Pieces Past Due */}
+                          <td className="p-2 text-center">
+                            {item.piecesPastDue && item.piecesPastDue > 0 ? (
+                              <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs font-bold">
+                                {Math.round(item.piecesPastDue)}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">-</span>
+                            )}
+                          </td>
+                          
+                          {/* Backorder Probability */}
+                          <td className="p-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[40px]">
+                                <div
+                                  className={`h-2 rounded-full ${
+                                    item.backorderProbability >= 90 ? 'bg-red-600' : 
+                                    item.backorderProbability >= 75 ? 'bg-orange-500' : 'bg-yellow-500'
+                                  }`}
+                                  style={{ width: `${item.backorderProbability}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">
+                                {Math.round(item.backorderProbability)}%
+                              </span>
                             </div>
-                            <span className="text-xs font-semibold text-gray-700">{item.prob}%</span>
-                          </div>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className="text-green-600 font-bold">{item.rec}</span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            item.priority === 'High' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {item.priority}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <button className="bg-blue-500/90 hover:bg-blue-600 backdrop-blur-sm text-white px-3 py-2 rounded text-xs font-medium transition-all shadow-sm hover:shadow-md">
-                            Order Now
-                          </button>
+                          </td>
+                          
+                          {/* Recommended Qty */}
+                          <td className="p-2 text-center">
+                            <span className="text-green-600 font-bold text-sm">{item.recommendedQty}</span>
+                          </td>
+                          
+                          {/* Sales 3 Month */}
+                          <td className="p-2 text-center">
+                            <span className="text-gray-600 text-xs">{Math.round(item.sales3Month || 0)}</span>
+                          </td>
+                          
+                          {/* Perf 6 Month Avg */}
+                          <td className="p-2 text-center">
+                            {item.perf6MonthAvg !== undefined && item.perf6MonthAvg !== null && item.perf6MonthAvg !== -99 ? (
+                              <span className={`text-xs font-semibold ${
+                                item.perf6MonthAvg >= 0.9 ? 'text-green-600' :
+                                item.perf6MonthAvg >= 0.7 ? 'text-yellow-600' : 'text-red-600'
+                              }`}>
+                                {(item.perf6MonthAvg * 100).toFixed(0)}%
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">-</span>
+                            )}
+                          </td>
+                          
+                          {/* Priority */}
+                          <td className="p-2 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+                              item.priority === 'High' ? 'bg-red-100 text-red-800' : 
+                              item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                            }`}>
+                              {item.priority}
+                            </span>
+                          </td>
+                          
+                          {/* Flags */}
+                          <td className="p-2 text-center">
+                            <div className="flex flex-col gap-0.5">
+                              {item.stopAutoBuy === 'Yes' && (
+                                <span className="bg-purple-100 text-purple-800 px-1 py-0.5 rounded text-[10px] font-semibold">
+                                  STOP
+                                </span>
+                              )}
+                              {item.revStop === 'Yes' && (
+                                <span className="bg-red-100 text-red-800 px-1 py-0.5 rounded text-[10px] font-semibold">
+                                  REV
+                                </span>
+                              )}
+                              {item.stopAutoBuy !== 'Yes' && item.revStop !== 'Yes' && (
+                                <span className="text-gray-400 text-xs">-</span>
+                              )}
+                            </div>
+                          </td>
+                          
+                          {/* Action */}
+                          <td className="p-2 text-center">
+                            <button 
+                              className="bg-blue-500/90 hover:bg-blue-600 backdrop-blur-sm text-white px-2 py-1 rounded text-xs font-medium transition-all shadow-sm hover:shadow-md whitespace-nowrap disabled:bg-gray-400 disabled:cursor-not-allowed"
+                              disabled={item.stopAutoBuy === 'Yes' || item.revStop === 'Yes'}
+                              title={item.stopAutoBuy === 'Yes' || item.revStop === 'Yes' ? 'Cannot order - blocked by flags' : 'Place order'}
+                            >
+                              {item.stopAutoBuy === 'Yes' || item.revStop === 'Yes' ? 'Blocked' : 'Order'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={12} className="p-6 text-center text-gray-500">
+                          No backorder predictions available
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>

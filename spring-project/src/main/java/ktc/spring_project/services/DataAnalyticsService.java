@@ -206,4 +206,134 @@ public class DataAnalyticsService {
 
         return features;
     }
+    
+    /**
+     * Get Backorder Predictions - High Risk Products
+     * 
+     * Cached for 20 minutes
+     * Cache key: "predictions:{limit}"
+     */
+    @Cacheable(value = ANALYTICS_CACHE, key = "'predictions:' + #limit")
+    public List<ktc.spring_project.dto.BackorderPredictionDTO> getBackorderPredictions(int limit) {
+        List<Map<String, Object>> rawData = repository.getHighRiskBackorderPredictions(limit);
+        List<ktc.spring_project.dto.BackorderPredictionDTO> predictions = new ArrayList<>();
+        
+        for (Map<String, Object> row : rawData) {
+            String sku = (String) row.get("sku");
+            Double currentStock = safeConvertToDouble(row.get("currentStock"));
+            Double leadTime = safeConvertToDouble(row.get("leadTime"));
+            Double forecast3Month = safeConvertToDouble(row.get("forecast3Month"));
+            Double sales3Month = safeConvertToDouble(row.get("sales3Month"));
+            Double minBank = safeConvertToDouble(row.get("minBank"));
+            Double inTransitQty = safeConvertToDouble(row.get("inTransitQty"));
+            Double piecesPastDue = safeConvertToDouble(row.get("piecesPastDue"));
+            Double perf6MonthAvg = safeConvertToDouble(row.get("perf6MonthAvg"));
+            String potentialIssue = (String) row.get("potentialIssue");
+            String deckRisk = (String) row.get("deckRisk");
+            String stopAutoBuy = (String) row.get("stopAutoBuy");
+            String revStop = (String) row.get("revStop");
+            
+            // Calculate backorder probability based on multiple factors
+            double probability = calculateBackorderProbability(currentStock, forecast3Month, sales3Month, minBank, potentialIssue, deckRisk, leadTime);
+            
+            // Calculate recommended quantity
+            int recommendedQty = calculateRecommendedQuantity(currentStock, forecast3Month, sales3Month, minBank);
+            
+            // Determine priority
+            String priority = determinePriority(probability, currentStock, minBank);
+            
+            // Generate product name from SKU
+            String productName = "Product " + sku.substring(Math.max(0, sku.length() - 4));
+            
+            predictions.add(new ktc.spring_project.dto.BackorderPredictionDTO(
+                sku,
+                productName,
+                currentStock,
+                probability,
+                recommendedQty,
+                priority,
+                leadTime,
+                forecast3Month,
+                minBank,
+                inTransitQty,
+                piecesPastDue,
+                sales3Month,
+                perf6MonthAvg,
+                stopAutoBuy,
+                revStop
+            ));
+        }
+        
+        return predictions;
+    }
+    
+    private double calculateBackorderProbability(Double currentStock, Double forecast, Double sales, 
+                                                  Double minBank, String potentialIssue, String deckRisk, Double leadTime) {
+        double baseProbability = 50.0;
+        
+        // Stock level impact (most important)
+        if (currentStock == 0) baseProbability += 40.0;
+        else if (currentStock < minBank * 0.5) baseProbability += 30.0;
+        else if (currentStock < minBank) baseProbability += 20.0;
+        
+        // Forecast vs stock
+        if (forecast > currentStock * 2) baseProbability += 15.0;
+        else if (forecast > currentStock) baseProbability += 10.0;
+        
+        // Sales trend
+        if (sales > currentStock) baseProbability += 10.0;
+        
+        // Risk flags
+        if ("Yes".equals(potentialIssue)) baseProbability += 5.0;
+        if ("Yes".equals(deckRisk)) baseProbability += 5.0;
+        
+        // Lead time
+        if (leadTime > 8) baseProbability += 5.0;
+        
+        return Math.min(99.0, baseProbability);
+    }
+    
+    private int calculateRecommendedQuantity(Double currentStock, Double forecast, Double sales, Double minBank) {
+        // Recommend enough to cover forecast + safety stock
+        double safetyStock = minBank * 1.5;
+        double targetStock = Math.max(forecast, sales) + safetyStock;
+        int recommended = (int) Math.ceil(targetStock - currentStock);
+        
+        // Round to reasonable quantities
+        if (recommended < 50) return Math.max(50, recommended);
+        else if (recommended < 100) return ((recommended / 50) + 1) * 50;
+        else if (recommended < 500) return ((recommended / 100) + 1) * 100;
+        else return ((recommended / 500) + 1) * 500;
+    }
+    
+    private String determinePriority(double probability, Double currentStock, Double minBank) {
+        if (probability >= 90 || currentStock == 0) return "High";
+        else if (probability >= 75 || currentStock < minBank * 0.5) return "High";
+        else if (probability >= 60) return "Medium";
+        else return "Low";
+    }
+    
+    /**
+     * Helper method to safely convert database values to Double
+     * Handles both String and Number types from native queries
+     */
+    private Double safeConvertToDouble(Object value) {
+        if (value == null) {
+            return 0.0;
+        }
+        
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        
+        if (value instanceof String) {
+            try {
+                return Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                return 0.0;
+            }
+        }
+        
+        return 0.0;
+    }
 }
