@@ -350,11 +350,8 @@ export default function DataAnalytics() {
                   <thead>
                     <tr className="bg-gray-100 border-b-2 border-gray-300">
                       <th className="text-left p-3 font-semibold text-gray-700 whitespace-nowrap">SKU</th>
-                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Stock</th>
-                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Min Bank</th>
                       <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">In Transit</th>
                       <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Past Due</th>
-                      <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Prob. %</th>
                       <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Rec. Qty</th>
                       <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Sales 3M</th>
                       <th className="text-center p-3 font-semibold text-gray-700 whitespace-nowrap">Perf 6M</th>
@@ -368,21 +365,6 @@ export default function DataAnalytics() {
                       backorderPredictions.map((item, idx) => (
                         <tr key={idx} className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
                           <td className="p-2 font-mono text-xs text-gray-700">{item.sku}</td>
-                          
-                          {/* Current Stock */}
-                          <td className="p-2 text-center">
-                            <span className={`font-semibold ${
-                              item.currentStock === 0 ? 'text-red-600' : 
-                              item.currentStock < (item.minBank || 0) ? 'text-orange-600' : 'text-green-600'
-                            }`}>
-                              {Math.round(item.currentStock)}
-                            </span>
-                          </td>
-                          
-                          {/* Min Bank */}
-                          <td className="p-2 text-center">
-                            <span className="text-gray-600 text-xs">{Math.round(item.minBank || 0)}</span>
-                          </td>
                           
                           {/* In Transit */}
                           <td className="p-2 text-center">
@@ -404,24 +386,6 @@ export default function DataAnalytics() {
                             ) : (
                               <span className="text-gray-400 text-xs">-</span>
                             )}
-                          </td>
-                          
-                          {/* Backorder Probability */}
-                          <td className="p-2 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[40px]">
-                                <div
-                                  className={`h-2 rounded-full ${
-                                    item.backorderProbability >= 90 ? 'bg-red-600' : 
-                                    item.backorderProbability >= 75 ? 'bg-orange-500' : 'bg-yellow-500'
-                                  }`}
-                                  style={{ width: `${item.backorderProbability}%` }}
-                                />
-                              </div>
-                              <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">
-                                {Math.round(item.backorderProbability)}%
-                              </span>
-                            </div>
                           </td>
                           
                           {/* Recommended Qty */}
@@ -491,7 +455,7 @@ export default function DataAnalytics() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={12} className="p-6 text-center text-gray-500">
+                        <td colSpan={9} className="p-6 text-center text-gray-500">
                           No backorder predictions available
                         </td>
                       </tr>
