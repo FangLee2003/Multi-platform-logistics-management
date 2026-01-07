@@ -106,37 +106,44 @@ export default function OrderList() {
   }, [refetch, isSearchMode]);
 
   return (
-    <div className="bg-gradient-to-br from-blue-50/80 via-white/90 to-blue-100/80 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl max-w-full overflow-x-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <div>
-          <div className="text-3xl font-extrabold mb-2 text-blue-900 tracking-tight">Order Management</div>
-          <div className="text-gray-500 text-base">Manage and track all delivery orders</div>
-          <div className="text-sm text-blue-600 mt-1">💡 {'Click on order to view route on map'}</div>
+    <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/60">
+      <div className="space-y-6">
+        {/* Header and Search Section */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <div className="flex flex-col gap-6">
+            {/* Header */}
+            <div className="border-l-4 border-blue-600 pl-4">
+              <div className="text-2xl font-bold text-gray-900">Order Management</div>
+              <div className="text-gray-600 text-sm mt-1">Manage and track all delivery orders</div>
+              <div className="text-sm text-blue-600 mt-1">💡 {'Click on order to view route on map'}</div>
+            </div>
+            
+            {/* Search */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder='Search by order ID, customer name, or address'
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm bg-white"
+                value={searchId}
+                onChange={e => setSearchId(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                disabled={loading || searching}
+              />
+              <button
+                onClick={handleSearch}
+                disabled={!searchId.trim() || loading || searching}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg transition-colors duration-200 font-semibold text-sm"
+              >
+                {searching ? 'Loading' : 'Search'}
+              </button>
+            </div>
+          </div>
         </div>
-        
-        {/* Search order by ID and Refresh button */}
-        <div className="flex items-center gap-2 bg-white/80 border border-blue-100 rounded-xl px-3 py-2 shadow">
-          <input
-            type="text"
-            placeholder='Search by order ID, customer name, or address'
-            className="px-2 py-1 rounded border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
-            value={searchId}
-            onChange={e => setSearchId(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-            disabled={loading || searching}
-          />
-          <button
-            onClick={handleSearch}
-            disabled={!searchId.trim() || loading || searching}
-            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded transition-colors duration-200 font-semibold"
-          >
-            {searching ? 'Loading' : 'Search'}
-          </button>
-        </div>
-      </div>
-      
-      {error || fetchError ? (
-        <div className="text-center py-8 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
+
+        {/* Content Section */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          {error || fetchError ? (
+        <div className="text-center py-8 px-4 bg-red-50 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
           {error || (fetchError as Error)?.message || 'No orders found'}
         </div>
       ) : (
@@ -274,6 +281,8 @@ export default function OrderList() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

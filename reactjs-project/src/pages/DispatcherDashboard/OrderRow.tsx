@@ -16,7 +16,7 @@ export default function OrderRow({ orderId }: OrderRowProps) {
     setLoading(true);
     setError("");
     Promise.all([
-      fetchOrderItemsByOrderIdPaged(orderId, 0, 3), // Chỉ load 3 sản phẩm đầu tiên để preview
+      fetchOrderItemsByOrderIdPaged(orderId, 0, 3), // Load only first 3 products for preview
       fetchOrderTotalQuantity(orderId)
     ])
       .then(([pagedResult, total]) => {
@@ -24,30 +24,30 @@ export default function OrderRow({ orderId }: OrderRowProps) {
         setItemCount(pagedResult.totalElements);
         setTotalQuantity(total);
       })
-      .catch((err) => setError(err.message || "Lỗi tải dữ liệu"))
+      .catch((err) => setError(err.message || "Error loading data"))
       .finally(() => setLoading(false));
   }, [orderId]);
 
-  if (loading) return <div>Đang tải sản phẩm...</div>;
+  if (loading) return <div>Loading products...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
     <div>
-      <div className="font-semibold text-blue-900 mb-1">Sản phẩm:</div>
+      <div className="font-semibold text-blue-900 mb-1">Products:</div>
       <ul className="list-disc ml-6 text-gray-800 text-sm">
         {previewItems.map(item => {
-          // Lấy tên sản phẩm từ ProductItem
-          const name = item.product?.name || "(Không rõ tên)";
+          // Get product name from ProductItem
+          const name = item.product?.name || "(Unknown name)";
           return (
-            <li key={item.id}>{name} <span className="text-gray-500">(SL: {item.quantity})</span></li>
+            <li key={item.id}>{name} <span className="text-gray-500">(Qty: {item.quantity})</span></li>
           );
         })}
         {itemCount > 3 && (
-          <li className="text-blue-600 font-medium">... và {itemCount - 3} sản phẩm khác</li>
+          <li className="text-blue-600 font-medium">... and {itemCount - 3} more products</li>
         )}
       </ul>
       <div className="mt-2 text-sm text-gray-700">
-        Tổng số lượng: <span className="font-bold text-blue-700">{totalQuantity}</span>
+        Total quantity: <span className="font-bold text-blue-700">{totalQuantity}</span>
         {itemCount > 0 && (
           <span className="ml-2 text-gray-500">({itemCount} sản phẩm)</span>
         )}

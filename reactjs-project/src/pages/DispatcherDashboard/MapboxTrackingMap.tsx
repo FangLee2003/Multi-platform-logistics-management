@@ -325,7 +325,7 @@ export default function MapboxTrackingMap() {
         trackingId = trackingData.id;
         lat = trackingData.latitude ? trackingData.latitude.toFixed(6) : (vehiclePos ? vehiclePos[1].toFixed(6) : 'N/A');
         lng = trackingData.longitude ? trackingData.longitude.toFixed(6) : (vehiclePos ? vehiclePos[0].toFixed(6) : 'N/A');
-        location = trackingData.location || selectedOrder?.store?.storeName || 'Điểm tracking mới';
+        location = trackingData.location || selectedOrder?.store?.storeName || 'New tracking point';
         timestamp = trackingData.timestamp ? new Date(trackingData.timestamp).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN');
       } else {
         trackingWarning = '<div style="color: #FFD700; font-size: 13px; margin-bottom: 8px;">Chưa có tracking cho đơn này hoặc tracking không khớp!</div>';
@@ -437,7 +437,7 @@ export default function MapboxTrackingMap() {
             <span role="img" aria-label="warning">⚠️</span> Chưa có giao hàng cho đơn này
           </div>
           <div className="text-base text-yellow-800">{'Order'}: <span className="text-blue-700">#{orderId}</span></div>
-          <div className="text-sm text-yellow-700">Hệ thống chưa tạo delivery cho đơn này. Vui lòng kiểm tra lại việc gán xe và backend.</div>
+          <div className="text-sm text-yellow-700">System has not created delivery for this order yet. Please check vehicle assignment and backend.</div>
         </div>
       );
     }

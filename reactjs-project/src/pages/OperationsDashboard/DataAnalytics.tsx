@@ -289,7 +289,7 @@ export default function DataAnalytics() {
               <p className="text-2xl md:text-3xl font-bold text-red-600">
                 {Math.floor(overview.backorderProducts * 0.3)?.toLocaleString() || '0'}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Cần nhập ngay</p>
+              <p className="text-xs text-gray-500 mt-1">Import immediately</p>
             </div>
             <div className="bg-white rounded-lg shadow p-5 border-l-4 border-green-500 hover:shadow-md transition-shadow">
               <h3 className="text-gray-500 text-xs font-semibold mb-1 uppercase tracking-wide">Predicted Safe Stock</h3>
@@ -339,7 +339,7 @@ export default function DataAnalytics() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-gray-800">Backorder Prediction - Products Need Action</h3>
-                  <p className="text-xs text-gray-600 mt-1">Danh sách sản phẩm được dự đoán sẽ thiếu hàng - cần nhập thêm</p>
+                  <p className="text-xs text-gray-600 mt-1">List of products predicted to be out of stock - need to import more</p>
                 </div>
                 <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
                   {backorderPredictions.length} items

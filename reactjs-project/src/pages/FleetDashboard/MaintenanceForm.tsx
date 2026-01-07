@@ -170,9 +170,17 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
   };
 
   return (
-    <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-xl">
-      <div className="text-xl font-bold mb-2">{'Schedule Maintenance'}</div>
-      <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <div className="border-l-4 border-violet-600 pl-4">
+          <h2 className="text-2xl font-bold text-gray-900">{'Schedule Maintenance'}</h2>
+        </div>
+      </div>
+
+      {/* Form Section */}
+      <div className="bg-white rounded-xl p-6 shadow-lg">
+        <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
         <div>
           <label className="block text-sm font-medium mb-1">Vehicle <span className='text-red-500'>*</span></label>
           <select
@@ -270,6 +278,7 @@ export default function MaintenanceForm({ onAddMaintenance, onMaintenanceCreated
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

@@ -41,11 +41,28 @@ export default function MaintenanceHistory() {
   const paginatedData = data.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-xl">
-      <div className="text-xl font-bold mb-2">{'Maintenance History'}</div>
-      {loading && <div>{'Loading'}</div>}
-      {error && <div className="text-red-500">{error}</div>}
-      <div className="flex flex-col gap-4">
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <div className="border-l-4 border-yellow-600 pl-4">
+          <h2 className="text-2xl font-bold text-gray-900">{'Maintenance History'}</h2>
+        </div>
+      </div>
+
+      {/* Content Section */}
+      <div className="bg-white rounded-xl p-6 shadow-lg">
+        {loading && (
+          <div className="flex items-center justify-center p-12">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
+              <span className="text-gray-600 font-medium">Loading...</span>
+            </div>
+          </div>
+        )}
+        {error && <div className="text-red-500 text-center p-4">{error}</div>}
+        {!loading && !error && (
+          <>
+            <div className="flex flex-col gap-4">
         {paginatedData.map((item) => (
           <div
             key={item.id}
@@ -108,6 +125,9 @@ export default function MaintenanceHistory() {
           </button>
         </div>
       )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

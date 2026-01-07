@@ -56,10 +56,10 @@ export default function MaintenanceModal({
             <div className="text-center py-12">
               <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Không có xe cần bảo trì
+                No vehicles need maintenance
               </h3>
               <p className="text-gray-500">
-                Tất cả xe hiện tại đều đang trong tình trạng tốt.
+                All current vehicles are in good condition.
               </p>
             </div>
           ) : (
@@ -79,7 +79,7 @@ export default function MaintenanceModal({
                         </h3>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                           <AlertCircle className="w-3 h-3 mr-1" />
-                          Cần bảo trì
+                          Needs Maintenance
                         </span>
                       </div>
 
@@ -100,11 +100,11 @@ export default function MaintenanceModal({
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
                             <User className="w-4 h-4 mr-2" />
-                            Tài xế hiện tại
+                            Current Driver
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-600">Tên: </span>
+                              <span className="text-gray-600">Name: </span>
                               <span className="font-medium">
                                 {vehicle.currentDriver?.fullName || vehicle.driver?.name || "N/A"}
                               </span>
@@ -124,11 +124,11 @@ export default function MaintenanceModal({
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <div className="flex items-center text-sm text-gray-600">
                           <Calendar className="w-4 h-4 mr-2" />
-                          <span>Bảo trì gần nhất: </span>
+                          <span>Last maintenance: </span>
                           <span className="font-medium">
                             {vehicle.lastMaintenance
-                              ? new Date(vehicle.lastMaintenance).toLocaleDateString('vi-VN')
-                              : "Chưa có"}
+                              ? new Date(vehicle.lastMaintenance).toLocaleDateString('en-US')
+                              : "Not yet"}
                           </span>
                         </div>
                       </div>
@@ -140,7 +140,7 @@ export default function MaintenanceModal({
                         onClick={() => onViewDetails(vehicle)}
                         className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                       >
-                        Xem chi tiết
+                        View Details
                       </button>
                       <button 
                         onClick={() => {

@@ -124,7 +124,7 @@ export default function OrderDetailModal({ open, onClose, orderItem, products, d
               )}
               {addressDetail?.contactPhone && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Số điện thoại người nhận</label>
+                  <label className="block text-sm font-medium text-gray-700">Recipient Phone Number</label>
                   <p className="text-gray-900">{addressDetail.contactPhone}</p>
                 </div>
               )}

@@ -177,11 +177,11 @@ export default function ResourceMonitoring() {
     
     // Handle Vietnamese status display names from backend
     switch (status) {
-      case 'Sẵn sàng': return 'text-green-600';
-      case 'Đang sử dụng': return 'text-blue-600';
-      case 'Bảo trì': return 'text-yellow-600';
-      case 'Đang bảo trì': return 'text-yellow-600';
-      case 'Chờ bảo trì': return 'text-orange-600';
+      case 'Available': return 'text-green-600';
+      case 'In Use': return 'text-blue-600';
+      case 'Maintenance': return 'text-yellow-600';
+      case 'Under Maintenance': return 'text-yellow-600';
+      case 'Awaiting Maintenance': return 'text-orange-600';
       default: return 'text-gray-800';
     }
   };
@@ -195,8 +195,8 @@ export default function ResourceMonitoring() {
     }
     
     // FORCE OVERRIDE for Vietnamese text from backend
-    if (status === 'Đang sử dụng') {
-      console.log('💥 FORCE OVERRIDE: Đang sử dụng → In Use');
+    if (status === 'In Use') {
+      console.log('💥 FORCE OVERRIDE: In Use → In Use');
       return 'In Use';
     }
     if (status === 'Sẵn sàng') {

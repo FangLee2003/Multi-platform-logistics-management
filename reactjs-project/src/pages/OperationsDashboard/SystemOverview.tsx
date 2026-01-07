@@ -5,39 +5,39 @@ import GlassButton from '../../components/GlassButton';
 export default function SystemOverview() {
 
   const systemStats = [
-    { title: 'Uptime hệ thống', value: '99.8%', icon: '🟢', trend: { value: 0.2, isPositive: true } },
-    { title: 'Tải CPU', value: '23%', icon: '💻', subtitle: 'Bình thường' },
-    { title: 'Bộ nhớ sử dụng', value: '67%', icon: '🧠', subtitle: '8.2GB/12GB' },
-    { title: 'Kết nối DB', value: '145ms', icon: '🗄️', trend: { value: 12, isPositive: false } },
+    { title: 'System Uptime', value: '99.8%', icon: '🟢', trend: { value: 0.2, isPositive: true } },
+    { title: 'CPU Load', value: '23%', icon: '💻', subtitle: 'Normal' },
+    { title: 'Memory Used', value: '67%', icon: '🧠', subtitle: '8.2GB/12GB' },
+    { title: 'DB Connection', value: '145ms', icon: '🗄️', trend: { value: 12, isPositive: false } },
   ];
 
   const alerts = [
     { 
       id: 1, 
       level: 'warning', 
-      message: 'Xe tải VT-003 cần bảo trì định kỳ', 
-      time: '10 phút trước',
-      source: 'Hệ thống bảo trì'
+      message: 'Truck VT-003 needs scheduled maintenance', 
+      time: '10 minutes ago',
+      source: 'Maintenance System'
     },
     { 
       id: 2, 
       level: 'info', 
-      message: 'Cập nhật phần mềm v2.1.3 có sẵn', 
-      time: '2 giờ trước',
-      source: 'Hệ thống'
+      message: 'Software update v2.1.3 available', 
+      time: '2 hours ago',
+      source: 'System'
     },
     { 
       id: 3, 
       level: 'error', 
-      message: 'Lỗi kết nối GPS xe VT-007', 
-      time: '5 giờ trước',
+      message: 'GPS connection error for vehicle VT-007', 
+      time: '5 hours ago',
       source: 'GPS Tracking'
     },
     { 
       id: 4, 
       level: 'success', 
-      message: 'Backup dữ liệu hoàn thành', 
-      time: '1 ngày trước',
+      message: 'Data backup completed', 
+      time: '1 day ago',
       source: 'Backup System'
     },
   ];
@@ -65,13 +65,13 @@ export default function SystemOverview() {
   return (
     <GlassCard className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Tổng quan hệ thống</h2>
+        <h2 className="text-xl font-semibold text-white">System Overview</h2>
         <div className="flex gap-2">
           <GlassButton size="sm" variant="green">
-            📊 Báo cáo
+            📊 Report
           </GlassButton>
           <GlassButton size="sm" variant="primary">
-            ⚙️ Cài đặt
+            ⚙️ Settings
           </GlassButton>
         </div>
       </div>
@@ -92,13 +92,13 @@ export default function SystemOverview() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* System Health */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-white">Tình trạng hệ thống</h3>
+          <h3 className="text-lg font-medium text-white">System Status</h3>
           <div className="space-y-3">
             {[
-              { service: 'API Gateway', status: 'Hoạt động', uptime: '99.9%' },
-              { service: 'Database', status: 'Hoạt động', uptime: '99.8%' },
-              { service: 'GPS Service', status: 'Cảnh báo', uptime: '98.2%' },
-              { service: 'Notification', status: 'Hoạt động', uptime: '99.7%' },
+              { service: 'API Gateway', status: 'Active', uptime: '99.9%' },
+              { service: 'Database', status: 'Active', uptime: '99.8%' },
+              { service: 'GPS Service', status: 'Warning', uptime: '98.2%' },
+              { service: 'Notification', status: 'Active', uptime: '99.7%' },
             ].map((service, index) => (
               <div 
                 key={index}
@@ -106,14 +106,14 @@ export default function SystemOverview() {
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${
-                    service.status === 'Hoạt động' ? 'bg-green-400' : 'bg-yellow-400'
+                    service.status === 'Active' ? 'bg-green-400' : 'bg-yellow-400'
                   }`} />
                   <span className="text-white font-medium">{service.service}</span>
                 </div>
                 <div className="text-right">
                   <div className="text-white/80 text-sm">{service.uptime}</div>
                   <div className={`text-xs ${
-                    service.status === 'Hoạt động' ? 'text-green-400' : 'text-yellow-400'
+                    service.status === 'Active' ? 'text-green-400' : 'text-yellow-400'
                   }`}>
                     {service.status}
                   </div>
@@ -126,9 +126,9 @@ export default function SystemOverview() {
         {/* Recent Alerts */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-white">Cảnh báo gần đây</h3>
+            <h3 className="text-lg font-medium text-white">Recent Alerts</h3>
             <GlassButton size="sm" variant="secondary">
-              Xem tất cả
+              View all
             </GlassButton>
           </div>
           <div className="space-y-3">
@@ -158,12 +158,12 @@ export default function SystemOverview() {
 
       {/* Quick Actions */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium text-white">Hành động nhanh</h3>
+        <h3 className="text-lg font-medium text-white">Quick Actions</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Backup ngay', icon: '💾', variant: 'primary' as const },
+            { label: 'Backup now', icon: '💾', variant: 'primary' as const },
             { label: 'Restart services', icon: '🔄', variant: 'secondary' as const },
-            { label: 'Xem logs', icon: '📋', variant: 'secondary' as const },
+            { label: 'View logs', icon: '📋', variant: 'secondary' as const },
             { label: 'Maintenance mode', icon: '🛠️', variant: 'danger' as const },
           ].map((action, index) => (
             <GlassButton

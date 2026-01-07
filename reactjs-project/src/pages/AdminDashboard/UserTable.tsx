@@ -265,7 +265,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      alert('Lỗi khi thêm user mới. Vui lòng thử lại!');
+      alert('Error adding new user. Please try again!');
     }
   };
 
@@ -437,7 +437,7 @@ export default function UserTable({ onUserCountUpdate }: UserTableProps) {
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
-        alert('Lỗi khi xóa user. Vui lòng thử lại!');
+        alert('Error deleting user. Please try again!');
       }
     }
   };

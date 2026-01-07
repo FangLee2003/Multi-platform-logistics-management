@@ -33,7 +33,7 @@ const StatsCard = React.memo<{
   style?: React.CSSProperties;
 }>(({ title, value, icon, color, onClick, style }) => (
   <div
-    className={`bg-white/30 hover:bg-white/40 rounded-xl p-3 md:p-6 shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${color} ${
+    className={`bg-white rounded-xl p-3 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 border-l-4 ${color} ${
       onClick ? "cursor-pointer" : ""
     }`}
     onClick={onClick}
@@ -234,37 +234,28 @@ export default function FleetDashboard({
               className={`flex flex-col items-center py-2 px-1 ${tab === "vehicles" ? "text-blue-600" : "text-gray-600"}`}
             >
               <MdManageAccounts className="text-xl mb-1" />
-              <span className="text-xs">Phương tiện</span>
+              <span className="text-xs">Vehicles</span>
             </button>
             <button
               onClick={() => handleTabChange("maintenance")}
               className={`flex flex-col items-center py-2 px-1 ${tab === "maintenance" ? "text-blue-600" : "text-gray-600"}`}
             >
               <AiOutlineSetting className="text-xl mb-1" />
-              <span className="text-xs">Bảo trì</span>
+              <span className="text-xs">Maintenance</span>
             </button>
             <button
               onClick={() => handleTabChange("schedule")}
               className={`flex flex-col items-center py-2 px-1 ${tab === "schedule" ? "text-blue-600" : "text-gray-600"}`}
             >
               <FiActivity className="text-xl mb-1" />
-              <span className="text-xs">Lịch</span>
+              <span className="text-xs">Schedule</span>
             </button>
           </div>
         </div>
         <div className="p-3 md:p-10 space-y-6 md:space-y-8 pb-16 md:pb-0">
           {tab === "vehicles" && (
-            <>
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={refreshVehicles}
-                  className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white rounded-full font-semibold shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
-                  title={'Refresh vehicle list'}
-                >
-                  <RefreshCw className={isLoading ? "animate-spin" : ""} size={20} />
-                  <span className="hidden md:inline">Refresh List</span>
-                </button>
-              </div>
+            <div className="space-y-6">
+              {/* Stats Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <StatsCard
                   title={'Total Vehicles'}
@@ -293,6 +284,9 @@ export default function FleetDashboard({
                   style={{ cursor: "pointer" }}
                 />
               </div>
+
+              {/* Search/Filter and Vehicle Table - Combined */}
+              <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg p-6 border border-white/60">
               <SearchAndFilter
                 searchTerm={searchTerm}
                 statusFilter={statusFilter}
@@ -302,22 +296,24 @@ export default function FleetDashboard({
                 showAddForm={showAddForm}
                 resultsCount={filteredVehicles.length}
                 totalCount={vehicles.length}
+                onRefresh={refreshVehicles}
+                isRefreshing={isLoading}
               />
                 {showAddForm && (
-                <div className="bg-white rounded-xl p-3 md:p-6 shadow-lg border-l-4 border-violet-500">
+                <div className="bg-gray-50 rounded-xl p-3 md:p-6 border-l-4 border-violet-500 mt-6">
                   <div className="flex items-center justify-between mb-4 md:mb-6">
                     <div>
                       <h3 className="text-lg md:text-xl font-bold text-gray-900">
-                        {'Thêm phương tiện mới'}
+                        Add New Vehicle
                       </h3>
                       <p className="text-gray-600 mt-1 text-sm md:text-base">
-                        {'Đăng ký phương tiện mới vào hệ thống quản lý'}
+                        Register a new vehicle in the system
                       </p>
                     </div>
                     {isLoading && (
                       <div className="flex items-center gap-2 text-violet-600">
                         <div className="w-4 h-4 border-2 border-violet-600 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-sm">{'Đang thêm...'}</span>
+                        <span className="text-sm">Adding...</span>
                       </div>
                     )}
                   </div>
@@ -332,14 +328,8 @@ export default function FleetDashboard({
                   onCancel={handleCancelEdit}
                 />
               )}
-              <div className="bg-white/30 hover:bg-white/40 rounded-xl p-3 md:p-6 shadow-lg">
-                <div className="flex items-center justify-between mb-4 md:mb-6">
-                  <div>
-                    <h1 className="text-lg md:text-xl font-bold text-gray-900">
-                      {'Vehicle Management'}
-                    </h1>
-                  </div>
-                </div>
+              
+              <div className="mt-6">
                 {filteredVehicles.length === 0 ? (
                   <div className="text-center py-12">
                     <Truck size={48} className="mx-auto text-gray-400 mb-4" />
@@ -374,15 +364,16 @@ export default function FleetDashboard({
                   </>
                 )}
               </div>
-            </>
+              </div>
+            </div>
           )}
           {tab === "maintenance" && (
-            <div className="animate-fadeIn">
+            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/60 animate-fadeIn">
               <MaintenanceHistory />
             </div>
           )}
           {tab === "schedule" && (
-            <div className="animate-fadeIn">
+            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/60 animate-fadeIn">
               <MaintenanceForm
                 onAddMaintenance={handleAddMaintenance}
                 onMaintenanceCreated={refreshVehicles}
@@ -421,7 +412,7 @@ export default function FleetDashboard({
           <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4 md:mb-6">
               <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-                Đặt lịch bảo trì - {selectedMaintenance.vehicle.licensePlate}
+                Schedule Maintenance - {selectedMaintenance.vehicle.licensePlate}
               </h2>
               <button
                 onClick={() => {

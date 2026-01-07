@@ -208,13 +208,13 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           {stats.map((s, idx) => (
             <div
               key={idx}
-              className="bg-white/40 backdrop-blur-lg border border-white/50 shadow-lg rounded-xl px-3 md:px-6 py-3 md:py-5 flex flex-col justify-between h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl"
+              className="bg-white rounded-xl px-3 md:px-6 py-3 md:py-5 flex flex-col justify-between h-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
             >
-              <div className="text-gray-700 text-xs md:text-base mb-1 md:mb-2 font-medium drop-shadow-sm">
+              <div className="text-gray-700 text-xs md:text-base mb-1 md:mb-2 font-medium">
                 {s.label}
               </div>
               <div className="flex items-center justify-between">
-                <div className="text-lg md:text-2xl font-bold text-blue-900 drop-shadow-sm">
+                <div className="text-lg md:text-2xl font-bold text-gray-800">
                   {s.value}
                 </div>
                 <div className="flex items-center text-lg md:text-3xl">{s.icon}</div>

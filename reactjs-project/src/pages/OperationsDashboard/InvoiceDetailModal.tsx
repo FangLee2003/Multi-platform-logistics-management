@@ -106,7 +106,7 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
               
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Tên khách hàng:</span>
+                  <span className="text-gray-600">Customer name:</span>
                   <span className="font-medium">{invoice.customerName || '-'}</span>
                 </div>
                 
@@ -134,32 +134,32 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
                   </div>
                   
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Mô tả:</span>
+                    <span className="text-gray-600">Description:</span>
                     <span className="font-medium">{invoice.order.description || '-'}</span>
                   </div>
                   
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Ngày tạo:</span>
+                    <span className="text-gray-600">Created date:</span>
                     <span className="font-medium">{invoiceAPI.formatDate(invoice.order.createdAt)}</span>
                   </div>
                   
                   {invoice.order.status && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Trạng thái đơn hàng:</span>
+                      <span className="text-gray-600">Order status:</span>
                       <span className="font-medium">{invoice.order.status.name}</span>
                     </div>
                   )}
                   
                   {invoice.order.pickupAddress && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Địa chỉ lấy hàng:</span>
+                      <span className="text-gray-600">Pickup address:</span>
                       <span className="font-medium text-right max-w-xs">{invoice.order.pickupAddress}</span>
                     </div>
                   )}
                   
                   {invoice.order.deliveryAddress && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Địa chỉ giao hàng:</span>
+                      <span className="text-gray-600">Delivery address:</span>
                       <span className="font-medium text-right max-w-xs">{invoice.order.deliveryAddress}</span>
                     </div>
                   )}
@@ -179,7 +179,7 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
                 
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tên cửa hàng:</span>
+                    <span className="text-gray-600">Store name:</span>
                     <span className="font-medium">{invoice.order.store.name}</span>
                   </div>
                   
@@ -190,14 +190,14 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
                   
                   {invoice.order.store.phone && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Số điện thoại:</span>
+                      <span className="text-gray-600">Phone number:</span>
                       <span className="font-medium">{invoice.order.store.phone}</span>
                     </div>
                   )}
                   
                   {invoice.order.store.address && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Địa chỉ:</span>
+                      <span className="text-gray-600">Address:</span>
                       <span className="font-medium text-right max-w-xs">{invoice.order.store.address}</span>
                     </div>
                   )}
@@ -224,7 +224,7 @@ const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({ invoice, onClos
                   <div className="text-2xl font-bold text-gray-800">
                     {invoiceAPI.formatCurrency(invoice.totalAmount)}
                   </div>
-                  <div className="text-sm text-gray-600">Tổng tiền (bao gồm VAT)</div>
+                  <div className="text-sm text-gray-600">Total (including VAT)</div>
                 </div>
                 
                 <div className="text-center">

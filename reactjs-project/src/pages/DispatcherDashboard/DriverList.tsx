@@ -124,21 +124,18 @@ export default function DriverList() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Quản lý tài xế</h2>
-            
+    <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/60">
+      <div className="space-y-6">
+      {/* Header and Search Section - Combined */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <div className="flex flex-col gap-6">
+          {/* Header */}
+          <div className="border-l-4 border-indigo-600 pl-4">
+            <h2 className="text-2xl font-bold text-gray-900">Driver Management</h2>
           </div>
           
-        </div>
-      </div>
-
-      {/* Search and Filter Section */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-md border border-white/50">
-        <div className="flex flex-col md:flex-row gap-4 items-center">
+          {/* Search */}
+          <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,18 +144,19 @@ export default function DriverList() {
             </div>
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
+              placeholder="Search by name, email or phone number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
             />
           </div>
           
         </div>
+        </div>
       </div>
 
       {/* Content Section */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-white/50 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         {driversLoading ? (
           <div className="flex items-center justify-center p-12">
             <div className="flex items-center gap-3">
@@ -188,7 +186,7 @@ export default function DriverList() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy tài xế</h3>
               <p className="text-gray-500">
-                {searchTerm ? "Không có tài xế nào phù hợp với từ khóa tìm kiếm" : "Chưa có tài xế nào trong hệ thống"}
+                {searchTerm ? "No drivers match the search keyword" : "No drivers in the system yet"}
               </p>
             </div>
           </div>
@@ -197,7 +195,7 @@ export default function DriverList() {
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50/80 backdrop-blur-sm">
+                <thead className="bg-gray-100">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Tài xế
@@ -271,6 +269,7 @@ export default function DriverList() {
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }

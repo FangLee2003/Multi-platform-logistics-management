@@ -626,41 +626,50 @@ export default function OrdersAssignment(_props: any) {
           if (detailOrder) fetchOrderProductsPaged(detailOrder.id, page);
         }}
       />
-      <div className="bg-gradient-to-br from-blue-50/80 via-white/80 to-blue-100/80 backdrop-blur-2xl rounded-3xl p-8 border border-white/40 shadow-2xl max-w-full overflow-x-auto">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 shadow-lg">
-            <FaUserCog className="text-3xl text-blue-600" />
-          </span>
-          <div>
-            <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight">{"Order Assignment Management"}</h3>
-            <p className="text-gray-600 mt-1">{""} {totalOrders} {"orders"}</p>
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-16 text-gray-500 text-lg animate-pulse">{""}...</div>
-      ) : error ? (
-        <div className="text-center py-12 px-4 bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2">
-          <FaTimes className="text-xl text-red-500" />
-          {(error as Error)?.message || ""}
-        </div>
-      ) : (
-        <>
-          {successMessage && (
-            <div className="mb-6 p-4 bg-green-100/90 border border-green-300 rounded-xl text-green-900 flex items-center gap-3 shadow-lg animate-fade-in">
-              <FaCheck className="text-2xl text-green-600" />
-              <span className="font-semibold text-base">{successMessage}</span>
+      <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/60">
+        <div className="space-y-6">
+          {/* Header Section */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center gap-4 border-l-4 border-purple-600 pl-4">
+              <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 shadow-lg">
+                <FaUserCog className="text-3xl text-purple-600" />
+              </span>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">{"Order Assignment Management"}</h3>
+                <p className="text-gray-600 mt-1">{totalOrders} {"orders"}</p>
+              </div>
             </div>
-          )}
+          </div>
 
-          <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/60 overflow-x-auto shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px]">
-                <thead className="sticky top-0 z-10">
-                  <tr className="bg-gradient-to-r from-blue-100/80 via-white/80 to-blue-50/80 border-b border-blue-200/60 shadow-sm">
-                    <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Order Code"}</th>
+          {/* Content Section */}
+          <div className="bg-white rounded-xl shadow-lg">
+            {loading ? (
+              <div className="flex items-center justify-center p-12">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  <span className="text-gray-600 font-medium text-lg">Loading...</span>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12 px-4 bg-red-50 border border-red-200 rounded-xl text-red-700 font-semibold shadow flex items-center justify-center gap-2 m-6">
+                <FaTimes className="text-xl text-red-500" />
+                {(error as Error)?.message || ""}
+              </div>
+            ) : (
+              <>
+                {successMessage && (
+                  <div className="m-6 mb-0 p-4 bg-green-50 border border-green-300 rounded-xl text-green-900 flex items-center gap-3 shadow-lg animate-fade-in">
+                    <FaCheck className="text-2xl text-green-600" />
+                    <span className="font-semibold text-base">{successMessage}</span>
+                  </div>
+                )}
+
+                <div className="bg-gray-50 rounded-2xl overflow-x-auto shadow-inner m-6">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[900px]">
+                      <thead className="sticky top-0 z-10">
+                        <tr className="bg-gray-100 border-b border-gray-200">
+                          <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Order Code"}</th>
                     <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Products"}</th>
                     <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Customer"}</th>
                     <th className="text-left p-5 font-bold text-gray-900 tracking-wide">{"Route"}</th>
@@ -674,8 +683,8 @@ export default function OrdersAssignment(_props: any) {
                   {paginatedData.map((order: OrderType, index: number) => (
                     <tr
                       key={order.id}
-                      className={`border-b border-blue-100/40 hover:bg-blue-50/40 transition-all duration-200 ${
-                        index % 2 === 0 ? 'bg-white/60' : 'bg-blue-50/30'
+                      className={`border-b border-gray-100 hover:bg-gray-50 transition-all duration-200 ${
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                       }`}
                     >
                       <td className="p-5 align-top">
@@ -1010,14 +1019,15 @@ export default function OrdersAssignment(_props: any) {
           </div>
 
           {paginatedData.length === 0 && (
-            <div className="text-center py-16 text-gray-500">
+            <div className="text-center py-16 text-gray-500 m-6">
               <FaUserCog className="text-5xl mx-auto mb-4 opacity-40" />
               <p className="text-xl font-semibold">{"No orders waiting for assignment"}</p>
             </div>
           )}
         </>
       )}
-      
+          </div>
+        </div>
       </div>
     </>
   );

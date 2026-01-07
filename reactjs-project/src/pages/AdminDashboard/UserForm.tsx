@@ -46,9 +46,9 @@ export default function UserForm({ onAdd, onClose, user }: UserFormProps) {
   const [password, setPassword] = useState(user?.password || "");
   const [phone, setPhone] = useState(user?.phone || "");
 
-  // Format số điện thoại
+  // Format phone number
   const formatPhoneNumber = (value: string) => {
-    // Chỉ giữ lại số
+    // Keep only digits
     const phoneNumber = value.replace(/[^\d]/g, '');
     
     // Format theo pattern: 0123 456 789
@@ -77,7 +77,7 @@ export default function UserForm({ onAdd, onClose, user }: UserFormProps) {
     
     setPassword(user?.password || "");
     
-    // Format số điện thoại khi load
+    // Format phone number on load
     if (user?.phone) {
       setPhone(formatPhoneNumber(user.phone));
     } else {
@@ -88,26 +88,26 @@ export default function UserForm({ onAdd, onClose, user }: UserFormProps) {
     setPhoneError("");
   }, [user]);
 
-  // Kiểm tra email
+  // Validate email
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
     
     if (value && !value.includes('@')) {
-      setEmailError(`Vui lòng bao gồm '@' trong địa chỉ email. '${value}' bị thiếu '@'.`);
+      setEmailError(`Please include '@' in the email address. '${value}' is missing '@'.`);
     } else {
       setEmailError("");
     }
   };
 
-  // Xử lý số điện thoại
+  // Handle phone number
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const rawValue = e.target.value;
   
-  // Chỉ giữ lại số từ input
+  // Keep only digits from input
   const phoneDigits = rawValue.replace(/[^\d]/g, '');
   
-  // Giới hạn ở 10 chữ số
+  // Limit to 10 digits
   const limitedDigits = phoneDigits.slice(0, 10);
   
   // Format theo pattern: 0123 456 789
@@ -120,38 +120,38 @@ export default function UserForm({ onAdd, onClose, user }: UserFormProps) {
     formattedValue = `${limitedDigits.slice(0, 4)} ${limitedDigits.slice(4, 7)} ${limitedDigits.slice(7)}`;
   }
   
-  // Luôn cập nhật state phone để có thể nhập từng chữ số
+  // Always update phone state to allow digit input
   setPhone(formattedValue);
   
-  // Hiển thị lỗi nếu không đủ 10 chữ số
+  // Show error if not exactly 10 digits
   if (formattedValue.trim() !== "" && limitedDigits.length !== 10) {
-    setPhoneError("Số điện thoại phải đúng 10 chữ số!");
+    setPhoneError("Phone number must be exactly 10 digits!");
   } else {
     setPhoneError("");
   }
 };
 
-// Sửa validate trong handleSubmit
+// Validate in handleSubmit
 const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
   
   // Validate phone required
   const phoneDigits = phone.replace(/[^\d]/g, '');
   if (!phone.trim()) {
-    setPhoneError("Số điện thoại không được để trống!");
+    setPhoneError("Phone number cannot be empty!");
     return;
   } else if (phoneDigits.length !== 10) {
-    setPhoneError("Số điện thoại phải đúng 10 chữ số!");
+    setPhoneError("Phone number must be exactly 10 digits!");
     return;
   }
     
     // Validate email
     if (!email.includes('@')) {
-      setEmailError(`Vui lòng bao gồm '@' trong địa chỉ email. '${email}' bị thiếu '@'.`);
+      setEmailError(`Please include '@' in the email address. '${email}' is missing '@'.`);
       return;
     }
     
-    // Kiểm tra lỗi trước khi submit
+    // Check for errors before submit
     if (emailError || phoneError) {
       return;
     }
@@ -159,7 +159,7 @@ const handleSubmit = (e: React.FormEvent) => {
     console.log("[UserForm] handleSubmit with role:", role);
     const selectedRole = roles.find(r => r.value === role) || roles[0];
     
-    // Lưu số điện thoại chỉ là số, bỏ định dạng khoảng trắng
+    // Save phone as digits only, remove spacing format
     const cleanPhone = phone.replace(/\s/g, '');
     
     const userToSubmit = {

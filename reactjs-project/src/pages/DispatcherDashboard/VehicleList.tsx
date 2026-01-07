@@ -89,7 +89,7 @@ export default function VehicleList() {
     } catch (err: any) {
       setVehicles([]);
       setTotalVehicles(0);
-      setVehiclesError(err.message || "Đã xảy ra lỗi khi tải phương tiện");
+      setVehiclesError(err.message || "An error occurred while loading vehicles");
     } finally {
       setVehiclesLoading(false);
     }
@@ -108,18 +108,18 @@ export default function VehicleList() {
     setAssignSuccess("");
     try {
       if (!selectedDriverId) {
-        // Nếu chọn 'Chưa gán tài xế', gửi driverId là null
+        // If selecting 'No driver assigned', send driverId as null
         await assignDriverToVehicle(selectedVehicle.id, null);
-        // Nếu bỏ gán tài xế, chuyển trạng thái về AVAILABLE
+        // If unassigning driver, change status back to AVAILABLE
         await updateVehicleStatus(selectedVehicle.id, "AVAILABLE");
-        setAssignSuccess("Đã bỏ gán tài xế!");
+        setAssignSuccess("Driver unassigned!");
       } else {
         const driverObj = drivers.find(d => String(d.id) === String(selectedDriverId));
-        if (!driverObj) throw new Error("Không tìm thấy tài xế");
+        if (!driverObj) throw new Error("Driver not found");
         await assignDriverToVehicle(selectedVehicle.id, driverObj.id ?? "");
-        // Sau khi gán tài xế, chuyển trạng thái xe sang IN_USE
+        // After assigning driver, change vehicle status to IN_USE
         await updateVehicleStatus(selectedVehicle.id, "IN_USE");
-        setAssignSuccess("Gán tài xế thành công!");
+        setAssignSuccess("Driver assigned successfully!");
       }
       // Refresh vehicles after assignment (local, context, và dashboard fleet)
       fetchVehicles(currentPage, itemsPerPage);
@@ -193,7 +193,7 @@ export default function VehicleList() {
       
     } catch (err: any) {
       console.error("Failed to update vehicle status:", err);
-      alert(`Lỗi cập nhật trạng thái xe: ${err.message}`);
+      alert(`Error updating vehicle status: ${err.message}`);
     } finally {
       setUpdatingStatus(null);
     }
@@ -242,7 +242,7 @@ export default function VehicleList() {
       case 'MAINTENANCE_PENDING':
         badgeProps = {
           color: 'red-800',
-          text: 'Cần bảo trì',
+          text: 'Needs Maintenance',
           border: 'red-200',
           bg: 'red-100',
           icon: 'red-500',
@@ -251,7 +251,7 @@ export default function VehicleList() {
       case 'AVAILABLE':
         badgeProps = {
           color: 'green-800',
-          text: 'Sẵn sàng',
+          text: 'Available',
           border: 'green-200',
           bg: 'green-100',
           icon: 'green-500',
@@ -260,7 +260,7 @@ export default function VehicleList() {
       case 'IN_USE':
         badgeProps = {
           color: 'red-800',
-          text: 'Đang sử dụng',
+          text: 'In Use',
           border: 'red-200',
           bg: 'red-100',
           icon: 'red-500',
@@ -269,7 +269,7 @@ export default function VehicleList() {
       case 'MAINTENANCE':
         badgeProps = {
           color: 'gray-800',
-          text: 'Bảo trì',
+          text: 'Maintenance',
           border: 'gray-200',
           bg: 'gray-100',
           icon: 'gray-500',
@@ -278,7 +278,7 @@ export default function VehicleList() {
       default:
         badgeProps = {
           color: 'gray-800',
-          text: 'Không xác định',
+          text: 'Unknown',
           border: 'gray-200',
           bg: 'gray-100',
           icon: 'gray-500',
@@ -301,19 +301,18 @@ export default function VehicleList() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Quản lý phương tiện</h2>
+    <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/60">
+      <div className="space-y-6">
+      {/* Header and Search Section - Combined */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <div className="flex flex-col gap-6">
+          {/* Header */}
+          <div className="border-l-4 border-blue-600 pl-4">
+            <h2 className="text-2xl font-bold text-gray-900">Vehicle Management</h2>
           </div>
-        </div>
-      </div>
-
-      {/* Search and Filter Section */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-md border border-white/50">
-        <div className="flex flex-col md:flex-row gap-4 items-center">
+          
+          {/* Search and Filter */}
+          <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,10 +321,10 @@ export default function VehicleList() {
             </div>
             <input
               type="text"
-              placeholder="Tìm kiếm theo biển số, loại xe hoặc tài xế..."
+              placeholder="Search by license plate, vehicle type or driver..."
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
             />
           </div>
           
@@ -335,7 +334,7 @@ export default function VehicleList() {
             <select
               value={statusFilter}
               onChange={(e) => handleStatusFilterChange(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm"
+              className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
             >
               <option value="all">Tất cả</option>
               <option value="available">Sẵn sàng</option>
@@ -344,10 +343,11 @@ export default function VehicleList() {
             </select>
           </div>
         </div>
+        </div>
       </div>
 
       {/* Vehicle List Content */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md border border-white/50">
+      <div className="bg-white rounded-xl shadow-lg">
         {vehiclesLoading ? (
           <div className="flex items-center justify-center p-12">
             <div className="flex items-center gap-3">
@@ -387,7 +387,7 @@ export default function VehicleList() {
             {/* Vehicle List */}
             <div className="space-y-4 p-6">
               {currentVehicles.map((vehicle) => (
-                <div key={vehicle.id} className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+                <div key={vehicle.id} className="bg-white rounded-xl border border-gray-200 shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden hover:border-blue-300">
                   <div className="flex items-center p-4 gap-4">
                     {/* Vehicle Icon & Info */}
                     <div className="flex items-center gap-4 flex-1">
@@ -607,7 +607,7 @@ export default function VehicleList() {
                             Đang gán...
                           </div>
                         ) : (
-                          "Xác nhận gán"
+                          "Confirm Assignment"
                         )}
                       </button>
                     </div>
@@ -618,6 +618,7 @@ export default function VehicleList() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

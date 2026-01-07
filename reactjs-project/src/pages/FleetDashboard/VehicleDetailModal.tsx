@@ -174,7 +174,7 @@ export default function VehicleDetailModal({
                 <div className="flex items-center space-x-3">
                   <User className="text-gray-400" size={20} />
                   <div>
-                    <p className="text-sm text-gray-500">Tên tài xế</p>
+                    <p className="text-sm text-gray-500">Driver Name</p>
                     <p className="font-medium">
                       {vehicle.driver?.name ||
                         vehicle.currentDriver?.fullName ||
@@ -186,7 +186,7 @@ export default function VehicleDetailModal({
                 <div className="flex items-center space-x-3">
                   <Phone className="text-gray-400" size={20} />
                   <div>
-                    <p className="text-sm text-gray-500">Số điện thoại</p>
+                    <p className="text-sm text-gray-500">Phone Number</p>
                     <p className="font-medium">
                       {vehicle.driver?.phone ||
                         vehicle.currentDriver?.phone ||
@@ -197,7 +197,7 @@ export default function VehicleDetailModal({
               </>
             ) : (
               <div className="text-gray-500 italic">
-                Chưa có tài xế được phân công
+                No driver assigned yet
               </div>
             )}
           </div>
