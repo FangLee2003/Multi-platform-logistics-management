@@ -40,3 +40,4 @@ NEXTJS_I18N_FIXES.md
 *.log
 *.sh
 verify_kpi_data.sql
+spring-project/src/main/resources/application.properties

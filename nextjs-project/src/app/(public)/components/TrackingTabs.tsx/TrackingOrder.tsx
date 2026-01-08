@@ -93,7 +93,7 @@ export default function TrackingOrder({
                 if (!val.trim()) setTrackingResult(null);
               }}
               placeholder="Enter tracking code (e.g., FR001, FR002...)"
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700 focus:border-green-700 text-sm sm:text-base"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700 focus:border-green-700 text-sm sm:text-base text-black"
             />
             <button
               type="submit"
